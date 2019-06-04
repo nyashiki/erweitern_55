@@ -1,0 +1,11 @@
+[package]
+name = "minishogi_lib"
+version = "0.1.0"
+authors = ["nyashiki"]
+edition = "2018"
+
+[lib]
+name = "minishogi_lib"
+crate-type = ["dylib"]
+
+[dependencies]
