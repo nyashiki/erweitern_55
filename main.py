@@ -1,4 +1,4 @@
-from minishogilib.target.release import minishogilib
+import minishogilib
 
 def main():
   minishogilib.hello_world()
