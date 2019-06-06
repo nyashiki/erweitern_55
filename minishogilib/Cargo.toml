@@ -1,0 +1,13 @@
+[package]
+name = "minishogilib"
+version = "0.1.0"
+authors = ["nakayashiki <tnakayashiki01@gmail.com>"]
+
+[lib]
+name = "minishogilib"
+crate-type = ["cdylib"]
+
+[dependencies.pyo3]
+version = "0.7.0"
+features = ["extension-module"]
+
