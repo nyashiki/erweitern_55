@@ -80,6 +80,34 @@ impl Piece {
     pub fn is_raw(self) -> bool {
         !self.is_promoted()
     }
+
+    pub fn get_color(self) -> Color {
+        match self {
+            Piece::NoPiece => Color::NoColor,
+
+            Piece::WKing    => Color::White,
+            Piece::WGold    => Color::White,
+            Piece::WSilver  => Color::White,
+            Piece::WBishop  => Color::White,
+            Piece::WRook    => Color::White,
+            Piece::WPawn    => Color::White,
+            Piece::WSilverX => Color::White,
+            Piece::WBishopX => Color::White,
+            Piece::WRookX   => Color::White,
+            Piece::WPawnX   => Color::White,
+
+            Piece::BKing    => Color::Black,
+            Piece::BGold    => Color::Black,
+            Piece::BSilver  => Color::Black,
+            Piece::BBishop  => Color::Black,
+            Piece::BRook    => Color::Black,
+            Piece::BPawn    => Color::Black,
+            Piece::BSilverX => Color::Black,
+            Piece::BBishopX => Color::Black,
+            Piece::BRookX   => Color::Black,
+            Piece::BPawnX   => Color::Black,
+        }
+    }
 }
 
 impl std::fmt::Display for Piece {
@@ -236,6 +264,33 @@ fn is_raw_test() {
     assert!(PieceType::Bishop.is_raw());
     assert!(PieceType::Rook.is_raw());
     assert!(PieceType::Pawn.is_raw());
+}
+
+#[test]
+fn get_color_test() {
+    assert!(Piece::NoPiece.get_color()  == Color::NoColor);
+
+    assert!(Piece::WKing.get_color()    == Color::White);
+    assert!(Piece::WGold.get_color()    == Color::White);
+    assert!(Piece::WSilver.get_color()  == Color::White);
+    assert!(Piece::WBishop.get_color()  == Color::White);
+    assert!(Piece::WRook.get_color()    == Color::White);
+    assert!(Piece::WPawn.get_color()    == Color::White);
+    assert!(Piece::WSilverX.get_color() == Color::White);
+    assert!(Piece::WBishopX.get_color() == Color::White);
+    assert!(Piece::WRookX.get_color()   == Color::White);
+    assert!(Piece::WPawnX.get_color()   == Color::White);
+
+    assert!(Piece::BKing.get_color()    == Color::Black);
+    assert!(Piece::BGold.get_color()    == Color::Black);
+    assert!(Piece::BSilver.get_color()  == Color::Black);
+    assert!(Piece::BBishop.get_color()  == Color::Black);
+    assert!(Piece::BRook.get_color()    == Color::Black);
+    assert!(Piece::BPawn.get_color()    == Color::Black);
+    assert!(Piece::BSilverX.get_color() == Color::Black);
+    assert!(Piece::BBishopX.get_color() == Color::Black);
+    assert!(Piece::BRookX.get_color()   == Color::Black);
+    assert!(Piece::BPawnX.get_color()   == Color::Black);
 }
 
 pub const SQUARE_NB: usize = 5 * 5;
