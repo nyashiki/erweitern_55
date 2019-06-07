@@ -1,5 +1,9 @@
+use pyo3::prelude::*;
+
 use types::*;
 
+#[pyclass]
+#[derive(Copy, Clone)]
 pub struct Position {
     pub side_to_move: Color,
     pub board: [Piece; SQUARE_NB],
@@ -7,14 +11,16 @@ pub struct Position {
     pub ply: u16
 }
 
+#[pymethods]
 impl Position {
-    pub fn new() -> Position {
-        Position {
+    #[new]
+    pub fn new(obj: &PyRawObject) {
+        obj.init(Position {
             side_to_move: Color::NoColor,
             board: [Piece::NoPiece; SQUARE_NB],
             hand: [[0; 5]; 2],
             ply: 0
-        }
+        });
     }
 
     pub fn print(self) {
