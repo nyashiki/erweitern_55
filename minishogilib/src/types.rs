@@ -1,8 +1,9 @@
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 #[repr(u8)]
 pub enum Color {
     White = 0,
-    Black = 1
+    Black = 1,
+    NoColor
 }
 
 impl Color {
@@ -21,7 +22,7 @@ fn get_op_color_test() {
     assert!(Color::Black.get_op_color() == Color::White);
 }
 
-#[derive(PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 #[repr(u8)]
 pub enum Piece {
     NoPiece = 0,
@@ -81,7 +82,37 @@ impl Piece {
     }
 }
 
-#[derive(PartialEq)]
+impl std::fmt::Display for Piece {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Piece::NoPiece  => write!(f, " * "),
+
+            Piece::WKing    => write!(f, "\x1b[38;2;0;100;200m K \x1b[0m"),
+            Piece::WGold    => write!(f, "\x1b[38;2;0;100;200m G \x1b[0m"),
+            Piece::WSilver  => write!(f, "\x1b[38;2;0;100;200m S \x1b[0m"),
+            Piece::WBishop  => write!(f, "\x1b[38;2;0;100;200m B \x1b[0m"),
+            Piece::WRook    => write!(f, "\x1b[38;2;0;100;200m R \x1b[0m"),
+            Piece::WPawn    => write!(f, "\x1b[38;2;0;100;200m P \x1b[0m"),
+            Piece::WSilverX => write!(f, "\x1b[38;2;0;100;200m Sx\x1b[0m"),
+            Piece::WBishopX => write!(f, "\x1b[38;2;0;100;200m Bx\x1b[0m"),
+            Piece::WRookX   => write!(f, "\x1b[38;2;0;100;200m Rx\x1b[0m"),
+            Piece::WPawnX   => write!(f, "\x1b[38;2;0;100;200m Px\x1b[0m"),
+
+            Piece::BKing    => write!(f, "\x1b[38;2;250;200;50mvK \x1b[0m"),
+            Piece::BGold    => write!(f, "\x1b[38;2;250;200;50mvvG \x1b[0m"),
+            Piece::BSilver  => write!(f, "\x1b[38;2;250;200;50mvvS \x1b[0m"),
+            Piece::BBishop  => write!(f, "\x1b[38;2;250;200;50mvvB \x1b[0m"),
+            Piece::BRook    => write!(f, "\x1b[38;2;250;200;50mvvR \x1b[0m"),
+            Piece::BPawn    => write!(f, "\x1b[38;2;250;200;50mvvP \x1b[0m"),
+            Piece::BSilverX => write!(f, "\x1b[38;2;250;200;50mvvSx\x1b[0m"),
+            Piece::BBishopX => write!(f, "\x1b[38;2;250;200;50mvvBx\x1b[0m"),
+            Piece::BRookX   => write!(f, "\x1b[38;2;250;200;50mvvRx\x1b[0m"),
+            Piece::BPawnX   => write!(f, "\x1b[38;2;250;200;50mvvPx\x1b[0m"),
+        }
+    }
+}
+
+#[derive(Copy, Clone, PartialEq)]
 #[repr(u8)]
 pub enum PieceType {
     NoPieceType = 0,
@@ -206,3 +237,5 @@ fn is_raw_test() {
     assert!(PieceType::Rook.is_raw());
     assert!(PieceType::Pawn.is_raw());
 }
+
+pub const SQUARE_NB: usize = 5 * 5;
