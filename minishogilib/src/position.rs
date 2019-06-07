@@ -43,4 +43,64 @@ impl Position {
 
         println!("ply: {}", self.ply);
     }
+
+    pub fn set_sfen(&mut self, sfen: &str) {
+        let mut square: usize = 0;
+        let mut promote: bool = false;
+
+        let mut sfen_split = sfen.split_whitespace();
+
+        for c in sfen_split.next().unwrap().chars() {
+            if c == '+' {
+                promote = true;
+                continue;
+            }
+
+            if c == '/' {
+                continue;
+            }
+
+            if c.is_ascii_digit() {
+                square += ((c as u8) - ('0' as u8)) as usize;
+                continue;
+            }
+
+            let mut piece = char_to_piece(c);
+
+            if promote {
+                piece = piece.get_promoted();
+            }
+
+            self.board[square] = piece;
+
+            promote = false;
+            square += 1;
+        }
+    }
+
+    pub fn set_start_position(&mut self) {
+        static START_POSITION_SFEN: &str = "rbsgk/4p/5/P4/KGSBR b - 1";
+
+        self.set_sfen(START_POSITION_SFEN);
+    }
+}
+
+fn char_to_piece(c: char) -> Piece {
+    match c {
+        'K' => Piece::WKing,
+        'G' => Piece::WGold,
+        'S' => Piece::WSilver,
+        'B' => Piece::WBishop,
+        'R' => Piece::WRook,
+        'P' => Piece::WPawn,
+
+        'k' => Piece::BKing,
+        'g' => Piece::BGold,
+        's' => Piece::BSilver,
+        'b' => Piece::BBishop,
+        'r' => Piece::BRook,
+        'p' => Piece::BPawn,
+
+        _ => Piece::NoPiece
+    }
 }

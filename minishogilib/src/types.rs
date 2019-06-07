@@ -99,15 +99,15 @@ impl std::fmt::Display for Piece {
             Piece::WPawnX   => write!(f, "\x1b[38;2;0;100;200m Px\x1b[0m"),
 
             Piece::BKing    => write!(f, "\x1b[38;2;250;200;50mvK \x1b[0m"),
-            Piece::BGold    => write!(f, "\x1b[38;2;250;200;50mvvG \x1b[0m"),
-            Piece::BSilver  => write!(f, "\x1b[38;2;250;200;50mvvS \x1b[0m"),
-            Piece::BBishop  => write!(f, "\x1b[38;2;250;200;50mvvB \x1b[0m"),
-            Piece::BRook    => write!(f, "\x1b[38;2;250;200;50mvvR \x1b[0m"),
-            Piece::BPawn    => write!(f, "\x1b[38;2;250;200;50mvvP \x1b[0m"),
-            Piece::BSilverX => write!(f, "\x1b[38;2;250;200;50mvvSx\x1b[0m"),
-            Piece::BBishopX => write!(f, "\x1b[38;2;250;200;50mvvBx\x1b[0m"),
-            Piece::BRookX   => write!(f, "\x1b[38;2;250;200;50mvvRx\x1b[0m"),
-            Piece::BPawnX   => write!(f, "\x1b[38;2;250;200;50mvvPx\x1b[0m"),
+            Piece::BGold    => write!(f, "\x1b[38;2;250;200;50mvG \x1b[0m"),
+            Piece::BSilver  => write!(f, "\x1b[38;2;250;200;50mvS \x1b[0m"),
+            Piece::BBishop  => write!(f, "\x1b[38;2;250;200;50mvB \x1b[0m"),
+            Piece::BRook    => write!(f, "\x1b[38;2;250;200;50mvR \x1b[0m"),
+            Piece::BPawn    => write!(f, "\x1b[38;2;250;200;50mvP \x1b[0m"),
+            Piece::BSilverX => write!(f, "\x1b[38;2;250;200;50mvSx\x1b[0m"),
+            Piece::BBishopX => write!(f, "\x1b[38;2;250;200;50mvBx\x1b[0m"),
+            Piece::BRookX   => write!(f, "\x1b[38;2;250;200;50mvRx\x1b[0m"),
+            Piece::BPawnX   => write!(f, "\x1b[38;2;250;200;50mvPx\x1b[0m"),
         }
     }
 }
