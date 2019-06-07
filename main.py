@@ -1,8 +1,9 @@
 import minishogilib
 
 def main():
-  minishogilib.hello_world()
+  position = minishogilib.Position()
+  position.set_start_position()
+  position.print()
 
 if __name__ == '__main__':
   main()
-
