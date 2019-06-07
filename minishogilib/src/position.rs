@@ -37,7 +37,7 @@ impl Position {
 
         print!("BLACK HAND: ");
         for i in 0..5 {
-            print!("{}: {}, ", hand_str[i], self.hand[(Color::White as usize)][i]);
+            print!("{}: {}, ", hand_str[i], self.hand[(Color::Black as usize)][i]);
         }
         println!("");
 
@@ -50,6 +50,7 @@ impl Position {
 
         let mut sfen_split = sfen.split_whitespace();
 
+        // sfenから盤面を設定
         for c in sfen_split.next().unwrap().chars() {
             if c == '+' {
                 promote = true;
@@ -75,6 +76,35 @@ impl Position {
 
             promote = false;
             square += 1;
+        }
+
+        // 手番を設定
+        if sfen_split.next() == Some("b") {
+            self.side_to_move = Color::White;
+        } else {
+            self.side_to_move = Color::Black;
+        }
+
+        // 持ち駒を設定
+        let mut count: u8 = 1;
+        for c in sfen_split.next().unwrap().chars() {
+            if c == '-' {
+                continue;
+            }
+
+            if c.is_ascii_digit() {
+                count = (c as u8) - ('0' as u8);
+                continue;
+            }
+
+            let piece = char_to_piece(c);
+            let color = piece.get_color();
+            let piece_type = piece.get_piece_type();
+            let hand_index = (piece_type as usize) - 2;
+
+            self.hand[color as usize][hand_index] = count;
+
+            count = 1;
         }
     }
 
