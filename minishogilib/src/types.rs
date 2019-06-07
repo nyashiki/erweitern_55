@@ -108,6 +108,34 @@ impl Piece {
             Piece::BPawnX   => Color::Black,
         }
     }
+
+    pub fn get_piece_type(self) -> PieceType {
+        match self {
+            Piece::NoPiece  => PieceType::NoPieceType,
+
+            Piece::WKing    => PieceType::King,
+            Piece::WGold    => PieceType::Gold,
+            Piece::WSilver  => PieceType::Silver,
+            Piece::WBishop  => PieceType::Bishop,
+            Piece::WRook    => PieceType::Rook,
+            Piece::WPawn    => PieceType::Pawn,
+            Piece::WSilverX => PieceType::SilverX,
+            Piece::WBishopX => PieceType::BishopX,
+            Piece::WRookX   => PieceType::RookX,
+            Piece::WPawnX   => PieceType::PawnX,
+
+            Piece::BKing    => PieceType::King,
+            Piece::BGold    => PieceType::Gold,
+            Piece::BSilver  => PieceType::Silver,
+            Piece::BBishop  => PieceType::Bishop,
+            Piece::BRook    => PieceType::Rook,
+            Piece::BPawn    => PieceType::Pawn,
+            Piece::BSilverX => PieceType::SilverX,
+            Piece::BBishopX => PieceType::BishopX,
+            Piece::BRookX   => PieceType::RookX,
+            Piece::BPawnX   => PieceType::PawnX,
+        }
+    }
 }
 
 impl std::fmt::Display for Piece {
@@ -293,4 +321,30 @@ fn get_color_test() {
     assert!(Piece::BPawnX.get_color()   == Color::Black);
 }
 
+#[test]
+fn get_piece_type_test() {
+    assert!(Piece::NoPiece.get_piece_type()  == PieceType::NoPieceType);
+
+    assert!(Piece::WKing.get_piece_type()    == PieceType::King);
+    assert!(Piece::WGold.get_piece_type()    == PieceType::Gold);
+    assert!(Piece::WSilver.get_piece_type()  == PieceType::Silver);
+    assert!(Piece::WBishop.get_piece_type()  == PieceType::Bishop);
+    assert!(Piece::WRook.get_piece_type()    == PieceType::Rook);
+    assert!(Piece::WPawn.get_piece_type()    == PieceType::Pawn);
+    assert!(Piece::WSilverX.get_piece_type() == PieceType::SilverX);
+    assert!(Piece::WBishopX.get_piece_type() == PieceType::BishopX);
+    assert!(Piece::WRookX.get_piece_type()   == PieceType::RookX);
+    assert!(Piece::WPawnX.get_piece_type()   == PieceType::PawnX);
+
+    assert!(Piece::BKing.get_piece_type()    == PieceType::King);
+    assert!(Piece::BGold.get_piece_type()    == PieceType::Gold);
+    assert!(Piece::BSilver.get_piece_type()  == PieceType::Silver);
+    assert!(Piece::BBishop.get_piece_type()  == PieceType::Bishop);
+    assert!(Piece::BRook.get_piece_type()    == PieceType::Rook);
+    assert!(Piece::BPawn.get_piece_type()    == PieceType::Pawn);
+    assert!(Piece::BSilverX.get_piece_type() == PieceType::SilverX);
+    assert!(Piece::BBishopX.get_piece_type() == PieceType::BishopX);
+    assert!(Piece::BRookX.get_piece_type()   == PieceType::RookX);
+    assert!(Piece::BPawnX.get_piece_type()   == PieceType::PawnX);
+}
 pub const SQUARE_NB: usize = 5 * 5;
