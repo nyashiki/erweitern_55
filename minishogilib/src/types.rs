@@ -22,7 +22,7 @@ fn get_op_color_test() {
     assert!(Color::Black.get_op_color() == Color::White);
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 #[repr(u8)]
 pub enum Piece {
     NoPiece = 0,
@@ -134,6 +134,30 @@ impl Piece {
             Piece::BBishopX => PieceType::BishopX,
             Piece::BRookX   => PieceType::RookX,
             Piece::BPawnX   => PieceType::PawnX,
+        }
+    }
+
+    pub fn get_move_dirs(self) -> std::vec::Vec<Direction> {
+        match self {
+            Piece::WKing    => vec![Direction::N, Direction::NE, Direction::E, Direction::SE, Direction::S, Direction::SW, Direction::W, Direction::NW],
+            Piece::WGold    => vec![Direction::N, Direction::NE, Direction::E,                Direction::S,                Direction::W, Direction::NW],
+            Piece::WSilver  => vec![Direction::N, Direction::NE,               Direction::SE,               Direction::SW,               Direction::NW],
+            Piece::WPawn    => vec![Direction::N],
+            Piece::WSilverX => vec![Direction::N, Direction::NE, Direction::E,                Direction::S,                Direction::W, Direction::NW],
+            Piece::WBishopX => vec![Direction::N,                Direction::E,                Direction::S,                Direction::W               ],
+            Piece::WRookX   => vec![              Direction::NE,               Direction::SE,               Direction::SW,               Direction::NW],
+            Piece::WPawnX   => vec![Direction::N, Direction::NE, Direction::E,                Direction::S,                Direction::W, Direction::NW],
+
+            Piece::BKing    => vec![Direction::N, Direction::NE, Direction::E, Direction::SE, Direction::S, Direction::SW, Direction::W, Direction::NW],
+            Piece::BGold    => vec![Direction::N,                Direction::E, Direction::SE, Direction::S, Direction::SW, Direction::W               ],
+            Piece::BSilver  => vec![              Direction::NE,               Direction::SE, Direction::S, Direction::SW,               Direction::NW],
+            Piece::BPawn    => vec![Direction::S],
+            Piece::BSilverX => vec![Direction::N,                Direction::E, Direction::SE, Direction::S, Direction::SW, Direction::W               ],
+            Piece::BBishopX => vec![Direction::N,                Direction::E,                Direction::S,                Direction::W               ],
+            Piece::BRookX   => vec![              Direction::NE,               Direction::SE,               Direction::SW,               Direction::NW],
+            Piece::BPawnX   => vec![Direction::N,                Direction::E, Direction::SE, Direction::S, Direction::SW, Direction::W               ],
+
+            _ => vec![]
         }
     }
 }
@@ -348,10 +372,10 @@ fn get_piece_type_test() {
     assert!(Piece::BPawnX.get_piece_type()   == PieceType::PawnX);
 }
 
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[repr(u8)]
 pub enum Direction {
-    North = 0, NorthEast = 1, East = 2, SouthEast = 3, South = 4, SouthWest = 5, West = 6, NorthWest = 7
+    N = 0, NE = 1, E = 2, SE = 3, S = 4, SW = 5, W = 6, NW = 7
 }
-
 
 pub const SQUARE_NB: usize = 5 * 5;

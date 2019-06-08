@@ -1,6 +1,7 @@
 use pyo3::prelude::*;
 
 use types::*;
+use r#move::*;
 
 #[pyclass]
 #[derive(Copy, Clone)]
@@ -118,6 +119,57 @@ impl Position {
         static START_POSITION_SFEN: &str = "rbsgk/4p/5/P4/KGSBR b - 1";
 
         self.set_sfen(START_POSITION_SFEN);
+    }
+
+    pub fn generate_move(self, is_board: bool, is_hand: bool) -> std::vec::Vec<Move> {
+        let mut moves: Vec<Move> = Vec::new();
+
+        if is_board {
+            const move_tos: [i8; 8] = [-5, -4, 1, 6, 5, 4, -1, -6];
+
+            for i in 0..SQUARE_NB {
+                if self.board[i].get_color() != self.side_to_move {
+                    continue;
+                }
+
+                // 飛び駒以外の駒の移動
+                for move_dir in self.board[i].get_move_dirs() {
+                    // これ以上左に行けない
+                    if i % 5 == 0 && (move_dir == Direction::SW || move_dir == Direction::W || move_dir == Direction::NW) {
+                        continue;
+                    }
+
+                    // これ以上上に行けない
+                    if i / 5 == 0 && (move_dir == Direction::N || move_dir == Direction::NE || move_dir == Direction::NW) {
+                        continue;
+                    }
+
+                    // これ以上右に行けない
+                    if i % 5 == 4 && (move_dir == Direction::NE || move_dir == Direction::E || move_dir == Direction::SE) {
+                        continue;
+                    }
+
+                    // これ以上下に行けない
+                    if i / 5 == 4 && (move_dir == Direction::SE || move_dir == Direction::S || move_dir == Direction::SW) {
+                        continue;
+                    }
+
+                    let move_to = ((i as i8) + move_tos[move_dir as usize]) as usize;
+                    // 行き先に自分の駒がある場合には動かせない
+                    if self.board[move_to].get_color() == self.side_to_move {
+                        continue;
+                    }
+
+                    moves.push(Move::board_move(self.board[i], i as u8, move_dir, 1, false));
+                }
+            }
+        }
+
+        if is_hand {
+
+        }
+
+        return moves;
     }
 }
 

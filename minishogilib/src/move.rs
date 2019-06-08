@@ -1,5 +1,9 @@
+use pyo3::prelude::*;
+
 use types::*;
 
+#[pyclass]
+#[derive(Copy, Clone)]
 pub struct Move {
     piece: Piece,
     target: u8,            // 移動元 (持ち駒を打つ場合には、打つ場所)
@@ -23,7 +27,7 @@ impl Move {
         Move {
             piece: piece,
             target: target,
-            direction: Direction::North,  // 不使用なので仮の値を入れておく
+            direction: Direction::N,  // 不使用なので仮の値を入れておく
             amount: 0,
             promotion: false
         }
