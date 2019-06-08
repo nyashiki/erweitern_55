@@ -347,4 +347,11 @@ fn get_piece_type_test() {
     assert!(Piece::BRookX.get_piece_type()   == PieceType::RookX);
     assert!(Piece::BPawnX.get_piece_type()   == PieceType::PawnX);
 }
+
+#[repr(u8)]
+pub enum Direction {
+    North = 0, NorthEast = 1, East = 2, SouthEast = 3, South = 4, SouthWest = 5, West = 6, NorthWest = 7
+}
+
+
 pub const SQUARE_NB: usize = 5 * 5;
