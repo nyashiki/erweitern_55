@@ -121,16 +121,19 @@ impl Position {
         self.set_sfen(START_POSITION_SFEN);
     }
 
-    pub fn generate_move(self, is_board: bool, is_hand: bool) -> std::vec::Vec<Move> {
+    pub fn generate_moves(self, is_board: bool, is_hand: bool) -> std::vec::Vec<Move> {
+        // ToDo: 駒が成る処理
+
         let mut moves: Vec<Move> = Vec::new();
 
         if is_board {
-            const move_tos: [i8; 8] = [-5, -4, 1, 6, 5, 4, -1, -6];
 
             for i in 0..SQUARE_NB {
                 if self.board[i].get_color() != self.side_to_move {
                     continue;
                 }
+
+                const MOVE_TOS: [i8; 8] = [-5, -4, 1, 6, 5, 4, -1, -6];
 
                 // 飛び駒以外の駒の移動
                 for move_dir in self.board[i].get_move_dirs() {
@@ -154,13 +157,110 @@ impl Position {
                         continue;
                     }
 
-                    let move_to = ((i as i8) + move_tos[move_dir as usize]) as usize;
+                    let move_to = ((i as i8) + MOVE_TOS[move_dir as usize]) as usize;
                     // 行き先に自分の駒がある場合には動かせない
                     if self.board[move_to].get_color() == self.side_to_move {
                         continue;
                     }
 
                     moves.push(Move::board_move(self.board[i], i as u8, move_dir, 1, false));
+                }
+
+                // 飛び駒の移動
+                // 角、馬
+                if self.board[i].get_piece_type() == PieceType::Bishop || self.board[i].get_piece_type() == PieceType::BishopX {
+                    const MOVE_DIRS: [Direction; 4] = [Direction::NE, Direction::SE, Direction::SW, Direction::NW];
+
+                    for move_dir in &MOVE_DIRS {
+                        // これ以上左に行けない
+                        if i % 5 == 0 && (*move_dir == Direction::SW || *move_dir == Direction::NW) {
+                            continue;
+                        }
+
+                        // これ以上上に行けない
+                        if i / 5 == 0 && (*move_dir == Direction::NE || *move_dir == Direction::NW) {
+                            continue;
+                        }
+
+                        // これ以上右に行けない
+                        if i % 5 == 4 && (*move_dir == Direction::NE || *move_dir == Direction::SE) {
+                            continue;
+                        }
+
+                        // これ以上下に行けない
+                        if i / 5 == 4 && (*move_dir == Direction::SE || *move_dir == Direction::SW) {
+                            continue;
+                        }
+
+                        for amount in 1..5 {
+                            let move_to = ((i as i8) + MOVE_TOS[*move_dir as usize] * (amount as i8)) as usize;
+
+                            // 自分の駒があったらそれ以上進めない
+                            if self.board[move_to].get_color() == self.side_to_move {
+                                break;
+                            }
+
+                            moves.push(Move::board_move(self.board[i], i as u8, *move_dir, amount, false));
+
+                            // 端まで到達したらそれ以上進めない
+                            if move_to / 5 == 0 || move_to / 5 == 4 || move_to % 5 == 0 || move_to % 5 == 4 {
+                                break;
+                            }
+
+                            // 相手の駒があったらそれ以上進めない
+                            if self.board[move_to].get_color() == self.side_to_move.get_op_color() {
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // 飛、龍
+                if self.board[i].get_piece_type() == PieceType::Rook || self.board[i].get_piece_type() == PieceType::RookX {
+                    const MOVE_DIRS: [Direction; 4] = [Direction::N, Direction::E, Direction::S, Direction::W];
+
+                    for move_dir in &MOVE_DIRS {
+                        // これ以上左に行けない
+                        if i % 5 == 0 && *move_dir == Direction::W {
+                            continue;
+                        }
+
+                        // これ以上上に行けない
+                        if i / 5 == 0 && *move_dir == Direction::N {
+                            continue;
+                        }
+
+                        // これ以上右に行けない
+                        if i % 5 == 4 && *move_dir == Direction::E {
+                            continue;
+                        }
+
+                        // これ以上下に行けない
+                        if i / 5 == 4 && *move_dir == Direction::S {
+                            continue;
+                        }
+
+                        for amount in 1..5 {
+                            let move_to = ((i as i8) + MOVE_TOS[*move_dir as usize] * (amount as i8)) as usize;
+
+                            // 自分の駒があったらそれ以上進めない
+                            if self.board[move_to].get_color() == self.side_to_move {
+                                break;
+                            }
+
+                            moves.push(Move::board_move(self.board[i], i as u8, *move_dir, amount, false));
+
+                            // 端まで到達したらそれ以上進めない
+                            if (*move_dir == Direction::N && move_to / 5 == 0) || (*move_dir == Direction::E && move_to % 5 == 4) || (*move_dir == Direction::S && move_to / 5 == 4) || (*move_dir == Direction::W && move_to % 5 == 0) {
+                                break;
+                            }
+
+                            // 相手の駒があったらそれ以上進めない
+                            if self.board[move_to].get_color() == self.side_to_move.get_op_color() {
+                                break;
+                            }
+                        }
+                    }
                 }
             }
         }
