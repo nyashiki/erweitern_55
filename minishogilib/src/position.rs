@@ -266,7 +266,21 @@ impl Position {
         }
 
         if is_hand {
+            // 駒のない升を列挙
+            let mut empty_squares: Vec<u8> = Vec::new();
+            for i in 0..SQUARE_NB {
+                if self.board[i] == Piece::NoPiece {
+                    empty_squares.push(i as u8);
+                }
+            }
 
+            for piece_type in HAND_PIECE_TYPE_ALL.iter() {
+                if self.hand[self.side_to_move as usize][*piece_type as usize] > 0 {
+                    for target in &empty_squares {
+                        moves.push(Move::hand_move(piece_type.get_piece(self.side_to_move), *target));
+                    }
+                }
+            }
         }
 
         return moves;
