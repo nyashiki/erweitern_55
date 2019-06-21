@@ -36,3 +36,12 @@ impl Move {
         }
     }
 }
+
+pub static NULL_MOVE: Move = Move {
+    piece: Piece::NoPiece,
+    target: SQUARE_NB as u8,
+    direction: Direction::N,
+    amount: 0,
+    promotion: false,
+    capture_piece: Piece::NoPiece
+};
