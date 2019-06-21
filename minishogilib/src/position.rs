@@ -122,8 +122,6 @@ impl Position {
     }
 
     pub fn generate_moves(self, is_board: bool, is_hand: bool) -> std::vec::Vec<Move> {
-        // ToDo: 駒が成る処理
-
         let mut moves: Vec<Move> = Vec::new();
 
         if is_board {
@@ -163,7 +161,15 @@ impl Position {
                         continue;
                     }
 
-                    moves.push(Move::board_move(self.board[i], i as u8, move_dir, 1, false));
+                    // 行き場のない歩の不成を禁止
+                    if !((self.board[i] == Piece::WPawn && move_to < 5) || (self.board[i] == Piece::BPawn && move_to >= 20)) {
+                        moves.push(Move::board_move(self.board[i], i as u8, move_dir, 1, false));
+                    }
+
+                    // 成る手の生成
+                    if self.board[i].is_raw() && ((self.side_to_move == Color::White && (move_to < 5 || i < 5)) || (self.side_to_move == Color::Black && (move_to >= 20 || i >= 20))) {
+                        moves.push(Move::board_move(self.board[i], i as u8, move_dir, 1, true));
+                    }
                 }
 
                 // 飛び駒の移動
@@ -201,6 +207,10 @@ impl Position {
                             }
 
                             moves.push(Move::board_move(self.board[i], i as u8, *move_dir, amount, false));
+                            // 成る手の生成
+                            if (self.board[i] == Piece::WBishop && (move_to < 5 || i < 5)) || (self.board[i] == Piece::BBishop && (move_to >= 20 || i >= 20)) {
+                                moves.push(Move::board_move(self.board[i], i as u8, *move_dir, amount, true));
+                            }
 
                             // 端まで到達したらそれ以上進めない
                             if move_to / 5 == 0 || move_to / 5 == 4 || move_to % 5 == 0 || move_to % 5 == 4 {
@@ -249,6 +259,10 @@ impl Position {
                             }
 
                             moves.push(Move::board_move(self.board[i], i as u8, *move_dir, amount, false));
+                            // 成る手の生成
+                            if (self.board[i] == Piece::WRook && (move_to < 5 || i < 5)) || (self.board[i] == Piece::BRook && (move_to >= 20 || i >= 20)) {
+                                moves.push(Move::board_move(self.board[i], i as u8, *move_dir, amount, true));
+                            }
 
                             // 端まで到達したらそれ以上進めない
                             if (*move_dir == Direction::N && move_to / 5 == 0) || (*move_dir == Direction::E && move_to % 5 == 4) || (*move_dir == Direction::S && move_to / 5 == 4) || (*move_dir == Direction::W && move_to % 5 == 0) {
@@ -277,6 +291,12 @@ impl Position {
             for piece_type in HAND_PIECE_TYPE_ALL.iter() {
                 if self.hand[self.side_to_move as usize][*piece_type as usize] > 0 {
                     for target in &empty_squares {
+                        // 行き場のない駒を打たない
+                        if *piece_type == PieceType::Pawn && ((self.side_to_move == Color::White && *target < 5) ||
+                                                             (self.side_to_move == Color::Black && *target >= 20)) {
+                          continue;
+                        }
+
                         moves.push(Move::hand_move(piece_type.get_piece(self.side_to_move), *target));
                     }
                 }
