@@ -442,4 +442,3 @@ pub enum Direction {
 }
 
 pub const SQUARE_NB: usize = 5 * 5;
-
