@@ -269,8 +269,6 @@ impl PieceType {
     }
 }
 
-pub const HAND_PIECE_TYPE_ALL: [PieceType; 5] = [PieceType::Gold, PieceType::Silver, PieceType::Bishop, PieceType::Rook, PieceType::Pawn];
-
 #[test]
 fn get_promoted_test() {
     // Piece
@@ -441,4 +439,7 @@ pub enum Direction {
     N = 0, NE = 1, E = 2, SE = 3, S = 4, SW = 5, W = 6, NW = 7
 }
 
+
+pub const HAND_PIECE_TYPE_ALL: [PieceType; 5] = [PieceType::Gold, PieceType::Silver, PieceType::Bishop, PieceType::Rook, PieceType::Pawn];
 pub const SQUARE_NB: usize = 5 * 5;
+pub const MAX_PLY: usize = 512;
