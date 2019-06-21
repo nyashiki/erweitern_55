@@ -9,7 +9,8 @@ pub struct Position {
     pub side_to_move: Color,
     pub board: [Piece; SQUARE_NB],
     pub hand: [[u8; 5]; 2],
-    pub ply: u16
+    pub ply: u16,
+    pub kif: [Move; MAX_PLY]
 }
 
 #[pymethods]
@@ -20,7 +21,8 @@ impl Position {
             side_to_move: Color::NoColor,
             board: [Piece::NoPiece; SQUARE_NB],
             hand: [[0; 5]; 2],
-            ply: 0
+            ply: 0,
+            kif: [NULL_MOVE; MAX_PLY]
         });
     }
 
@@ -156,19 +158,22 @@ impl Position {
                     }
 
                     let move_to = ((i as i8) + MOVE_TOS[move_dir as usize]) as usize;
+
+                    let capture_piece = self.board[move_to];
+
                     // 行き先に自分の駒がある場合には動かせない
-                    if self.board[move_to].get_color() == self.side_to_move {
+                    if capture_piece.get_color() == self.side_to_move {
                         continue;
                     }
 
                     // 行き場のない歩の不成を禁止
                     if !((self.board[i] == Piece::WPawn && move_to < 5) || (self.board[i] == Piece::BPawn && move_to >= 20)) {
-                        moves.push(Move::board_move(self.board[i], i as u8, move_dir, 1, false));
+                        moves.push(Move::board_move(self.board[i], i as u8, move_dir, 1, false, capture_piece));
                     }
 
                     // 成る手の生成
                     if self.board[i].is_raw() && ((self.side_to_move == Color::White && (move_to < 5 || i < 5)) || (self.side_to_move == Color::Black && (move_to >= 20 || i >= 20))) {
-                        moves.push(Move::board_move(self.board[i], i as u8, move_dir, 1, true));
+                        moves.push(Move::board_move(self.board[i], i as u8, move_dir, 1, true, capture_piece));
                     }
                 }
 
@@ -201,15 +206,17 @@ impl Position {
                         for amount in 1..5 {
                             let move_to = ((i as i8) + MOVE_TOS[*move_dir as usize] * (amount as i8)) as usize;
 
+                            let capture_piece = self.board[move_to];
+
                             // 自分の駒があったらそれ以上進めない
-                            if self.board[move_to].get_color() == self.side_to_move {
+                            if capture_piece.get_color() == self.side_to_move {
                                 break;
                             }
 
-                            moves.push(Move::board_move(self.board[i], i as u8, *move_dir, amount, false));
+                            moves.push(Move::board_move(self.board[i], i as u8, *move_dir, amount, false, capture_piece));
                             // 成る手の生成
                             if (self.board[i] == Piece::WBishop && (move_to < 5 || i < 5)) || (self.board[i] == Piece::BBishop && (move_to >= 20 || i >= 20)) {
-                                moves.push(Move::board_move(self.board[i], i as u8, *move_dir, amount, true));
+                                moves.push(Move::board_move(self.board[i], i as u8, *move_dir, amount, true, capture_piece));
                             }
 
                             // 端まで到達したらそれ以上進めない
@@ -218,7 +225,7 @@ impl Position {
                             }
 
                             // 相手の駒があったらそれ以上進めない
-                            if self.board[move_to].get_color() == self.side_to_move.get_op_color() {
+                            if capture_piece.get_color() == self.side_to_move.get_op_color() {
                                 break;
                             }
                         }
@@ -253,15 +260,17 @@ impl Position {
                         for amount in 1..5 {
                             let move_to = ((i as i8) + MOVE_TOS[*move_dir as usize] * (amount as i8)) as usize;
 
+                            let capture_piece = self.board[move_to];
+
                             // 自分の駒があったらそれ以上進めない
-                            if self.board[move_to].get_color() == self.side_to_move {
+                            if capture_piece.get_color() == self.side_to_move {
                                 break;
                             }
 
-                            moves.push(Move::board_move(self.board[i], i as u8, *move_dir, amount, false));
+                            moves.push(Move::board_move(self.board[i], i as u8, *move_dir, amount, false, capture_piece));
                             // 成る手の生成
                             if (self.board[i] == Piece::WRook && (move_to < 5 || i < 5)) || (self.board[i] == Piece::BRook && (move_to >= 20 || i >= 20)) {
-                                moves.push(Move::board_move(self.board[i], i as u8, *move_dir, amount, true));
+                                moves.push(Move::board_move(self.board[i], i as u8, *move_dir, amount, true, capture_piece));
                             }
 
                             // 端まで到達したらそれ以上進めない
@@ -318,13 +327,18 @@ impl Position {
             const MOVE_TOS: [i8; 8] = [-5, -4, 1, 6, 5, 4, -1, -6];
             let move_to = (m.target as i8) + MOVE_TOS[m.direction as usize] * (m.amount as i8);
 
-            let capture_piece = self.board[move_to as usize];
-            if capture_piece != Piece::NoPiece {
-                self.hand[self.side_to_move as usize][capture_piece.get_piece_type() as usize - 2] += 1;
+            if m.capture_piece != Piece::NoPiece {
+                self.hand[self.side_to_move as usize][m.capture_piece.get_piece_type() as usize - 2] += 1;
             }
             self.board[move_to as usize] = self.board[m.target as usize];
             self.board[m.target as usize] = Piece::NoPiece;
         }
+
+        // 棋譜に登録
+        self.kif[self.ply as usize] = *m;
+
+        // 1手進める
+        self.ply += 1;
 
         // 手番を変える
         self.side_to_move = self.side_to_move.get_op_color();
