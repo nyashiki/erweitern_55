@@ -289,7 +289,7 @@ impl Position {
             }
 
             for piece_type in HAND_PIECE_TYPE_ALL.iter() {
-                if self.hand[self.side_to_move as usize][*piece_type as usize] > 0 {
+                if self.hand[self.side_to_move as usize][*piece_type as usize - 2] > 0 {
                     for target in &empty_squares {
                         // 行き場のない駒を打たない
                         if *piece_type == PieceType::Pawn && ((self.side_to_move == Color::White && *target < 5) ||
