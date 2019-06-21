@@ -305,6 +305,30 @@ impl Position {
 
         return moves;
     }
+
+    pub fn make_move(&mut self, m: &Move) {
+        if m.amount == 0 {
+            // 持ち駒を打つ場合
+
+            self.board[m.target as usize] = m.piece;
+            self.hand[self.side_to_move as usize][m.piece.get_piece_type() as usize - 2] -= 1;
+        } else {
+            // 盤上の駒を動かす場合
+
+            const MOVE_TOS: [i8; 8] = [-5, -4, 1, 6, 5, 4, -1, -6];
+            let move_to = (m.target as i8) + MOVE_TOS[m.direction as usize] * (m.amount as i8);
+
+            let capture_piece = self.board[move_to as usize];
+            if capture_piece != Piece::NoPiece {
+                self.hand[self.side_to_move as usize][capture_piece.get_piece_type() as usize - 2] += 1;
+            }
+            self.board[move_to as usize] = self.board[m.target as usize];
+            self.board[m.target as usize] = Piece::NoPiece;
+        }
+
+        // 手番を変える
+        self.side_to_move = self.side_to_move.get_op_color();
+    }
 }
 
 fn char_to_piece(c: char) -> Piece {
