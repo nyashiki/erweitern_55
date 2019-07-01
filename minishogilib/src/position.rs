@@ -424,8 +424,10 @@ impl Position {
 
         // 盤上の駒に対応する場所のbitを立てる
         for i in 0..SQUARE_NB {
-            self.piece_bb[self.board[i] as usize] |= 1 << i;
-            self.player_bb[self.board[i].get_color() as usize] |= 1 << i;
+            if self.board[i] != Piece::NoPiece {
+                self.piece_bb[self.board[i] as usize] |= 1 << i;
+                self.player_bb[self.board[i].get_color() as usize] |= 1 << i;
+            }
         }
     }
 }
