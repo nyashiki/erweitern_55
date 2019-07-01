@@ -365,6 +365,11 @@ impl Position {
 
             self.board[m.to as usize] = m.capture_piece;
             self.board[m.from as usize] = m.piece;
+
+            // 相手の駒を取っていた場合には、持ち駒から減らす
+            if m.capture_piece != Piece::NoPiece {
+              self.hand[self.side_to_move as usize][m.capture_piece.get_piece_type() as usize - 2] -= 1;
+            }
         }
     }
 }
