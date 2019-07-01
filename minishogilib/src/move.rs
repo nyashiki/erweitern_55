@@ -3,7 +3,7 @@ use pyo3::prelude::*;
 use types::*;
 
 #[pyclass]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub struct Move {
     pub piece: Piece,
     pub from: u8,              // 移動元 (持ち駒を打つ場合には、打つ場所)

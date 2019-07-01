@@ -1,3 +1,5 @@
+use rand::seq::SliceRandom;
+
 use pyo3::prelude::*;
 
 use types::*;
@@ -449,5 +451,64 @@ fn char_to_piece(c: char) -> Piece {
         'p' => Piece::BPawn,
 
         _ => Piece::NoPiece
+    }
+}
+
+#[test]
+fn move_do_undo_test() {
+    const LOOP_NUM: i32 = 10000;
+
+    let mut position = Position {
+        side_to_move: Color::NoColor,
+        board: [Piece::NoPiece; SQUARE_NB],
+        hand: [[0; 5]; 2],
+        piece_bb: [0; Piece::BPawnX as usize + 1],
+        player_bb: [0; 2],
+        ply: 0,
+        kif: [NULL_MOVE; MAX_PLY]
+    };
+
+    let mut rng = rand::thread_rng();
+
+    for _ in 0..LOOP_NUM {
+        position.set_start_position();
+
+        loop {
+            let moves = position.generate_moves(true, true);
+
+            for m in &moves {
+                let mut temp_position = position;
+                temp_position.make_move(m);
+                temp_position.undo_move();
+
+                // make_move -> undo_moveで元の局面と一致するはず
+                assert!(position.side_to_move == temp_position.side_to_move);
+                for i in 0..SQUARE_NB {
+                    assert!(position.board[i] == temp_position.board[i]);
+                }
+                for i in 0..2 {
+                    for j in 0..5 {
+                        assert!(position.hand[i][j] == temp_position.hand[i][j]);
+                    }
+                }
+                for i in 0..Piece::BPawnX as usize + 1 {
+                    assert!(position.piece_bb[i] == temp_position.piece_bb[i]);
+                }
+                for i in 0..2 {
+                    assert!(position.player_bb[i] == temp_position.player_bb[i]);
+                }
+                assert!(position.ply == temp_position.ply);
+                for i in 0..MAX_PLY {
+                    assert!(position.kif[i] == temp_position.kif[i]);
+                }
+            }
+
+            // ランダムに局面を進める
+            let random_move = moves.choose(&mut rng).unwrap();
+            if random_move.capture_piece.get_piece_type() == PieceType::King {
+                break;
+            }
+            position.make_move(random_move);
+        }
     }
 }

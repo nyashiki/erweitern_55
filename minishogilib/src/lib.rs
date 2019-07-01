@@ -1,3 +1,4 @@
+extern crate rand;
 extern crate pyo3;
 
 pub mod types;
