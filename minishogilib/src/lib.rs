@@ -9,8 +9,14 @@ use pyo3::wrap_pyfunction;
 
 use position::*;
 
+#[pyfunction]
+fn version() -> &'static str {
+  env!("CARGO_PKG_VERSION")
+}
+
 #[pymodule]
 fn minishogilib(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_wrapped(wrap_pyfunction!(version))?;
     m.add_class::<Position>()?;
 
     Ok(())

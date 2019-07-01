@@ -91,6 +91,9 @@ def main():
   run_mcts(position)
 
 if __name__ == '__main__':
+  # output minishogilib version
+  print(minishogilib.version())
+
   # fix the seed
   np.random.seed(0)
 
