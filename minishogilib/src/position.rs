@@ -2,6 +2,7 @@ use pyo3::prelude::*;
 
 use types::*;
 use r#move::*;
+use bitboard::*;
 
 #[pyclass]
 #[derive(Copy, Clone)]
@@ -9,6 +10,10 @@ pub struct Position {
     pub side_to_move: Color,
     pub board: [Piece; SQUARE_NB],
     pub hand: [[u8; 5]; 2],
+
+    pub piece_bb: [Bitboard; Piece::BPawnX as usize + 1],
+    pub player_bb: [Bitboard; 2],
+
     pub ply: u16,
     pub kif: [Move; MAX_PLY]
 }
@@ -21,6 +26,8 @@ impl Position {
             side_to_move: Color::NoColor,
             board: [Piece::NoPiece; SQUARE_NB],
             hand: [[0; 5]; 2],
+            piece_bb: [0; Piece::BPawnX as usize + 1],
+            player_bb: [0; 2],
             ply: 0,
             kif: [NULL_MOVE; MAX_PLY]
         });
@@ -121,6 +128,7 @@ impl Position {
         static START_POSITION_SFEN: &str = "rbsgk/4p/5/P4/KGSBR b - 1";
 
         self.set_sfen(START_POSITION_SFEN);
+        self.set_bitboard();
     }
 
     pub fn generate_moves(self, is_board: bool, is_hand: bool) -> std::vec::Vec<Move> {
@@ -321,11 +329,19 @@ impl Position {
 
             self.board[m.to as usize] = m.piece;
             self.hand[self.side_to_move as usize][m.piece.get_piece_type() as usize - 2] -= 1;
+
+            // Bitboardの更新
+            self.piece_bb[m.piece as usize] |= 1 << m.to;
+            self.player_bb[self.side_to_move as usize] |= 1 << m.to;
         } else {
             // 盤上の駒を動かす場合
 
             if m.capture_piece != Piece::NoPiece {
                 self.hand[self.side_to_move as usize][m.capture_piece.get_piece_type() as usize - 2] += 1;
+
+                // Bitboardの更新
+                self.piece_bb[m.capture_piece as usize] ^= 1 << m.to;
+                self.player_bb[self.side_to_move.get_op_color() as usize] ^= 1 << m.to;
             }
 
             if m.promotion {
@@ -335,6 +351,14 @@ impl Position {
             }
 
             self.board[m.from as usize] = Piece::NoPiece;
+
+            // Bitboardの更新
+            // 移動先
+            self.piece_bb[self.board[m.to as usize] as usize] |= 1 << m.to;
+            self.player_bb[self.side_to_move as usize] |= 1 << m.to;
+            // 移動元
+            self.piece_bb[m.piece as usize] ^= 1 << m.from;
+            self.player_bb[self.side_to_move as usize] ^= 1 << m.from;
         }
 
         // 棋譜に登録
@@ -360,8 +384,20 @@ impl Position {
 
             self.board[m.to as usize] = Piece::NoPiece;
             self.hand[self.side_to_move as usize][m.piece.get_piece_type() as usize - 2] += 1;
+
+            // Bitboardのundo
+            self.piece_bb[m.piece as usize] ^= 1 << m.to;
+            self.player_bb[self.side_to_move as usize] ^= 1 << m.to;
         } else {
             // 盤上の駒を動かした場合
+
+            // Bitboardのundo
+            // 移動先
+            self.piece_bb[self.board[m.to as usize] as usize] ^= 1 << m.to;
+            self.player_bb[self.side_to_move as usize] ^= 1 << m.to;
+            // 移動元
+            self.piece_bb[m.piece as usize] |= 1 << m.from;
+            self.player_bb[self.side_to_move as usize] |= 1 << m.from;
 
             self.board[m.to as usize] = m.capture_piece;
             self.board[m.from as usize] = m.piece;
@@ -369,7 +405,27 @@ impl Position {
             // 相手の駒を取っていた場合には、持ち駒から減らす
             if m.capture_piece != Piece::NoPiece {
               self.hand[self.side_to_move as usize][m.capture_piece.get_piece_type() as usize - 2] -= 1;
+
+              // Bitboardのundo
+              self.piece_bb[m.capture_piece as usize] |= 1 << m.to;
+              self.player_bb[self.side_to_move.get_op_color() as usize] |= 1 << m.to;
             }
+        }
+    }
+
+    /// 盤上の駒からbitboardを設定する
+    fn set_bitboard(&mut self) {
+        // 初期化
+        for i in 0..Piece::BPawnX as usize + 1 {
+            self.piece_bb[i] = 0
+        }
+        self.player_bb[Color::White as usize] = 0;
+        self.player_bb[Color::Black as usize] = 0;
+
+        // 盤上の駒に対応する場所のbitを立てる
+        for i in 0..SQUARE_NB {
+            self.piece_bb[self.board[i] as usize] |= 1 << i;
+            self.player_bb[self.board[i].get_color() as usize] |= 1 << i;
         }
     }
 }

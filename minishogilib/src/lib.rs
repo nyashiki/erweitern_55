@@ -3,6 +3,7 @@ extern crate pyo3;
 pub mod types;
 pub mod position;
 pub mod r#move;
+pub mod bitboard;
 
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
