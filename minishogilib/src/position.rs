@@ -471,7 +471,7 @@ fn char_to_piece(c: char) -> Piece {
 
 #[test]
 fn move_do_undo_test() {
-    const LOOP_NUM: i32 = 10000;
+    const LOOP_NUM: i32 = 100000;
 
     let mut position = Position {
         side_to_move: Color::NoColor,
@@ -488,11 +488,16 @@ fn move_do_undo_test() {
     for _ in 0..LOOP_NUM {
         position.set_start_position();
 
-        loop {
+        while position.ply < MAX_PLY as u16 {
             let moves = position.generate_moves(true, true);
 
             for m in &moves {
                 let mut temp_position = position;
+
+                if m.capture_piece.get_piece_type() == PieceType::King {
+                    continue;
+                }
+
                 temp_position.make_move(m);
                 temp_position.undo_move();
 
@@ -506,14 +511,17 @@ fn move_do_undo_test() {
                         assert!(position.hand[i][j] == temp_position.hand[i][j]);
                     }
                 }
+
                 for i in 0..Piece::BPawnX as usize + 1 {
                     assert!(position.piece_bb[i] == temp_position.piece_bb[i]);
                 }
                 for i in 0..2 {
                     assert!(position.player_bb[i] == temp_position.player_bb[i]);
                 }
+
                 assert!(position.ply == temp_position.ply);
-                for i in 0..MAX_PLY {
+
+                for i in 0..position.ply as usize {
                     assert!(position.kif[i] == temp_position.kif[i]);
                 }
             }
