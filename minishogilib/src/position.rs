@@ -339,7 +339,7 @@ impl Position {
             // 盤上の駒を動かす場合
 
             if m.capture_piece != Piece::NoPiece {
-                self.hand[self.side_to_move as usize][m.capture_piece.get_piece_type() as usize - 2] += 1;
+                self.hand[self.side_to_move as usize][m.capture_piece.get_piece_type().get_raw() as usize - 2] += 1;
 
                 // Bitboardの更新
                 self.piece_bb[m.capture_piece as usize] ^= 1 << m.to;
@@ -406,7 +406,7 @@ impl Position {
 
             // 相手の駒を取っていた場合には、持ち駒から減らす
             if m.capture_piece != Piece::NoPiece {
-              self.hand[self.side_to_move as usize][m.capture_piece.get_piece_type() as usize - 2] -= 1;
+              self.hand[self.side_to_move as usize][m.capture_piece.get_piece_type().get_raw() as usize - 2] -= 1;
 
               // Bitboardのundo
               self.piece_bb[m.capture_piece as usize] |= 1 << m.to;
