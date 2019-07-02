@@ -64,6 +64,10 @@ impl Piece {
     }
 
     pub fn get_raw(self) -> Piece {
+        if !self.is_promoted() {
+            return self;
+        }
+
         match self {
             Piece::WSilverX => Piece::WSilver,
             Piece::WBishopX => Piece::WBishop,
@@ -223,6 +227,10 @@ impl PieceType {
     }
 
     pub fn get_raw(self) -> PieceType {
+        if !self.is_promoted() {
+            return self;
+        }
+
         match self {
             PieceType::SilverX => PieceType::Silver,
             PieceType::BishopX => PieceType::Bishop,
