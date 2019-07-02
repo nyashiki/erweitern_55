@@ -299,16 +299,34 @@ fn get_promoted_test() {
 #[test]
 fn is_promoted_test() {
     // Piece
+    assert!(!Piece::WKing.is_promoted());
+    assert!(!Piece::WGold.is_promoted());
+    assert!(!Piece::WSilver.is_promoted());
+    assert!(!Piece::WBishop.is_promoted());
+    assert!(!Piece::WRook.is_promoted());
+    assert!(!Piece::WPawn.is_promoted());
     assert!(Piece::WSilverX.is_promoted());
     assert!(Piece::WBishopX.is_promoted());
     assert!(Piece::WRookX.is_promoted());
     assert!(Piece::WPawnX.is_promoted());
+    assert!(!Piece::BKing.is_promoted());
+    assert!(!Piece::BGold.is_promoted());
+    assert!(!Piece::BSilver.is_promoted());
+    assert!(!Piece::BBishop.is_promoted());
+    assert!(!Piece::BRook.is_promoted());
+    assert!(!Piece::BPawn.is_promoted());
     assert!(Piece::BSilverX.is_promoted());
     assert!(Piece::BBishopX.is_promoted());
     assert!(Piece::BRookX.is_promoted());
     assert!(Piece::BPawnX.is_promoted());
 
     // PieceType
+    assert!(!PieceType::King.is_promoted());
+    assert!(!PieceType::Gold.is_promoted());
+    assert!(!PieceType::Silver.is_promoted());
+    assert!(!PieceType::Bishop.is_promoted());
+    assert!(!PieceType::Rook.is_promoted());
+    assert!(!PieceType::Pawn.is_promoted());
     assert!(PieceType::SilverX.is_promoted());
     assert!(PieceType::BishopX.is_promoted());
     assert!(PieceType::RookX.is_promoted());
