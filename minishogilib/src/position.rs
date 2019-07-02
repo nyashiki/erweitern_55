@@ -9,6 +9,7 @@ use bitboard::*;
 #[pyclass]
 #[derive(Copy, Clone)]
 pub struct Position {
+    // ToDo: 二歩の管理
     pub side_to_move: Color,
     pub board: [Piece; SQUARE_NB],
     pub hand: [[u8; 5]; 2],
@@ -63,6 +64,16 @@ impl Position {
     }
 
     pub fn set_sfen(&mut self, sfen: &str) {
+        // 初期化
+        for i in 0..SQUARE_NB {
+            self.board[i] = Piece::NoPiece;
+        }
+        for i in 0..2 {
+            for j in 0..5 {
+                self.hand[i][j] = 0;
+            }
+        }
+
         let mut square: usize = 0;
         let mut promote: bool = false;
 
@@ -137,7 +148,6 @@ impl Position {
         let mut moves: Vec<Move> = Vec::new();
 
         if is_board {
-
             for i in 0..SQUARE_NB {
                 if self.board[i].get_color() != self.side_to_move {
                     continue;
@@ -182,7 +192,7 @@ impl Position {
                     }
 
                     // 成る手の生成
-                    if self.board[i].is_raw() && ((self.side_to_move == Color::White && (move_to < 5 || i < 5)) || (self.side_to_move == Color::Black && (move_to >= 20 || i >= 20))) {
+                    if self.board[i].is_raw() && self.board[i].is_promotable() && ((self.side_to_move == Color::White && (move_to < 5 || i < 5)) || (self.side_to_move == Color::Black && (move_to >= 20 || i >= 20))) {
                         moves.push(Move::board_move(self.board[i], i as u8, move_dir, 1, move_to, true, capture_piece));
                     }
                 }
@@ -326,6 +336,8 @@ impl Position {
     }
 
     pub fn make_move(&mut self, m: &Move) {
+        assert!(m.capture_piece.get_piece_type() != PieceType::King);
+
         if m.amount == 0 {
             // 持ち駒を打つ場合
 
@@ -347,9 +359,9 @@ impl Position {
             }
 
             if m.promotion {
-                self.board[m.to as usize] = self.board[m.from as usize].get_promoted();
+                self.board[m.to as usize] = m.piece.get_promoted();
             } else {
-                self.board[m.to as usize] = self.board[m.from as usize];
+                self.board[m.to as usize] = m.piece;
             }
 
             self.board[m.from as usize] = Piece::NoPiece;
@@ -374,6 +386,8 @@ impl Position {
     }
 
     pub fn undo_move(&mut self) {
+        assert!(self.ply > 0);
+
         // 手数を戻す
         let m = self.kif[(self.ply - 1) as usize];
         self.ply -= 1;
@@ -395,6 +409,7 @@ impl Position {
 
             // Bitboardのundo
             // 移動先
+            assert!(self.board[m.to as usize] != Piece::NoPiece);
             self.piece_bb[self.board[m.to as usize] as usize] ^= 1 << m.to;
             self.player_bb[self.side_to_move as usize] ^= 1 << m.to;
             // 移動元
