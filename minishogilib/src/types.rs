@@ -63,6 +63,10 @@ impl Piece {
         }
     }
 
+    pub fn is_promotable(self) -> bool {
+        return self.get_promoted() != Piece::NoPiece;
+    }
+
     pub fn get_raw(self) -> Piece {
         if !self.is_promoted() {
             return self;
@@ -224,6 +228,10 @@ impl PieceType {
             PieceType::PawnX   => true,
             _                  => false
         }
+    }
+
+    pub fn is_promotable(self) -> bool {
+        return self.get_promoted() != PieceType::NoPieceType;
     }
 
     pub fn get_raw(self) -> PieceType {
