@@ -356,7 +356,7 @@ fn get_piece_test() {
 
     // White
     assert!(PieceType::King.get_piece(Color::White)    == Piece::WKing);
-    assert!(PieceType::King.get_piece(Color::White)    == Piece::WGold);
+    assert!(PieceType::Gold.get_piece(Color::White)    == Piece::WGold);
     assert!(PieceType::Silver.get_piece(Color::White)  == Piece::WSilver);
     assert!(PieceType::Bishop.get_piece(Color::White)  == Piece::WBishop);
     assert!(PieceType::Rook.get_piece(Color::White)    == Piece::WRook);
@@ -368,7 +368,7 @@ fn get_piece_test() {
 
     // Black
     assert!(PieceType::King.get_piece(Color::Black)    == Piece::BKing);
-    assert!(PieceType::King.get_piece(Color::Black)    == Piece::BGold);
+    assert!(PieceType::Gold.get_piece(Color::Black)    == Piece::BGold);
     assert!(PieceType::Silver.get_piece(Color::Black)  == Piece::BSilver);
     assert!(PieceType::Bishop.get_piece(Color::Black)  == Piece::BBishop);
     assert!(PieceType::Rook.get_piece(Color::Black)    == Piece::BRook);
