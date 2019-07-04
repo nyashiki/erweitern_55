@@ -22,7 +22,7 @@ fn get_op_color_test() {
     assert!(Color::Black.get_op_color() == Color::White);
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 #[repr(u8)]
 pub enum Piece {
     NoPiece = 0,
