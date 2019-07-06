@@ -7,7 +7,7 @@ pub type Bitboard = u32;
 
 lazy_static! {
     /// 近接の利きを保持するbitboard
-    /// ADJACENT_ATTACK[piece][square]として参照する
+    /// ADJACENT_ATTACK[square][piece]として参照する
     static ref ADJACENT_ATTACK: [[Bitboard; Piece::BPawnX as usize + 1]; SQUARE_NB] = {
         let mut aa: [[Bitboard; Piece::BPawnX as usize + 1]; SQUARE_NB] = [[0; Piece::BPawnX as usize + 1]; SQUARE_NB];
 
@@ -149,7 +149,7 @@ lazy_static! {
     };
 
     /// 角の左下--右上方向の利きを保持するbitboard
-    /// BISHOP_ATTACK1[pext((player_bb[WHITE] | player_bb[BLACK]), mask)][bishop_square]として参照する
+    /// BISHOP_ATTACK1[bishop_square][pext((player_bb[WHITE] | player_bb[BLACK]), mask)]として参照する
     static ref BISHOP_ATTACK1: [[Bitboard; 32]; SQUARE_NB] = {
         let mut ba: [[Bitboard; 32]; SQUARE_NB] = [[0; 32]; SQUARE_NB];
 
@@ -178,7 +178,7 @@ lazy_static! {
                 5 * y + x
             };
 
-            for piece_bb in 0..32 {
+            for player_bb in 0..32 {
                 let mut position: Position = Position::empty_board();
 
                 for j in 0..5 {
@@ -186,18 +186,19 @@ lazy_static! {
                         break
                     }
 
-                    if piece_bb & (1 << j) != 0 {
+                    if player_bb & (1 << j) != 0 {
                         position.board[left_bottom - 4 * j] = Piece::BPawn;
                     }
                 }
                 position.board[i] = Piece::WBishop;
+                position.side_to_move = Color::White;
 
                 let moves = position.generate_moves_with_option(true, false, true);
 
                 for m in moves {
                     // 左下--右上方向の合法手のみ取りだす
                     if m.direction == Direction::SW || m.direction == Direction::NE {
-                        ba[i][piece_bb] |= 1 << m.to;
+                        ba[i][player_bb] |= 1 << m.to;
                     }
                 }
             }
@@ -207,7 +208,7 @@ lazy_static! {
     };
 
     /// 角の左上--右下方向の利きを保持するbitboard
-    /// BISHOP_ATTACK2[pext((player_bb[WHITE] | player_bb[BLACK]), mask)][bishop_square]として参照する
+    /// BISHOP_ATTACK2[bishop_square][pext((player_bb[WHITE] | player_bb[BLACK]), mask)]として参照する
     static ref BISHOP_ATTACK2: [[Bitboard; 32]; SQUARE_NB] = {
         let mut ba: [[Bitboard; 32]; SQUARE_NB] = [[0; 32]; SQUARE_NB];
 
@@ -236,7 +237,7 @@ lazy_static! {
                 5 * y + x
             };
 
-            for piece_bb in 0..32 {
+            for player_bb in 0..32 {
                 let mut position: Position = Position::empty_board();
 
                 for j in 0..5 {
@@ -244,18 +245,19 @@ lazy_static! {
                         break
                     }
 
-                    if piece_bb & (1 << j) != 0 {
+                    if player_bb & (1 << j) != 0 {
                         position.board[left_top + 6 * j] = Piece::BPawn;
                     }
                 }
                 position.board[i] = Piece::WBishop;
+                position.side_to_move = Color::White;
 
                 let moves = position.generate_moves_with_option(true, false, true);
 
                 for m in moves {
                     // 左上--右下方向の合法手のみ取りだす
                     if m.direction == Direction::NW || m.direction == Direction::SE {
-                        ba[i][piece_bb] |= 1 << m.to;
+                        ba[i][player_bb] |= 1 << m.to;
                     }
                 }
             }
@@ -265,29 +267,30 @@ lazy_static! {
     };
 
     /// 飛車の横方向の利きを保持するbitboard
-    /// ROOK_ATTACK1[pext((player_bb[WHITE] | player_bb[BLACK]), mask)][rook_square]として参照する
+    /// ROOK_ATTACK1[rook_square][pext((player_bb[WHITE] | player_bb[BLACK]), mask)]として参照する
     static ref ROOK_ATTACK1: [[Bitboard; 32]; SQUARE_NB] = {
         let mut ra: [[Bitboard; 32]; SQUARE_NB] = [[0; 32]; SQUARE_NB];
 
         for i in 0..SQUARE_NB {
             let left: usize = (i / 5) * 5;
 
-            for piece_bb in 0..32 {
+            for player_bb in 0..32 {
                 let mut position: Position = Position::empty_board();
 
                 for j in 0..5 {
-                    if piece_bb & (1 << j) != 0 {
+                    if player_bb & (1 << j) != 0 {
                         position.board[left + j] = Piece::BPawn;
                     }
                 }
                 position.board[i] = Piece::WRook;
+                position.side_to_move = Color::White;
 
                 let moves = position.generate_moves_with_option(true, false, true);
 
                 for m in moves {
                     // 横方向の合法手のみ取りだす
                     if m.direction == Direction::E || m.direction == Direction::W {
-                        ra[i][piece_bb] |= 1 << m.to;
+                        ra[i][player_bb] |= 1 << m.to;
                     }
                 }
             }
@@ -297,29 +300,30 @@ lazy_static! {
     };
 
     /// 飛車の縦方向の利きを保持するbitboard
-    /// ROOK_ATTACK2[pext((player_bb[WHITE] | player_bb[BLACK]), mask)][rook_square]として参照する
+    /// ROOK_ATTACK2[rook_square][pext((player_bb[WHITE] | player_bb[BLACK]), mask)]として参照する
     static ref ROOK_ATTACK2: [[Bitboard; 32]; SQUARE_NB] = {
         let mut ra: [[Bitboard; 32]; SQUARE_NB] = [[0; 32]; SQUARE_NB];
 
         for i in 0..SQUARE_NB {
             let top: usize = i % 5;
 
-            for piece_bb in 0..32 {
+            for player_bb in 0..32 {
                 let mut position: Position = Position::empty_board();
 
                 for j in 0..5 {
-                    if piece_bb & (1 << j) != 0 {
+                    if player_bb & (1 << j) != 0 {
                         position.board[top + 5 * j] = Piece::BPawn;
                     }
                 }
                 position.board[i] = Piece::WRook;
+                position.side_to_move = Color::White;
 
                 let moves = position.generate_moves_with_option(true, false, true);
 
                 for m in moves {
                     // 縦方向の合法手のみ取りだす
                     if m.direction == Direction::N || m.direction == Direction::S {
-                        ra[i][piece_bb] |= 1 << m.to;
+                        ra[i][player_bb] |= 1 << m.to;
                     }
                 }
             }
@@ -342,16 +346,16 @@ pub fn init() {
     lazy_static::initialize(&ROOK_ATTACK2);
 }
 
-pub fn adjacent_attack(piece: Piece, square: usize) -> Bitboard {
+pub fn adjacent_attack(square: usize, piece: Piece) -> Bitboard {
     ADJACENT_ATTACK[square][piece as usize]
 }
 
-pub fn bishop_attack(piece_bb: Bitboard, square: usize) -> Bitboard {
-    BISHOP_ATTACK1[square][piece_bb.pext(BISHOP_MASK1[square]) as usize] | BISHOP_ATTACK2[square][piece_bb.pext(BISHOP_MASK2[square]) as usize]
+pub fn bishop_attack(square: usize, player_bb: Bitboard) -> Bitboard {
+    BISHOP_ATTACK1[square][player_bb.pext(BISHOP_MASK1[square]) as usize] | BISHOP_ATTACK2[square][player_bb.pext(BISHOP_MASK2[square]) as usize]
 }
 
-pub fn rook_attack(piece_bb: Bitboard, square: usize) -> Bitboard {
-    ROOK_ATTACK1[square][piece_bb.pext(ROOK_MASK1[square]) as usize] | ROOK_ATTACK2[square][piece_bb.pext(ROOK_MASK2[square]) as usize]
+pub fn rook_attack(square: usize, player_bb: Bitboard) -> Bitboard {
+    ROOK_ATTACK1[square][player_bb.pext(ROOK_MASK1[square]) as usize] | ROOK_ATTACK2[square][player_bb.pext(ROOK_MASK2[square]) as usize]
 }
 
 /// 一番末尾の1の場所を返す
