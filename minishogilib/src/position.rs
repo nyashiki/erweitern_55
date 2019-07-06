@@ -677,13 +677,13 @@ fn pawn_flags_test() {
                 assert_eq!(pawn_flag[Color::Black as usize][i], (position.pawn_flags[Color::Black as usize] & (1 << i)) != 0);
             }
 
-            let moves = position.generate_moves_with_option(true, true, true);
+            let moves = position.generate_moves();
+            if moves.len() == 0 {
+                break;
+            }
 
             // ランダムに局面を進める
             let random_move = moves.choose(&mut rng).unwrap();
-            if random_move.capture_piece.get_piece_type() == PieceType::King {
-                break;
-            }
             position.do_move(random_move);
         }
     }
@@ -701,7 +701,7 @@ fn move_do_undo_test() {
         position.set_start_position();
 
         while position.ply < MAX_PLY as u16 {
-            let moves = position.generate_moves_with_option(true, true, true);
+            let moves = position.generate_moves();
 
             for m in &moves {
                 let mut temp_position = position;
@@ -742,11 +742,12 @@ fn move_do_undo_test() {
                 }
             }
 
-            // ランダムに局面を進める
-            let random_move = moves.choose(&mut rng).unwrap();
-            if random_move.capture_piece.get_piece_type() == PieceType::King {
+            if moves.len() == 0 {
                 break;
             }
+
+            // ランダムに局面を進める
+            let random_move = moves.choose(&mut rng).unwrap();
             position.do_move(random_move);
         }
     }
@@ -772,12 +773,13 @@ fn bitboard_test() {
                 assert!(position.piece_bb[position.board[i] as usize] & (1 << i) != 0);
             }
 
-            // ランダムに局面を進める
-            let moves = position.generate_moves_with_option(true, true, true);
-            let random_move = moves.choose(&mut rng).unwrap();
-            if random_move.capture_piece.get_piece_type() == PieceType::King {
+            let moves = position.generate_moves();
+            if moves.len() == 0 {
                 break;
             }
+
+            // ランダムに局面を進める
+            let random_move = moves.choose(&mut rng).unwrap();
             position.do_move(random_move);
         }
     }
@@ -829,4 +831,34 @@ fn no_legal_move_test() {
 
     position.set_sfen(CHECKMATE10_SFEN);
     assert_eq!(position.generate_moves().len(), 0);
+}
+
+#[test]
+fn no_king_capture_move_in_legal_moves_test() {
+    const LOOP_NUM: i32 = 100000;
+
+    let mut position = Position::empty_board();
+
+    let mut rng = rand::thread_rng();
+
+    for _ in 0..LOOP_NUM {
+        position.set_start_position();
+
+        while position.ply < MAX_PLY as u16 {
+            let moves = position.generate_moves();
+
+            for m in &moves {
+                // 玉が取られる手は生成しないはず
+                // -> 玉が取れる局面に遭遇しないはず
+                assert!(m.capture_piece.get_piece_type() != PieceType::King);
+            }
+
+            // ランダムに局面を進める
+            if moves.len() == 0 {
+                break;
+            }
+            let random_move = moves.choose(&mut rng).unwrap();
+            position.do_move(random_move);
+        }
+    }
 }
