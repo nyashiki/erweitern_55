@@ -342,8 +342,19 @@ pub fn init() {
     lazy_static::initialize(&ROOK_ATTACK2);
 }
 
-pub fn rook_attack(position: &Position, square: usize) -> Bitboard {
-    let piece_bb = position.piece_bb[Color::White as usize] | position.piece_bb[Color::Black as usize];
+pub fn adjacent_attack(piece: Piece, square: usize) -> Bitboard {
+    ADJACENT_ATTACK[piece as usize][square]
+}
 
+pub fn bishop_attack(piece_bb: Bitboard, square: usize) -> Bitboard {
+    BISHOP_ATTACK1[piece_bb.pext(BISHOP_MASK1[square]) as usize][square] | BISHOP_ATTACK2[piece_bb.pext(BISHOP_MASK2[square]) as usize][square]
+}
+
+pub fn rook_attack(piece_bb: Bitboard, square: usize) -> Bitboard {
     ROOK_ATTACK1[piece_bb.pext(ROOK_MASK1[square]) as usize][square] | ROOK_ATTACK2[piece_bb.pext(ROOK_MASK2[square]) as usize][square]
+}
+
+/// 一番末尾の1の場所を返す
+pub fn get_square(bb: Bitboard) -> usize {
+    bb.trailing_zeros() as usize
 }

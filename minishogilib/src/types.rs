@@ -478,6 +478,8 @@ pub const PIECE_ALL: [Piece; 20] = [Piece::WKing, Piece::WGold, Piece::WSilver, 
                                                                 Piece::WSilverX, Piece::WBishopX, Piece::WRookX, Piece::WPawnX,
                                     Piece::BKing, Piece::BGold, Piece::BSilver,  Piece::BBishop,  Piece::BRook,  Piece::BPawn,
                                                                 Piece::BSilverX, Piece::BBishopX, Piece::BRookX, Piece::BPawnX];
+pub const PIECE_TYPE_ALL: [PieceType; 10] = [PieceType::King, PieceType::Gold, PieceType::Silver,  PieceType::Bishop,  PieceType::Rook,  PieceType::Pawn,
+                                                                               PieceType::SilverX, PieceType::BishopX, PieceType::RookX, PieceType::PawnX];
 pub const HAND_PIECE_TYPE_ALL: [PieceType; 5] = [PieceType::Gold, PieceType::Silver, PieceType::Bishop, PieceType::Rook, PieceType::Pawn];
 pub const SQUARE_NB: usize = 5 * 5;
 pub const MAX_PLY: usize = 512;

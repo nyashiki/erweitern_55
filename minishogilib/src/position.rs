@@ -149,6 +149,23 @@ impl Position {
     }
 
     pub fn generate_moves(self, is_board: bool, is_hand: bool) -> std::vec::Vec<Move> {
+        // 近接駒による王手をされているか
+        let mut adjacent_check_bb: Bitboard = 0;
+        let mut adjacent_check_count: u8 = 0;
+
+        let king_square = get_square(self.piece_bb[PieceType::King.get_piece(self.side_to_move) as usize]);
+
+        assert!(king_square < SQUARE_NB);
+
+        for piece_type in PIECE_TYPE_ALL.iter() {
+            let check_bb = adjacent_attack(piece_type.get_piece(self.side_to_move), king_square) & self.piece_bb[piece_type.get_piece(self.side_to_move.get_op_color()) as usize];
+
+            if check_bb != 0 {
+                adjacent_check_count += 1;
+                adjacent_check_bb |= check_bb;
+            }
+        }
+
         let mut moves: Vec<Move> = Vec::new();
 
         if is_board {
@@ -312,7 +329,8 @@ impl Position {
             }
         }
 
-        if is_hand {
+        // 近接駒に王手されている場合、持ち駒を打つ手は全て非合法手
+        if is_hand && adjacent_check_count == 0 {
             // 駒のない升を列挙
             let mut empty_squares: Vec<u8> = Vec::new();
             for i in 0..SQUARE_NB {
@@ -339,6 +357,112 @@ impl Position {
                     }
                 }
             }
+        }
+
+        // 非合法手を取り除く
+        let mut index: usize = 0;
+
+        loop {
+            if index == moves.len() {
+                break;
+            }
+
+            let is_legal = || -> bool {
+                if moves[index].amount == 0 {
+                    // 持ち駒を打つ場合
+
+                    // 大駒に王手されている場合は非合法手
+                    let piece_bb: Bitboard = self.piece_bb[Color::White as usize] | self.piece_bb[Color::Black as usize] | (1 << moves[index].to);
+
+                    // 角による王手
+                    let bishop_check_bb = bishop_attack(piece_bb, king_square);
+                    if (bishop_check_bb & self.piece_bb[PieceType::Bishop.get_piece(self.side_to_move.get_op_color()) as usize] != 0) ||
+                        (bishop_check_bb & self.piece_bb[PieceType::BishopX.get_piece(self.side_to_move.get_op_color()) as usize] != 0) {
+
+                        return false;
+                    }
+
+                    // 飛車による王手
+                    let rook_check_bb = rook_attack(piece_bb, king_square);
+                    if (rook_check_bb & self.piece_bb[PieceType::Rook.get_piece(self.side_to_move.get_op_color()) as usize] != 0) ||
+                        (rook_check_bb & self.piece_bb[PieceType::RookX.get_piece(self.side_to_move.get_op_color()) as usize] != 0) {
+
+                        return false;
+                    }
+                } else {
+                    // 盤上の駒を動かす場合
+
+                    if moves[index].piece.get_piece_type() == PieceType::King {
+                        // 王を動かす場合
+                        let piece_bb: Bitboard = (self.piece_bb[Color::White as usize] | self.piece_bb[Color::Black as usize] | (1 << moves[index].to)) ^ (1 << moves[index].from);
+
+                        // 角による王手
+                        let bishop_check_bb = bishop_attack(piece_bb, king_square);
+                        if bishop_check_bb & self.piece_bb[PieceType::Bishop.get_piece(self.side_to_move.get_op_color()) as usize] != 0 ||
+                        bishop_check_bb & self.piece_bb[PieceType::BishopX.get_piece(self.side_to_move.get_op_color()) as usize] != 0 {
+
+                            return false;
+                        }
+
+                        // 飛車による王手
+                        let rook_check_bb = rook_attack(piece_bb, king_square);
+
+                        if rook_check_bb & self.piece_bb[PieceType::Rook.get_piece(self.side_to_move.get_op_color()) as usize] != 0 ||
+                        rook_check_bb & self.piece_bb[PieceType::RookX.get_piece(self.side_to_move.get_op_color()) as usize] != 0 {
+
+                            return false;
+                        }
+
+                        // 近接王手
+                        for piece_type in PIECE_TYPE_ALL.iter() {
+                            let check_bb = adjacent_attack(piece_type.get_piece(self.side_to_move), moves[index].to as usize) & self.piece_bb[piece_type.get_piece(self.side_to_move.get_op_color()) as usize];
+
+                            if check_bb != 0 {
+                                return false;
+                            }
+                        }
+                    } else {
+                        if adjacent_check_count > 1 {
+                            // 近接駒に両王手されている場合は玉を動かさないといけない
+                            return false;
+                        } else if adjacent_check_count == 1 {
+                            // 王手している近接駒を取る手でないといけない
+                            if adjacent_check_bb & (1 << moves[index].to) == 0 {
+                                return false;
+                            }
+                        }
+
+                        let piece_bb: Bitboard = (self.piece_bb[Color::White as usize] | self.piece_bb[Color::Black as usize] | (1 << moves[index].to)) ^ (1 << moves[index].from);
+
+                        // 角による王手
+                        let bishop_check_bb = bishop_attack(piece_bb, king_square);
+                        if bishop_check_bb & self.piece_bb[PieceType::Bishop.get_piece(self.side_to_move.get_op_color()) as usize] != 0 ||
+                        bishop_check_bb & self.piece_bb[PieceType::BishopX.get_piece(self.side_to_move.get_op_color()) as usize] != 0 {
+
+                            return false;
+                        }
+
+                        // 飛車による王手
+                        let rook_check_bb = rook_attack(piece_bb, king_square);
+
+                        if rook_check_bb & self.piece_bb[PieceType::Rook.get_piece(self.side_to_move.get_op_color()) as usize] != 0 ||
+                        rook_check_bb & self.piece_bb[PieceType::RookX.get_piece(self.side_to_move.get_op_color()) as usize] != 0 {
+
+                            return false;
+                        }
+                    }
+                }
+
+                return true;
+            }();
+
+            if !is_legal {
+                moves.swap_remove(index);
+
+                continue;
+            }
+
+            index += 1;
         }
 
         return moves;
