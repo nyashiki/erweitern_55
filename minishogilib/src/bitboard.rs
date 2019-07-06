@@ -34,23 +34,11 @@ lazy_static! {
         return aa;
     };
 
-    /// 角の左下--右上方向の利きを参照するために用いるmask
+    /// 角の右上--左下方向の利きを参照するために用いるmask
     static ref BISHOP_MASK1: [u32; SQUARE_NB] = {
         let mut m: [u32; SQUARE_NB] = [0; SQUARE_NB];
 
         for i in 0..SQUARE_NB {
-            let left_bottom = {
-                let mut y = i / 5;
-                let mut x = i % 5;
-
-                while y < 4 && x > 0 {
-                    y += 1;
-                    x -= 1;
-                }
-
-                5 * y + x
-            };
-
             let right_top = {
                 let mut y = i / 5;
                 let mut x = i % 5;
@@ -63,13 +51,25 @@ lazy_static! {
                 5 * y + x
             };
 
-            let mut square = left_bottom;
+            let left_bottom = {
+                let mut y = i / 5;
+                let mut x = i % 5;
+
+                while y < 4 && x > 0 {
+                    y += 1;
+                    x -= 1;
+                }
+
+                5 * y + x
+            };
+
+            let mut square = right_top;
             loop {
                 m[i] |= 1 << square;
-                if square == right_top {
+                if square == left_bottom {
                     break;
                 }
-                square -= 4;
+                square += 4;
             }
         }
 
@@ -148,24 +148,12 @@ lazy_static! {
         return m;
     };
 
-    /// 角の左下--右上方向の利きを保持するbitboard
+    /// 角の右上--左下方向の利きを保持するbitboard
     /// BISHOP_ATTACK1[bishop_square][pext((player_bb[WHITE] | player_bb[BLACK]), mask)]として参照する
     static ref BISHOP_ATTACK1: [[Bitboard; 32]; SQUARE_NB] = {
         let mut ba: [[Bitboard; 32]; SQUARE_NB] = [[0; 32]; SQUARE_NB];
 
         for i in 0..SQUARE_NB {
-            let left_bottom = {
-                let mut y = i / 5;
-                let mut x = i % 5;
-
-                while y < 4 && x > 0 {
-                    y += 1;
-                    x -= 1;
-                }
-
-                5 * y + x
-            };
-
             let right_top = {
                 let mut y = i / 5;
                 let mut x = i % 5;
@@ -178,16 +166,27 @@ lazy_static! {
                 5 * y + x
             };
 
+            let left_bottom = {
+                let mut y = i / 5;
+                let mut x = i % 5;
+
+                while y < 4 && x > 0 {
+                    y += 1;
+                    x -= 1;
+                }
+
+                5 * y + x
+            };
+
             for player_bb in 0..32 {
                 let mut position: Position = Position::empty_board();
 
                 for j in 0..5 {
-                    if left_bottom - 4 * j == right_top {
-                        break;
-                    }
-
                     if player_bb & (1 << j) != 0 {
-                        position.board[left_bottom - 4 * j] = Piece::BPawn;
+                        position.board[right_top + 4 * j] = Piece::BPawn;
+                    }
+                    if right_top + 4 * j == left_bottom {
+                        break;
                     }
                 }
                 position.board[i] = Piece::WBishop;
@@ -196,8 +195,8 @@ lazy_static! {
                 let moves = position.generate_moves_with_option(true, false, true);
 
                 for m in moves {
-                    // 左下--右上方向の合法手のみ取りだす
-                    if m.direction == Direction::SW || m.direction == Direction::NE {
+                    // 右上, 左下方向の合法手のみ取りだす
+                    if m.direction == Direction::NE || m.direction == Direction::SW {
                         ba[i][player_bb] |= 1 << m.to;
                     }
                 }
@@ -241,12 +240,11 @@ lazy_static! {
                 let mut position: Position = Position::empty_board();
 
                 for j in 0..5 {
-                    if left_top + 6 * j == right_bottom {
-                        break;
-                    }
-
                     if player_bb & (1 << j) != 0 {
                         position.board[left_top + 6 * j] = Piece::BPawn;
+                    }
+                    if left_top + 6 * j == right_bottom {
+                        break;
                     }
                 }
                 position.board[i] = Piece::WBishop;

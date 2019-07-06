@@ -276,6 +276,21 @@ impl Position {
             }
         }
     }
+}
+
+impl Position {
+    pub fn empty_board() -> Position {
+        Position {
+            side_to_move: Color::NoColor,
+            board: [Piece::NoPiece; SQUARE_NB],
+            hand: [[0; 5]; 2],
+            pawn_flags: [0; 2],
+            piece_bb: [0; Piece::BPawnX as usize + 1],
+            player_bb: [0; 2],
+            ply: 0,
+            kif: [NULL_MOVE; MAX_PLY]
+        }
+    }
 
     /// 盤上の駒からbitboardを設定する
     fn set_bitboard(&mut self) {
@@ -292,41 +307,6 @@ impl Position {
                 self.piece_bb[self.board[i] as usize] |= 1 << i;
                 self.player_bb[self.board[i].get_color() as usize] |= 1 << i;
             }
-        }
-    }
-}
-
-fn char_to_piece(c: char) -> Piece {
-    match c {
-        'K' => Piece::WKing,
-        'G' => Piece::WGold,
-        'S' => Piece::WSilver,
-        'B' => Piece::WBishop,
-        'R' => Piece::WRook,
-        'P' => Piece::WPawn,
-
-        'k' => Piece::BKing,
-        'g' => Piece::BGold,
-        's' => Piece::BSilver,
-        'b' => Piece::BBishop,
-        'r' => Piece::BRook,
-        'p' => Piece::BPawn,
-
-        _ => Piece::NoPiece
-    }
-}
-
-impl Position {
-    pub fn empty_board() -> Position {
-        Position {
-            side_to_move: Color::NoColor,
-            board: [Piece::NoPiece; SQUARE_NB],
-            hand: [[0; 5]; 2],
-            pawn_flags: [0; 2],
-            piece_bb: [0; Piece::BPawnX as usize + 1],
-            player_bb: [0; 2],
-            ply: 0,
-            kif: [NULL_MOVE; MAX_PLY]
         }
     }
 
@@ -553,10 +533,7 @@ impl Position {
                 }
 
                 let is_legal = |m: Move| -> bool {
-                    if m.amount == 0 {
-                        // 持ち駒を打つ場合
-
-                        // 大駒に王手されている場合は非合法手
+                    if m.amount == 0 {  // 持ち駒を打つ場合
                         let player_bb: Bitboard = self.player_bb[Color::White as usize] | self.player_bb[Color::Black as usize] | (1 << m.to);
 
                         // 角による王手
@@ -574,15 +551,13 @@ impl Position {
 
                             return false;
                         }
-                    } else {
-                        // 盤上の駒を動かす場合
-
-                        if m.piece.get_piece_type() == PieceType::King {
-                            // 王を動かす場合
+                    } else {  // 盤上の駒を動かす場合
+                        if m.piece.get_piece_type() == PieceType::King {  // 王を動かす場合
                             let player_bb: Bitboard = (self.player_bb[Color::White as usize] | self.player_bb[Color::Black as usize] | (1 << m.to)) ^ (1 << m.from);
 
                             // 角による王手
-                            let bishop_check_bb = bishop_attack(m.to, player_bb);
+                            let bishop_check_bb = bishop_attack(m.to as usize, player_bb);
+
                             if bishop_check_bb & self.piece_bb[PieceType::Bishop.get_piece(self.side_to_move.get_op_color()) as usize] != 0 ||
                                 bishop_check_bb & self.piece_bb[PieceType::BishopX.get_piece(self.side_to_move.get_op_color()) as usize] != 0 {
 
@@ -652,6 +627,26 @@ impl Position {
         }
 
         return moves;
+    }
+}
+
+fn char_to_piece(c: char) -> Piece {
+    match c {
+        'K' => Piece::WKing,
+        'G' => Piece::WGold,
+        'S' => Piece::WSilver,
+        'B' => Piece::WBishop,
+        'R' => Piece::WRook,
+        'P' => Piece::WPawn,
+
+        'k' => Piece::BKing,
+        'g' => Piece::BGold,
+        's' => Piece::BSilver,
+        'b' => Piece::BBishop,
+        'r' => Piece::BRook,
+        'p' => Piece::BPawn,
+
+        _ => Piece::NoPiece
     }
 }
 
