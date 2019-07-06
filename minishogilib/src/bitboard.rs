@@ -65,10 +65,10 @@ lazy_static! {
 
             let mut square = left_bottom;
             loop {
+                m[i] |= 1 << square;
                 if square == right_top {
                     break;
                 }
-                m[i] |= 1 << square;
                 square -= 4;
             }
         }
@@ -107,10 +107,10 @@ lazy_static! {
 
             let mut square = left_top;
             loop {
+                m[i] |= 1 << square;
                 if square == right_bottom {
                     break;
                 }
-                m[i] |= 1 << square;
                 square += 6;
             }
         }
@@ -183,7 +183,7 @@ lazy_static! {
 
                 for j in 0..5 {
                     if left_bottom - 4 * j == right_top {
-                        break
+                        break;
                     }
 
                     if player_bb & (1 << j) != 0 {
@@ -242,7 +242,7 @@ lazy_static! {
 
                 for j in 0..5 {
                     if left_top + 6 * j == right_bottom {
-                        break
+                        break;
                     }
 
                     if player_bb & (1 << j) != 0 {
