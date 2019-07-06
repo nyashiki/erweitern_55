@@ -148,21 +148,204 @@ impl Position {
         self.set_bitboard();
     }
 
-    pub fn generate_moves(self, is_board: bool, is_hand: bool) -> std::vec::Vec<Move> {
+    pub fn generate_moves(self) -> std::vec::Vec<Move> {
+        return self.generate_moves_with_option(true, true, false);
+    }
+
+    pub fn do_move(&mut self, m: &Move) {
+        assert!(m.capture_piece.get_piece_type() != PieceType::King);
+
+        if m.amount == 0 {
+            // 持ち駒を打つ場合
+
+            self.board[m.to as usize] = m.piece;
+            self.hand[self.side_to_move as usize][m.piece.get_piece_type() as usize - 2] -= 1;
+
+            // Bitboardの更新
+            self.piece_bb[m.piece as usize] |= 1 << m.to;
+            self.player_bb[self.side_to_move as usize] |= 1 << m.to;
+
+            // 二歩フラグの更新
+            if m.piece.get_piece_type() == PieceType::Pawn {
+                self.pawn_flags[self.side_to_move as usize] |= 1 << (m.to % 5);
+            }
+        } else {
+            // 盤上の駒を動かす場合
+
+            if m.capture_piece != Piece::NoPiece {
+                self.hand[self.side_to_move as usize][m.capture_piece.get_piece_type().get_raw() as usize - 2] += 1;
+
+                // Bitboardの更新
+                self.piece_bb[m.capture_piece as usize] ^= 1 << m.to;
+                self.player_bb[self.side_to_move.get_op_color() as usize] ^= 1 << m.to;
+
+                // 二歩フラグの更新
+                if m.capture_piece.get_piece_type() == PieceType::Pawn {
+                    self.pawn_flags[self.side_to_move.get_op_color() as usize] ^= 1 << (m.to % 5);
+                }
+            }
+
+            if m.promotion {
+                self.board[m.to as usize] = m.piece.get_promoted();
+                // 二歩フラグの更新
+                if m.piece.get_piece_type() == PieceType::Pawn {
+                    self.pawn_flags[self.side_to_move as usize] ^= 1 << (m.to % 5);
+                }
+            } else {
+                self.board[m.to as usize] = m.piece;
+            }
+
+            self.board[m.from as usize] = Piece::NoPiece;
+
+            // Bitboardの更新
+            // 移動先
+            self.piece_bb[self.board[m.to as usize] as usize] |= 1 << m.to;
+            self.player_bb[self.side_to_move as usize] |= 1 << m.to;
+            // 移動元
+            self.piece_bb[m.piece as usize] ^= 1 << m.from;
+            self.player_bb[self.side_to_move as usize] ^= 1 << m.from;
+        }
+
+        // 棋譜に登録
+        self.kif[self.ply as usize] = *m;
+
+        // 1手進める
+        self.ply += 1;
+
+        // 手番を変える
+        self.side_to_move = self.side_to_move.get_op_color();
+    }
+
+    pub fn undo_move(&mut self) {
+        assert!(self.ply > 0);
+
+        // 手数を戻す
+        let m = self.kif[(self.ply - 1) as usize];
+        self.ply -= 1;
+
+        // 手番を戻す
+        self.side_to_move = self.side_to_move.get_op_color();
+
+        if m.amount == 0 {
+            // 持ち駒を打った場合
+
+            self.board[m.to as usize] = Piece::NoPiece;
+            self.hand[self.side_to_move as usize][m.piece.get_piece_type() as usize - 2] += 1;
+
+            // Bitboardのundo
+            self.piece_bb[m.piece as usize] ^= 1 << m.to;
+            self.player_bb[self.side_to_move as usize] ^= 1 << m.to;
+
+            // 二歩フラグの更新
+            if m.piece.get_piece_type() == PieceType::Pawn {
+                self.pawn_flags[self.side_to_move as usize] ^= 1 << (m.to % 5);
+            }
+        } else {
+            // 盤上の駒を動かした場合
+
+            // Bitboardのundo
+            // 移動先
+            assert!(self.board[m.to as usize] != Piece::NoPiece);
+            self.piece_bb[self.board[m.to as usize] as usize] ^= 1 << m.to;
+            self.player_bb[self.side_to_move as usize] ^= 1 << m.to;
+            // 移動元
+            self.piece_bb[m.piece as usize] |= 1 << m.from;
+            self.player_bb[self.side_to_move as usize] |= 1 << m.from;
+
+            self.board[m.to as usize] = m.capture_piece;
+            self.board[m.from as usize] = m.piece;
+
+            // 二歩フラグの更新
+            if m.piece.get_piece_type() == PieceType::Pawn && m.promotion {
+                self.pawn_flags[self.side_to_move as usize] |= 1 << (m.to % 5);
+            }
+
+            // 相手の駒を取っていた場合には、持ち駒から減らす
+            if m.capture_piece != Piece::NoPiece {
+                self.hand[self.side_to_move as usize][m.capture_piece.get_piece_type().get_raw() as usize - 2] -= 1;
+
+                // Bitboardのundo
+                self.piece_bb[m.capture_piece as usize] |= 1 << m.to;
+                self.player_bb[self.side_to_move.get_op_color() as usize] |= 1 << m.to;
+
+                // 二歩フラグの更新
+                if m.capture_piece.get_piece_type() == PieceType::Pawn {
+                    self.pawn_flags[self.side_to_move.get_op_color() as usize] |= 1 << (m.to % 5);
+                }
+            }
+        }
+    }
+
+    /// 盤上の駒からbitboardを設定する
+    fn set_bitboard(&mut self) {
+        // 初期化
+        for i in 0..Piece::BPawnX as usize + 1 {
+            self.piece_bb[i] = 0
+        }
+        self.player_bb[Color::White as usize] = 0;
+        self.player_bb[Color::Black as usize] = 0;
+
+        // 盤上の駒に対応する場所のbitを立てる
+        for i in 0..SQUARE_NB {
+            if self.board[i] != Piece::NoPiece {
+                self.piece_bb[self.board[i] as usize] |= 1 << i;
+                self.player_bb[self.board[i].get_color() as usize] |= 1 << i;
+            }
+        }
+    }
+}
+
+fn char_to_piece(c: char) -> Piece {
+    match c {
+        'K' => Piece::WKing,
+        'G' => Piece::WGold,
+        'S' => Piece::WSilver,
+        'B' => Piece::WBishop,
+        'R' => Piece::WRook,
+        'P' => Piece::WPawn,
+
+        'k' => Piece::BKing,
+        'g' => Piece::BGold,
+        's' => Piece::BSilver,
+        'b' => Piece::BBishop,
+        'r' => Piece::BRook,
+        'p' => Piece::BPawn,
+
+        _ => Piece::NoPiece
+    }
+}
+
+impl Position {
+    pub fn empty_board() -> Position {
+        Position {
+            side_to_move: Color::NoColor,
+            board: [Piece::NoPiece; SQUARE_NB],
+            hand: [[0; 5]; 2],
+            pawn_flags: [0; 2],
+            piece_bb: [0; Piece::BPawnX as usize + 1],
+            player_bb: [0; 2],
+            ply: 0,
+            kif: [NULL_MOVE; MAX_PLY]
+        }
+    }
+
+    pub fn generate_moves_with_option(self, is_board: bool, is_hand: bool, allow_illegal: bool) -> std::vec::Vec<Move> {
         // 近接駒による王手をされているか
         let mut adjacent_check_bb: Bitboard = 0;
         let mut adjacent_check_count: u8 = 0;
 
         let king_square = get_square(self.piece_bb[PieceType::King.get_piece(self.side_to_move) as usize]);
 
-        assert!(king_square < SQUARE_NB);
+        if !allow_illegal {
+            assert!(king_square < SQUARE_NB);
 
-        for piece_type in PIECE_TYPE_ALL.iter() {
-            let check_bb = adjacent_attack(piece_type.get_piece(self.side_to_move), king_square) & self.piece_bb[piece_type.get_piece(self.side_to_move.get_op_color()) as usize];
+            for piece_type in PIECE_TYPE_ALL.iter() {
+                let check_bb = adjacent_attack(piece_type.get_piece(self.side_to_move), king_square) & self.piece_bb[piece_type.get_piece(self.side_to_move.get_op_color()) as usize];
 
-            if check_bb != 0 {
-                adjacent_check_count += 1;
-                adjacent_check_bb |= check_bb;
+                if check_bb != 0 {
+                    adjacent_check_count += 1;
+                    adjacent_check_bb |= check_bb;
+                }
             }
         }
 
@@ -360,289 +543,114 @@ impl Position {
         }
 
         // 非合法手を取り除く
-        let mut index: usize = 0;
+        if !allow_illegal {
+            let mut index: usize = 0;
 
-        loop {
-            if index == moves.len() {
-                break;
-            }
-
-            let is_legal = || -> bool {
-                if moves[index].amount == 0 {
-                    // 持ち駒を打つ場合
-
-                    // 大駒に王手されている場合は非合法手
-                    let piece_bb: Bitboard = self.piece_bb[Color::White as usize] | self.piece_bb[Color::Black as usize] | (1 << moves[index].to);
-
-                    // 角による王手
-                    let bishop_check_bb = bishop_attack(piece_bb, king_square);
-                    if (bishop_check_bb & self.piece_bb[PieceType::Bishop.get_piece(self.side_to_move.get_op_color()) as usize] != 0) ||
-                        (bishop_check_bb & self.piece_bb[PieceType::BishopX.get_piece(self.side_to_move.get_op_color()) as usize] != 0) {
-
-                        return false;
-                    }
-
-                    // 飛車による王手
-                    let rook_check_bb = rook_attack(piece_bb, king_square);
-                    if (rook_check_bb & self.piece_bb[PieceType::Rook.get_piece(self.side_to_move.get_op_color()) as usize] != 0) ||
-                        (rook_check_bb & self.piece_bb[PieceType::RookX.get_piece(self.side_to_move.get_op_color()) as usize] != 0) {
-
-                        return false;
-                    }
-                } else {
-                    // 盤上の駒を動かす場合
-
-                    if moves[index].piece.get_piece_type() == PieceType::King {
-                        // 王を動かす場合
-                        let piece_bb: Bitboard = (self.piece_bb[Color::White as usize] | self.piece_bb[Color::Black as usize] | (1 << moves[index].to)) ^ (1 << moves[index].from);
-
-                        // 角による王手
-                        let bishop_check_bb = bishop_attack(piece_bb, king_square);
-                        if bishop_check_bb & self.piece_bb[PieceType::Bishop.get_piece(self.side_to_move.get_op_color()) as usize] != 0 ||
-                        bishop_check_bb & self.piece_bb[PieceType::BishopX.get_piece(self.side_to_move.get_op_color()) as usize] != 0 {
-
-                            return false;
-                        }
-
-                        // 飛車による王手
-                        let rook_check_bb = rook_attack(piece_bb, king_square);
-
-                        if rook_check_bb & self.piece_bb[PieceType::Rook.get_piece(self.side_to_move.get_op_color()) as usize] != 0 ||
-                        rook_check_bb & self.piece_bb[PieceType::RookX.get_piece(self.side_to_move.get_op_color()) as usize] != 0 {
-
-                            return false;
-                        }
-
-                        // 近接王手
-                        for piece_type in PIECE_TYPE_ALL.iter() {
-                            let check_bb = adjacent_attack(piece_type.get_piece(self.side_to_move), moves[index].to as usize) & self.piece_bb[piece_type.get_piece(self.side_to_move.get_op_color()) as usize];
-
-                            if check_bb != 0 {
-                                return false;
-                            }
-                        }
-                    } else {
-                        if adjacent_check_count > 1 {
-                            // 近接駒に両王手されている場合は玉を動かさないといけない
-                            return false;
-                        } else if adjacent_check_count == 1 {
-                            // 王手している近接駒を取る手でないといけない
-                            if adjacent_check_bb & (1 << moves[index].to) == 0 {
-                                return false;
-                            }
-                        }
-
-                        let piece_bb: Bitboard = (self.piece_bb[Color::White as usize] | self.piece_bb[Color::Black as usize] | (1 << moves[index].to)) ^ (1 << moves[index].from);
-
-                        // 角による王手
-                        let bishop_check_bb = bishop_attack(piece_bb, king_square);
-                        if bishop_check_bb & self.piece_bb[PieceType::Bishop.get_piece(self.side_to_move.get_op_color()) as usize] != 0 ||
-                        bishop_check_bb & self.piece_bb[PieceType::BishopX.get_piece(self.side_to_move.get_op_color()) as usize] != 0 {
-
-                            return false;
-                        }
-
-                        // 飛車による王手
-                        let rook_check_bb = rook_attack(piece_bb, king_square);
-
-                        if rook_check_bb & self.piece_bb[PieceType::Rook.get_piece(self.side_to_move.get_op_color()) as usize] != 0 ||
-                        rook_check_bb & self.piece_bb[PieceType::RookX.get_piece(self.side_to_move.get_op_color()) as usize] != 0 {
-
-                            return false;
-                        }
-                    }
+            loop {
+                if index == moves.len() {
+                    break;
                 }
 
-                return true;
-            }();
+                let is_legal = || -> bool {
+                    if moves[index].amount == 0 {
+                        // 持ち駒を打つ場合
 
-            if !is_legal {
-                moves.swap_remove(index);
+                        // 大駒に王手されている場合は非合法手
+                        let piece_bb: Bitboard = self.piece_bb[Color::White as usize] | self.piece_bb[Color::Black as usize] | (1 << moves[index].to);
 
-                continue;
+                        // 角による王手
+                        let bishop_check_bb = bishop_attack(piece_bb, king_square);
+                        if (bishop_check_bb & self.piece_bb[PieceType::Bishop.get_piece(self.side_to_move.get_op_color()) as usize] != 0) ||
+                            (bishop_check_bb & self.piece_bb[PieceType::BishopX.get_piece(self.side_to_move.get_op_color()) as usize] != 0) {
+
+                            return false;
+                        }
+
+                        // 飛車による王手
+                        let rook_check_bb = rook_attack(piece_bb, king_square);
+                        if (rook_check_bb & self.piece_bb[PieceType::Rook.get_piece(self.side_to_move.get_op_color()) as usize] != 0) ||
+                            (rook_check_bb & self.piece_bb[PieceType::RookX.get_piece(self.side_to_move.get_op_color()) as usize] != 0) {
+
+                            return false;
+                        }
+                    } else {
+                        // 盤上の駒を動かす場合
+
+                        if moves[index].piece.get_piece_type() == PieceType::King {
+                            // 王を動かす場合
+                            let piece_bb: Bitboard = (self.piece_bb[Color::White as usize] | self.piece_bb[Color::Black as usize] | (1 << moves[index].to)) ^ (1 << moves[index].from);
+
+                            // 角による王手
+                            let bishop_check_bb = bishop_attack(piece_bb, king_square);
+                            if bishop_check_bb & self.piece_bb[PieceType::Bishop.get_piece(self.side_to_move.get_op_color()) as usize] != 0 ||
+                            bishop_check_bb & self.piece_bb[PieceType::BishopX.get_piece(self.side_to_move.get_op_color()) as usize] != 0 {
+
+                                return false;
+                            }
+
+                            // 飛車による王手
+                            let rook_check_bb = rook_attack(piece_bb, king_square);
+
+                            if rook_check_bb & self.piece_bb[PieceType::Rook.get_piece(self.side_to_move.get_op_color()) as usize] != 0 ||
+                            rook_check_bb & self.piece_bb[PieceType::RookX.get_piece(self.side_to_move.get_op_color()) as usize] != 0 {
+
+                                return false;
+                            }
+
+                            // 近接王手
+                            for piece_type in PIECE_TYPE_ALL.iter() {
+                                let check_bb = adjacent_attack(piece_type.get_piece(self.side_to_move), moves[index].to as usize) & self.piece_bb[piece_type.get_piece(self.side_to_move.get_op_color()) as usize];
+
+                                if check_bb != 0 {
+                                    return false;
+                                }
+                            }
+                        } else {
+                            if adjacent_check_count > 1 {
+                                // 近接駒に両王手されている場合は玉を動かさないといけない
+                                return false;
+                            } else if adjacent_check_count == 1 {
+                                // 王手している近接駒を取る手でないといけない
+                                if adjacent_check_bb & (1 << moves[index].to) == 0 {
+                                    return false;
+                                }
+                            }
+
+                            let piece_bb: Bitboard = (self.piece_bb[Color::White as usize] | self.piece_bb[Color::Black as usize] | (1 << moves[index].to)) ^ (1 << moves[index].from);
+
+                            // 角による王手
+                            let bishop_check_bb = bishop_attack(piece_bb, king_square);
+                            if bishop_check_bb & self.piece_bb[PieceType::Bishop.get_piece(self.side_to_move.get_op_color()) as usize] != 0 ||
+                            bishop_check_bb & self.piece_bb[PieceType::BishopX.get_piece(self.side_to_move.get_op_color()) as usize] != 0 {
+
+                                return false;
+                            }
+
+                            // 飛車による王手
+                            let rook_check_bb = rook_attack(piece_bb, king_square);
+
+                            if rook_check_bb & self.piece_bb[PieceType::Rook.get_piece(self.side_to_move.get_op_color()) as usize] != 0 ||
+                            rook_check_bb & self.piece_bb[PieceType::RookX.get_piece(self.side_to_move.get_op_color()) as usize] != 0 {
+
+                                return false;
+                            }
+                        }
+                    }
+
+                    return true;
+                }();
+
+                if !is_legal {
+                    moves.swap_remove(index);
+
+                    continue;
+                }
+
+                index += 1;
             }
-
-            index += 1;
         }
 
         return moves;
-    }
-
-    pub fn do_move(&mut self, m: &Move) {
-        assert!(m.capture_piece.get_piece_type() != PieceType::King);
-
-        if m.amount == 0 {
-            // 持ち駒を打つ場合
-
-            self.board[m.to as usize] = m.piece;
-            self.hand[self.side_to_move as usize][m.piece.get_piece_type() as usize - 2] -= 1;
-
-            // Bitboardの更新
-            self.piece_bb[m.piece as usize] |= 1 << m.to;
-            self.player_bb[self.side_to_move as usize] |= 1 << m.to;
-
-            // 二歩フラグの更新
-            if m.piece.get_piece_type() == PieceType::Pawn {
-                self.pawn_flags[self.side_to_move as usize] |= 1 << (m.to % 5);
-            }
-        } else {
-            // 盤上の駒を動かす場合
-
-            if m.capture_piece != Piece::NoPiece {
-                self.hand[self.side_to_move as usize][m.capture_piece.get_piece_type().get_raw() as usize - 2] += 1;
-
-                // Bitboardの更新
-                self.piece_bb[m.capture_piece as usize] ^= 1 << m.to;
-                self.player_bb[self.side_to_move.get_op_color() as usize] ^= 1 << m.to;
-
-                // 二歩フラグの更新
-                if m.capture_piece.get_piece_type() == PieceType::Pawn {
-                    self.pawn_flags[self.side_to_move.get_op_color() as usize] ^= 1 << (m.to % 5);
-                }
-            }
-
-            if m.promotion {
-                self.board[m.to as usize] = m.piece.get_promoted();
-                // 二歩フラグの更新
-                if m.piece.get_piece_type() == PieceType::Pawn {
-                    self.pawn_flags[self.side_to_move as usize] ^= 1 << (m.to % 5);
-                }
-            } else {
-                self.board[m.to as usize] = m.piece;
-            }
-
-            self.board[m.from as usize] = Piece::NoPiece;
-
-            // Bitboardの更新
-            // 移動先
-            self.piece_bb[self.board[m.to as usize] as usize] |= 1 << m.to;
-            self.player_bb[self.side_to_move as usize] |= 1 << m.to;
-            // 移動元
-            self.piece_bb[m.piece as usize] ^= 1 << m.from;
-            self.player_bb[self.side_to_move as usize] ^= 1 << m.from;
-        }
-
-        // 棋譜に登録
-        self.kif[self.ply as usize] = *m;
-
-        // 1手進める
-        self.ply += 1;
-
-        // 手番を変える
-        self.side_to_move = self.side_to_move.get_op_color();
-    }
-
-    pub fn undo_move(&mut self) {
-        assert!(self.ply > 0);
-
-        // 手数を戻す
-        let m = self.kif[(self.ply - 1) as usize];
-        self.ply -= 1;
-
-        // 手番を戻す
-        self.side_to_move = self.side_to_move.get_op_color();
-
-        if m.amount == 0 {
-            // 持ち駒を打った場合
-
-            self.board[m.to as usize] = Piece::NoPiece;
-            self.hand[self.side_to_move as usize][m.piece.get_piece_type() as usize - 2] += 1;
-
-            // Bitboardのundo
-            self.piece_bb[m.piece as usize] ^= 1 << m.to;
-            self.player_bb[self.side_to_move as usize] ^= 1 << m.to;
-
-            // 二歩フラグの更新
-            if m.piece.get_piece_type() == PieceType::Pawn {
-                self.pawn_flags[self.side_to_move as usize] ^= 1 << (m.to % 5);
-            }
-        } else {
-            // 盤上の駒を動かした場合
-
-            // Bitboardのundo
-            // 移動先
-            assert!(self.board[m.to as usize] != Piece::NoPiece);
-            self.piece_bb[self.board[m.to as usize] as usize] ^= 1 << m.to;
-            self.player_bb[self.side_to_move as usize] ^= 1 << m.to;
-            // 移動元
-            self.piece_bb[m.piece as usize] |= 1 << m.from;
-            self.player_bb[self.side_to_move as usize] |= 1 << m.from;
-
-            self.board[m.to as usize] = m.capture_piece;
-            self.board[m.from as usize] = m.piece;
-
-            // 二歩フラグの更新
-            if m.piece.get_piece_type() == PieceType::Pawn && m.promotion {
-                self.pawn_flags[self.side_to_move as usize] |= 1 << (m.to % 5);
-            }
-
-            // 相手の駒を取っていた場合には、持ち駒から減らす
-            if m.capture_piece != Piece::NoPiece {
-                self.hand[self.side_to_move as usize][m.capture_piece.get_piece_type().get_raw() as usize - 2] -= 1;
-
-                // Bitboardのundo
-                self.piece_bb[m.capture_piece as usize] |= 1 << m.to;
-                self.player_bb[self.side_to_move.get_op_color() as usize] |= 1 << m.to;
-
-                // 二歩フラグの更新
-                if m.capture_piece.get_piece_type() == PieceType::Pawn {
-                    self.pawn_flags[self.side_to_move.get_op_color() as usize] |= 1 << (m.to % 5);
-                }
-            }
-        }
-    }
-
-    /// 盤上の駒からbitboardを設定する
-    fn set_bitboard(&mut self) {
-        // 初期化
-        for i in 0..Piece::BPawnX as usize + 1 {
-            self.piece_bb[i] = 0
-        }
-        self.player_bb[Color::White as usize] = 0;
-        self.player_bb[Color::Black as usize] = 0;
-
-        // 盤上の駒に対応する場所のbitを立てる
-        for i in 0..SQUARE_NB {
-            if self.board[i] != Piece::NoPiece {
-                self.piece_bb[self.board[i] as usize] |= 1 << i;
-                self.player_bb[self.board[i].get_color() as usize] |= 1 << i;
-            }
-        }
-    }
-}
-
-fn char_to_piece(c: char) -> Piece {
-    match c {
-        'K' => Piece::WKing,
-        'G' => Piece::WGold,
-        'S' => Piece::WSilver,
-        'B' => Piece::WBishop,
-        'R' => Piece::WRook,
-        'P' => Piece::WPawn,
-
-        'k' => Piece::BKing,
-        'g' => Piece::BGold,
-        's' => Piece::BSilver,
-        'b' => Piece::BBishop,
-        'r' => Piece::BRook,
-        'p' => Piece::BPawn,
-
-        _ => Piece::NoPiece
-    }
-}
-
-impl Position {
-    pub fn empty_board() -> Position {
-        Position {
-            side_to_move: Color::NoColor,
-            board: [Piece::NoPiece; SQUARE_NB],
-            hand: [[0; 5]; 2],
-            pawn_flags: [0; 2],
-            piece_bb: [0; Piece::BPawnX as usize + 1],
-            player_bb: [0; 2],
-            ply: 0,
-            kif: [NULL_MOVE; MAX_PLY]
-        }
     }
 }
 
@@ -660,8 +668,6 @@ fn pawn_flags_test() {
         while position.ply < MAX_PLY as u16 {
             let mut pawn_flag: [[bool; 5]; 2] = [[false; 5]; 2];
 
-            position.print();
-
             // 二歩フラグの差分更新が正しく動作していることを確認する
             for i in 0..SQUARE_NB {
                 if position.board[i] == Piece::WPawn {
@@ -675,7 +681,7 @@ fn pawn_flags_test() {
                 assert_eq!(pawn_flag[Color::Black as usize][i], (position.pawn_flags[Color::Black as usize] & (1 << i)) != 0);
             }
 
-            let moves = position.generate_moves(true, true);
+            let moves = position.generate_moves_with_option(true, true, true);
 
             // ランダムに局面を進める
             let random_move = moves.choose(&mut rng).unwrap();
@@ -699,7 +705,7 @@ fn move_do_undo_test() {
         position.set_start_position();
 
         while position.ply < MAX_PLY as u16 {
-            let moves = position.generate_moves(true, true);
+            let moves = position.generate_moves_with_option(true, true, true);
 
             for m in &moves {
                 let mut temp_position = position;
@@ -741,6 +747,37 @@ fn move_do_undo_test() {
             }
 
             // ランダムに局面を進める
+            let random_move = moves.choose(&mut rng).unwrap();
+            if random_move.capture_piece.get_piece_type() == PieceType::King {
+                break;
+            }
+            position.do_move(random_move);
+        }
+    }
+}
+
+#[test]
+fn bitboard_test() {
+    const LOOP_NUM: i32 = 100000;
+
+    let mut position = Position::empty_board();
+
+    let mut rng = rand::thread_rng();
+
+    for _ in 0..LOOP_NUM {
+        position.set_start_position();
+
+        while position.ply < MAX_PLY as u16 {
+            for i in 0..SQUARE_NB {
+                if position.board[i] == Piece::NoPiece {
+                    continue;
+                }
+
+                assert!(position.piece_bb[position.board[i] as usize] & (1 << i) != 0);
+            }
+
+            // ランダムに局面を進める
+            let moves = position.generate_moves_with_option(true, true, true);
             let random_move = moves.choose(&mut rng).unwrap();
             if random_move.capture_piece.get_piece_type() == PieceType::King {
                 break;
