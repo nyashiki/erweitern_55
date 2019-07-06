@@ -782,3 +782,51 @@ fn bitboard_test() {
         }
     }
 }
+
+#[test]
+fn no_legal_move_test() {
+    ::bitboard::init();
+
+    static CHECKMATE1_SFEN: &str = "5/5/2p2/2g2/2K2 b P 1";
+    static CHECKMATE2_SFEN: &str = "4k/1s1gp/p4/g1BS1/1KR2 b BRg 1";
+    static CHECKMATE3_SFEN: &str = "4k/2G2/5/5/4R w - 1";
+    static CHECKMATE4_SFEN: &str = "r4/5/5/2g2/K4 b - 1";
+    static CHECKMATE5_SFEN: &str = "2G1k/5/4P/5/B4 w - 1";
+    static CHECKMATE6_SFEN: &str = "4b/5/p4/5/K1g2 b - 1";
+    static CHECKMATE7_SFEN: &str = "k1G2/5/P4/5/4B w - 1";
+    static CHECKMATE8_SFEN: &str = "b4/5/4p/5/2g1K b - 1";
+    static CHECKMATE9_SFEN: &str = "R4/2G1k/5/4P/1B3 w - 1";
+    static CHECKMATE10_SFEN: &str = "r4/2g1K/5/4g/1b3 b - 1";
+
+    let mut position = Position::empty_board();
+
+    position.set_sfen(CHECKMATE1_SFEN);
+    assert_eq!(position.generate_moves().len(), 0);
+
+    position.set_sfen(CHECKMATE2_SFEN);
+    assert_eq!(position.generate_moves().len(), 0);
+
+    position.set_sfen(CHECKMATE3_SFEN);
+    assert_eq!(position.generate_moves().len(), 0);
+
+    position.set_sfen(CHECKMATE4_SFEN);
+    assert_eq!(position.generate_moves().len(), 0);
+
+    position.set_sfen(CHECKMATE5_SFEN);
+    assert_eq!(position.generate_moves().len(), 0);
+
+    position.set_sfen(CHECKMATE6_SFEN);
+    assert_eq!(position.generate_moves().len(), 0);
+
+    position.set_sfen(CHECKMATE7_SFEN);
+    assert_eq!(position.generate_moves().len(), 0);
+
+    position.set_sfen(CHECKMATE8_SFEN);
+    assert_eq!(position.generate_moves().len(), 0);
+
+    position.set_sfen(CHECKMATE9_SFEN);
+    assert_eq!(position.generate_moves().len(), 0);
+
+    position.set_sfen(CHECKMATE10_SFEN);
+    assert_eq!(position.generate_moves().len(), 0);
+}
