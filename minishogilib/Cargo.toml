@@ -13,3 +13,5 @@ features = []
 
 [dependencies]
 rand = "0.6"
+lazy_static = "0.2.1"
+bitintr = "0.3.0"
