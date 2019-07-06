@@ -19,22 +19,17 @@ pub struct Position {
 
     ply: u16,
     kif: [Move; MAX_PLY]
+
+    // ToDo: 連続で現在の手番が何回王手しているかを持つ
 }
 
 #[pymethods]
 impl Position {
     #[new]
     pub fn new(obj: &PyRawObject) {
-        obj.init(Position {
-            side_to_move: Color::NoColor,
-            board: [Piece::NoPiece; SQUARE_NB],
-            hand: [[0; 5]; 2],
-            pawn_flags: [0, 2],
-            piece_bb: [0; Piece::BPawnX as usize + 1],
-            player_bb: [0; 2],
-            ply: 0,
-            kif: [NULL_MOVE; MAX_PLY]
-        });
+        obj.init(
+            Position::empty_board()
+        );
     }
 
     pub fn print(self) {
@@ -512,20 +507,26 @@ fn char_to_piece(c: char) -> Piece {
     }
 }
 
+impl Position {
+    fn empty_board() -> Position {
+        Position {
+            side_to_move: Color::NoColor,
+            board: [Piece::NoPiece; SQUARE_NB],
+            hand: [[0; 5]; 2],
+            pawn_flags: [0; 2],
+            piece_bb: [0; Piece::BPawnX as usize + 1],
+            player_bb: [0; 2],
+            ply: 0,
+            kif: [NULL_MOVE; MAX_PLY]
+        }
+    }
+}
+
 #[test]
 fn pawn_flags_test() {
     const LOOP_NUM: i32 = 100000;
 
-    let mut position = Position {
-        side_to_move: Color::NoColor,
-        board: [Piece::NoPiece; SQUARE_NB],
-        hand: [[0; 5]; 2],
-        pawn_flags: [0; 2],
-        piece_bb: [0; Piece::BPawnX as usize + 1],
-        player_bb: [0; 2],
-        ply: 0,
-        kif: [NULL_MOVE; MAX_PLY]
-    };
+    let mut position = Position::empty_board();
 
     let mut rng = rand::thread_rng();
 
@@ -566,16 +567,7 @@ fn pawn_flags_test() {
 fn move_do_undo_test() {
     const LOOP_NUM: i32 = 100000;
 
-    let mut position = Position {
-        side_to_move: Color::NoColor,
-        board: [Piece::NoPiece; SQUARE_NB],
-        hand: [[0; 5]; 2],
-        pawn_flags: [0; 2],
-        piece_bb: [0; Piece::BPawnX as usize + 1],
-        player_bb: [0; 2],
-        ply: 0,
-        kif: [NULL_MOVE; MAX_PLY]
-    };
+    let mut position = Position::empty_board();
 
     let mut rng = rand::thread_rng();
 
