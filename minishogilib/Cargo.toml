@@ -1,6 +1,6 @@
 [package]
 name = "minishogilib"
-version = "0.0.4"
+version = "0.0.5"
 authors = ["nakayashiki <tnakayashiki01@gmail.com>"]
 
 [lib]
@@ -9,7 +9,7 @@ crate-type = ["cdylib"]
 
 [dependencies.pyo3]
 version = "0.7.0"
-features = []
+features = ["extension-module"]
 
 [dependencies]
 rand = "0.6"
