@@ -139,13 +139,14 @@ impl Position {
 
             count = 1;
         }
+
+        self.set_bitboard();
     }
 
     pub fn set_start_position(&mut self) {
         static START_POSITION_SFEN: &str = "rbsgk/4p/5/P4/KGSBR b - 1";
 
         self.set_sfen(START_POSITION_SFEN);
-        self.set_bitboard();
     }
 
     pub fn generate_moves(self) -> std::vec::Vec<Move> {
