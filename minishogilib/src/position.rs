@@ -9,16 +9,16 @@ use bitboard::*;
 #[pyclass]
 #[derive(Copy, Clone)]
 pub struct Position {
-    side_to_move: Color,
-    board: [Piece; SQUARE_NB],
-    hand: [[u8; 5]; 2],
-    pawn_flags: [u8; 2],
+    pub side_to_move: Color,
+    pub board: [Piece; SQUARE_NB],
+    pub hand: [[u8; 5]; 2],
+    pub pawn_flags: [u8; 2],
 
-    piece_bb: [Bitboard; Piece::BPawnX as usize + 1],
-    player_bb: [Bitboard; 2],
+    pub piece_bb: [Bitboard; Piece::BPawnX as usize + 1],
+    pub player_bb: [Bitboard; 2],
 
-    ply: u16,
-    kif: [Move; MAX_PLY]
+    pub ply: u16,
+    pub kif: [Move; MAX_PLY]
 
     // ToDo: 連続で現在の手番が何回王手しているかを持つ
 }
@@ -508,7 +508,7 @@ fn char_to_piece(c: char) -> Piece {
 }
 
 impl Position {
-    fn empty_board() -> Position {
+    pub fn empty_board() -> Position {
         Position {
             side_to_move: Color::NoColor,
             board: [Piece::NoPiece; SQUARE_NB],
