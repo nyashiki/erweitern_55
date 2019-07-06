@@ -18,7 +18,7 @@ lazy_static! {
                 position.board[i] = *piece;
                 position.side_to_move = piece.get_color();
 
-                let moves = position.generate_moves(true, false);
+                let moves = position.generate_moves_with_option(true, false, true);
 
                 for m in moves {
                     if m.amount != 1 {
@@ -192,12 +192,12 @@ lazy_static! {
                 }
                 position.board[i] = Piece::WBishop;
 
-                let moves = position.generate_moves(true, false);
+                let moves = position.generate_moves_with_option(true, false, true);
 
                 for m in moves {
                     // 左下--右上方向の合法手のみ取りだす
                     if m.direction == Direction::SW || m.direction == Direction::NE {
-                        ba[piece_bb][i] |= 1 << m.to;
+                        ba[i][piece_bb] |= 1 << m.to;
                     }
                 }
             }
@@ -250,12 +250,12 @@ lazy_static! {
                 }
                 position.board[i] = Piece::WBishop;
 
-                let moves = position.generate_moves(true, false);
+                let moves = position.generate_moves_with_option(true, false, true);
 
                 for m in moves {
                     // 左上--右下方向の合法手のみ取りだす
                     if m.direction == Direction::NW || m.direction == Direction::SE {
-                        ba[piece_bb][i] |= 1 << m.to;
+                        ba[i][piece_bb] |= 1 << m.to;
                     }
                 }
             }
@@ -282,12 +282,12 @@ lazy_static! {
                 }
                 position.board[i] = Piece::WRook;
 
-                let moves = position.generate_moves(true, false);
+                let moves = position.generate_moves_with_option(true, false, true);
 
                 for m in moves {
                     // 横方向の合法手のみ取りだす
                     if m.direction == Direction::E || m.direction == Direction::W {
-                        ra[piece_bb][i] |= 1 << m.to;
+                        ra[i][piece_bb] |= 1 << m.to;
                     }
                 }
             }
@@ -314,12 +314,12 @@ lazy_static! {
                 }
                 position.board[i] = Piece::WRook;
 
-                let moves = position.generate_moves(true, false);
+                let moves = position.generate_moves_with_option(true, false, true);
 
                 for m in moves {
                     // 縦方向の合法手のみ取りだす
                     if m.direction == Direction::N || m.direction == Direction::S {
-                        ra[piece_bb][i] |= 1 << m.to;
+                        ra[i][piece_bb] |= 1 << m.to;
                     }
                 }
             }
@@ -343,15 +343,15 @@ pub fn init() {
 }
 
 pub fn adjacent_attack(piece: Piece, square: usize) -> Bitboard {
-    ADJACENT_ATTACK[piece as usize][square]
+    ADJACENT_ATTACK[square][piece as usize]
 }
 
 pub fn bishop_attack(piece_bb: Bitboard, square: usize) -> Bitboard {
-    BISHOP_ATTACK1[piece_bb.pext(BISHOP_MASK1[square]) as usize][square] | BISHOP_ATTACK2[piece_bb.pext(BISHOP_MASK2[square]) as usize][square]
+    BISHOP_ATTACK1[square][piece_bb.pext(BISHOP_MASK1[square]) as usize] | BISHOP_ATTACK2[square][piece_bb.pext(BISHOP_MASK2[square]) as usize]
 }
 
 pub fn rook_attack(piece_bb: Bitboard, square: usize) -> Bitboard {
-    ROOK_ATTACK1[piece_bb.pext(ROOK_MASK1[square]) as usize][square] | ROOK_ATTACK2[piece_bb.pext(ROOK_MASK2[square]) as usize][square]
+    ROOK_ATTACK1[square][piece_bb.pext(ROOK_MASK1[square]) as usize] | ROOK_ATTACK2[square][piece_bb.pext(ROOK_MASK2[square]) as usize]
 }
 
 /// 一番末尾の1の場所を返す
