@@ -1,4 +1,6 @@
 extern crate rand;
+#[macro_use]
+extern crate lazy_static;
 extern crate pyo3;
 
 pub mod types;
