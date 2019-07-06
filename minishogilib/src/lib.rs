@@ -13,11 +13,13 @@ use position::*;
 
 #[pyfunction]
 fn version() -> &'static str {
-  env!("CARGO_PKG_VERSION")
+    env!("CARGO_PKG_VERSION")
 }
 
 #[pymodule]
 fn minishogilib(_py: Python, m: &PyModule) -> PyResult<()> {
+    bitboard::init();
+
     m.add_wrapped(wrap_pyfunction!(version))?;
     m.add_class::<Position>()?;
 
