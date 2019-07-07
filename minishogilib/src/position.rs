@@ -1039,7 +1039,7 @@ fn not_checkmate_positions() {
 
 #[test]
 fn no_king_capture_move_in_legal_moves_test() {
-    const LOOP_NUM: i32 = 100000;
+    const LOOP_NUM: i32 = 1000000;
 
     let mut position = Position::empty_board();
 
@@ -1068,4 +1068,45 @@ fn no_king_capture_move_in_legal_moves_test() {
 }
 
 #[test]
-fn generate_moves_test() {}
+fn generate_moves_test() {
+    const LOOP_NUM: i32 = 1000000;
+
+    let mut position = Position::empty_board();
+
+    let mut rng = rand::thread_rng();
+
+    for _ in 0..LOOP_NUM {
+        position.set_start_position();
+
+        while position.ply < MAX_PLY as u16 {
+            let moves = position.generate_moves();
+            let allow_illegal_moves = position.generate_moves_with_option(true, true, true);
+
+            let mut legal_move_count = allow_illegal_moves.len();
+            for m in allow_illegal_moves {
+                position.do_move(&m);
+
+                let all_moves = position.generate_moves_with_option(true, true, true);
+
+                for m2 in all_moves {
+                    if m2.capture_piece.get_piece_type() == PieceType::King {
+                        legal_move_count -= 1;
+                        break;
+                    }
+                }
+
+                position.undo_move();
+            }
+
+            assert_eq!(moves.len(), legal_move_count);
+
+            // ランダムに局面を進める
+            if moves.len() == 0 {
+                break;
+            }
+            let random_move = moves.choose(&mut rng).unwrap();
+            position.do_move(random_move);
+        }
+    }
+
+}
