@@ -3,8 +3,11 @@ import minishogilib
 import math
 import copy
 import collections
-import numpy as np
 from operator import itemgetter
+import time
+
+import numpy as np
+
 
 class Node:
   def __init__(self, policy=0):
@@ -13,6 +16,7 @@ class Node:
     self.P = policy
     self.W = 0
     self.children = {}
+    self.checkmate = False
 
   def get_puct(self, parent_N):
     c_base = 19652
@@ -26,7 +30,7 @@ class Node:
     return (Q + U)
 
   def expanded(self):
-    return len(self.children) > 0
+    return len(self.children) > 0 and not self.checkmate
 
 def select_child(node):
   _, move, child = max(((child.get_puct(node.N), move, child) for move, child in node.children.items()), key=itemgetter(0))
@@ -34,10 +38,16 @@ def select_child(node):
   return move, child
 
 def evaluate(node, position):
-  moves = position.generate_moves(True, True)
+  moves = position.generate_moves()
 
-  # ToDo: Use neural network
-  value, policy = np.random.uniform(0, 1), np.random.uniform(0, 1, len(moves))
+  if len(moves) == 0:
+    node.checkmate = True
+
+  if node.checkmate:
+    value, policy = 0, []
+  else:
+    # ToDo: Use neural network
+    value, policy = np.random.uniform(0, 1), np.random.uniform(0, 1, len(moves))
 
   # sef value and policy
   node.V = value
@@ -73,7 +83,7 @@ def run_mcts(position):
     while node.expanded():
       move, node = select_child(node)
 
-      position.make_move(move)
+      position.do_move(move)
 
       # record path
       search_path.append(node)
@@ -84,11 +94,18 @@ def run_mcts(position):
 def main():
   position = minishogilib.Position()
   position.set_start_position()
-  # position.print()
-  moves = position.generate_moves(True, True)
-  print(len(moves))
 
-  run_mcts(position)
+  LOOP_NUM = 100
+
+  start_time = time.time()
+
+  for i in range(LOOP_NUM):
+    run_mcts(position)
+
+  elapsed = time.time() - start_time
+
+  print('elapsed: ', elapsed)
+  print('time per call', elapsed / LOOP_NUM)
 
 if __name__ == '__main__':
   # output minishogilib version
