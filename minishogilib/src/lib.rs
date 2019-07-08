@@ -13,6 +13,7 @@ use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
 use position::*;
+use r#move::*;
 
 #[pyfunction]
 fn version() -> &'static str {
@@ -24,7 +25,9 @@ fn minishogilib(_py: Python, m: &PyModule) -> PyResult<()> {
     bitboard::init();
 
     m.add_wrapped(wrap_pyfunction!(version))?;
+
     m.add_class::<Position>()?;
+    m.add_class::<Move>()?;
 
     Ok(())
 }
