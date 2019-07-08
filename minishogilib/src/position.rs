@@ -145,6 +145,10 @@ impl Position {
         }
 
         self.set_bitboard();
+
+        self.ply = 0;
+
+        // ToDo: movesに沿った局面進行
     }
 
     pub fn set_start_position(&mut self) {
