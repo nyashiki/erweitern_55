@@ -393,9 +393,9 @@ impl Position {
                         continue;
                     }
 
-                    let move_to = ((i as i8) + MOVE_TOS[move_dir as usize]) as u8;
+                    let move_to = ((i as i8) + MOVE_TOS[move_dir as usize]) as usize;
 
-                    let capture_piece = self.board[move_to as usize];
+                    let capture_piece = self.board[move_to];
 
                     // 行き先に自分の駒がある場合には動かせない
                     if capture_piece.get_color() == self.side_to_move {
@@ -408,7 +408,7 @@ impl Position {
                     {
                         moves.push(Move::board_move(
                             self.board[i],
-                            i as u8,
+                            i,
                             move_dir,
                             1,
                             move_to,
@@ -425,7 +425,7 @@ impl Position {
                     {
                         moves.push(Move::board_move(
                             self.board[i],
-                            i as u8,
+                            i,
                             move_dir,
                             1,
                             move_to,
@@ -470,9 +470,9 @@ impl Position {
 
                         for amount in 1..5 {
                             let move_to =
-                                ((i as i8) + MOVE_TOS[*move_dir as usize] * (amount as i8)) as u8;
+                                ((i as i8) + MOVE_TOS[*move_dir as usize] * (amount as i8)) as usize;
 
-                            let capture_piece = self.board[move_to as usize];
+                            let capture_piece = self.board[move_to];
 
                             // 自分の駒があったらそれ以上進めない
                             if capture_piece.get_color() == self.side_to_move {
@@ -481,7 +481,7 @@ impl Position {
 
                             moves.push(Move::board_move(
                                 self.board[i],
-                                i as u8,
+                                i,
                                 *move_dir,
                                 amount,
                                 move_to,
@@ -494,7 +494,7 @@ impl Position {
                             {
                                 moves.push(Move::board_move(
                                     self.board[i],
-                                    i as u8,
+                                    i,
                                     *move_dir,
                                     amount,
                                     move_to,
@@ -550,7 +550,7 @@ impl Position {
 
                         for amount in 1..5 {
                             let move_to =
-                                ((i as i8) + MOVE_TOS[*move_dir as usize] * (amount as i8)) as u8;
+                                ((i as i8) + MOVE_TOS[*move_dir as usize] * (amount as i8)) as usize;
 
                             let capture_piece = self.board[move_to as usize];
 
@@ -561,7 +561,7 @@ impl Position {
 
                             moves.push(Move::board_move(
                                 self.board[i],
-                                i as u8,
+                                i,
                                 *move_dir,
                                 amount,
                                 move_to,
@@ -574,7 +574,7 @@ impl Position {
                             {
                                 moves.push(Move::board_move(
                                     self.board[i],
-                                    i as u8,
+                                    i,
                                     *move_dir,
                                     amount,
                                     move_to,
@@ -607,10 +607,10 @@ impl Position {
         // 近接駒に王手されている場合、持ち駒を打つ手は全て非合法手
         if is_hand && adjacent_check_count == 0 {
             // 駒のない升を列挙
-            let mut empty_squares: Vec<u8> = Vec::new();
+            let mut empty_squares: Vec<usize> = Vec::new();
             for i in 0..SQUARE_NB {
                 if self.board[i] == Piece::NoPiece {
-                    empty_squares.push(i as u8);
+                    empty_squares.push(i);
                 }
             }
 
