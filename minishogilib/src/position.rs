@@ -20,6 +20,8 @@ pub struct Position {
 
     pub ply: u16,
     pub kif: [Move; MAX_PLY], // ToDo: 連続で現在の手番が何回王手しているかを持つ
+
+    pub hash: u64,
 }
 
 #[pymethods]
@@ -148,6 +150,7 @@ impl Position {
         }
 
         self.set_bitboard();
+        self.hash = self.calculate_hash();
 
         self.ply = 0;
 
@@ -181,6 +184,9 @@ impl Position {
             if m.piece.get_piece_type() == PieceType::Pawn {
                 self.pawn_flags[self.side_to_move as usize] |= 1 << (m.to % 5);
             }
+
+            // hash値の更新
+            self.hash ^= ::zobrist::BOARD_TABLE[m.to][m.piece as usize];
         } else {
             // 盤上の駒を動かす場合
 
@@ -196,6 +202,9 @@ impl Position {
                 if m.capture_piece.get_piece_type() == PieceType::Pawn {
                     self.pawn_flags[self.side_to_move.get_op_color() as usize] ^= 1 << (m.to % 5);
                 }
+
+                // hashの更新
+                self.hash ^= ::zobrist::BOARD_TABLE[m.to][m.capture_piece as usize];
             }
 
             if m.promotion {
@@ -217,6 +226,10 @@ impl Position {
             // 移動元
             self.piece_bb[m.piece as usize] ^= 1 << m.from;
             self.player_bb[self.side_to_move as usize] ^= 1 << m.from;
+
+            // hash値の更新
+            self.hash ^= ::zobrist::BOARD_TABLE[m.from][m.piece as usize];
+            self.hash ^= ::zobrist::BOARD_TABLE[m.to][self.board[m.to] as usize];
         }
 
         // 棋譜に登録
@@ -249,10 +262,13 @@ impl Position {
             self.piece_bb[m.piece as usize] ^= 1 << m.to;
             self.player_bb[self.side_to_move as usize] ^= 1 << m.to;
 
-            // 二歩フラグの更新
+            // 二歩フラグのundo
             if m.piece.get_piece_type() == PieceType::Pawn {
                 self.pawn_flags[self.side_to_move as usize] ^= 1 << (m.to % 5);
             }
+
+            // hash値のundo
+            self.hash ^= ::zobrist::BOARD_TABLE[m.to][m.piece as usize];
         } else {
             // 盤上の駒を動かした場合
 
@@ -265,10 +281,14 @@ impl Position {
             self.piece_bb[m.piece as usize] |= 1 << m.from;
             self.player_bb[self.side_to_move as usize] |= 1 << m.from;
 
+            // hash値のundo
+            self.hash ^= ::zobrist::BOARD_TABLE[m.to][self.board[m.to] as usize];
+            self.hash ^= ::zobrist::BOARD_TABLE[m.from][m.piece as usize];
+
             self.board[m.to as usize] = m.capture_piece;
             self.board[m.from as usize] = m.piece;
 
-            // 二歩フラグの更新
+            // 二歩フラグのundo
             if m.piece.get_piece_type() == PieceType::Pawn && m.promotion {
                 self.pawn_flags[self.side_to_move as usize] |= 1 << (m.to % 5);
             }
@@ -282,10 +302,13 @@ impl Position {
                 self.piece_bb[m.capture_piece as usize] |= 1 << m.to;
                 self.player_bb[self.side_to_move.get_op_color() as usize] |= 1 << m.to;
 
-                // 二歩フラグの更新
+                // 二歩フラグのundo
                 if m.capture_piece.get_piece_type() == PieceType::Pawn {
                     self.pawn_flags[self.side_to_move.get_op_color() as usize] |= 1 << (m.to % 5);
                 }
+
+                // hashのundo
+                self.hash ^= ::zobrist::BOARD_TABLE[m.to][m.capture_piece as usize];
             }
         }
     }
@@ -302,6 +325,7 @@ impl Position {
             player_bb: [0; 2],
             ply: 0,
             kif: [NULL_MOVE; MAX_PLY],
+            hash: 0,
         }
     }
 
@@ -327,7 +351,9 @@ impl Position {
         let mut hash: u64 = 0;
 
         for i in 0..SQUARE_NB {
-            hash ^= ::zobrist::BOARD_TABLE[i][self.board[i] as usize];
+            if self.board[i] != Piece::NoPiece {
+                hash ^= ::zobrist::BOARD_TABLE[i][self.board[i] as usize];
+            }
         }
 
         return hash;
@@ -950,6 +976,8 @@ fn move_do_undo_test() {
                 for i in 0..position.ply as usize {
                     assert!(position.kif[i] == temp_position.kif[i]);
                 }
+
+                assert_eq!(position.hash, temp_position.hash);
             }
 
             if moves.len() == 0 {
@@ -1122,6 +1150,33 @@ fn generate_moves_test() {
             if moves.len() == 0 {
                 break;
             }
+            let random_move = moves.choose(&mut rng).unwrap();
+            position.do_move(random_move);
+        }
+    }
+}
+
+#[test]
+fn hash_test() {
+    const LOOP_NUM: i32 = 100000;
+
+    let mut position = Position::empty_board();
+
+    let mut rng = rand::thread_rng();
+
+    for _ in 0..LOOP_NUM {
+        position.set_start_position();
+
+        while position.ply < MAX_PLY as u16 {
+            let moves = position.generate_moves();
+
+            if moves.len() == 0 {
+                break;
+            }
+
+            // 差分計算と全計算の値が一致することを確認する
+            assert_eq!(position.hash, position.calculate_hash());
+
             let random_move = moves.choose(&mut rng).unwrap();
             position.do_move(random_move);
         }
