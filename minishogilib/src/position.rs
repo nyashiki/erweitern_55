@@ -1,3 +1,4 @@
+#[cfg(test)]
 use rand::seq::SliceRandom;
 
 use pyo3::prelude::*;
@@ -61,6 +62,8 @@ impl Position {
         println!("");
 
         println!("ply: {}", self.ply);
+
+        println!("hash: {:x}", self.calculate_hash());
     }
 
     pub fn set_sfen(&mut self, sfen: &str) {
@@ -320,6 +323,16 @@ impl Position {
         }
     }
 
+    fn calculate_hash(self) -> u64 {
+        let mut hash: u64 = 0;
+
+        for i in 0..SQUARE_NB {
+            hash ^= ::zobrist::BOARD_TABLE[i][self.board[i] as usize];
+        }
+
+        return hash;
+    }
+
     pub fn generate_moves_with_option(
         self,
         is_board: bool,
@@ -473,8 +486,9 @@ impl Position {
                         }
 
                         for amount in 1..5 {
-                            let move_to =
-                                ((i as i8) + MOVE_TOS[*move_dir as usize] * (amount as i8)) as usize;
+                            let move_to = ((i as i8)
+                                + MOVE_TOS[*move_dir as usize] * (amount as i8))
+                                as usize;
 
                             let capture_piece = self.board[move_to];
 
@@ -553,8 +567,9 @@ impl Position {
                         }
 
                         for amount in 1..5 {
-                            let move_to =
-                                ((i as i8) + MOVE_TOS[*move_dir as usize] * (amount as i8)) as usize;
+                            let move_to = ((i as i8)
+                                + MOVE_TOS[*move_dir as usize] * (amount as i8))
+                                as usize;
 
                             let capture_piece = self.board[move_to as usize];
 
@@ -886,7 +901,7 @@ fn pawn_flags_test() {
 
 #[test]
 fn move_do_undo_test() {
-    const LOOP_NUM: i32 = 100000;
+    const LOOP_NUM: i32 = 10000;
 
     let mut position = Position::empty_board();
 
@@ -1037,13 +1052,12 @@ fn not_checkmate_positions() {
     let mut position = Position::empty_board();
 
     position.set_sfen(NOT_CHECKMATE_SFEN1);
-    position.print();
     assert!(position.generate_moves().len() > 0);
 }
 
 #[test]
 fn no_king_capture_move_in_legal_moves_test() {
-    const LOOP_NUM: i32 = 1000000;
+    const LOOP_NUM: i32 = 100000;
 
     let mut position = Position::empty_board();
 
@@ -1073,7 +1087,7 @@ fn no_king_capture_move_in_legal_moves_test() {
 
 #[test]
 fn generate_moves_test() {
-    const LOOP_NUM: i32 = 1000000;
+    const LOOP_NUM: i32 = 10000;
 
     let mut position = Position::empty_board();
 
@@ -1112,5 +1126,4 @@ fn generate_moves_test() {
             position.do_move(random_move);
         }
     }
-
 }

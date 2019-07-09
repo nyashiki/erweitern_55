@@ -8,6 +8,7 @@ pub mod bitboard;
 pub mod r#move;
 pub mod position;
 pub mod types;
+pub mod zobrist;
 
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
@@ -23,6 +24,7 @@ fn version() -> &'static str {
 #[pymodule]
 fn minishogilib(_py: Python, m: &PyModule) -> PyResult<()> {
     bitboard::init();
+    zobrist::init();
 
     m.add_wrapped(wrap_pyfunction!(version))?;
 
