@@ -1,17 +1,35 @@
+#[macro_use]
+extern crate lazy_static;
+extern crate bitintr;
 extern crate pyo3;
+extern crate rand;
+
+pub mod bitboard;
+pub mod r#move;
+pub mod position;
+pub mod types;
+pub mod zobrist;
 
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
+use position::*;
+use r#move::*;
+
 #[pyfunction]
-fn hello_world() -> () {
-  println!("Hello World in Rust!");
+fn version() -> &'static str {
+    env!("CARGO_PKG_VERSION")
 }
 
 #[pymodule]
 fn minishogilib(_py: Python, m: &PyModule) -> PyResult<()> {
-  m.add_wrapped(wrap_pyfunction!(hello_world))?;
+    bitboard::init();
+    zobrist::init();
 
-  Ok(())
+    m.add_wrapped(wrap_pyfunction!(version))?;
+
+    m.add_class::<Position>()?;
+    m.add_class::<Move>()?;
+
+    Ok(())
 }
-
