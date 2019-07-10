@@ -22,6 +22,8 @@ pub struct Position {
     pub kif: [Move; MAX_PLY + 1], // ToDo: 連続で現在の手番が何回王手しているかを持つ
 
     pub hash: [u64; MAX_PLY + 1],
+
+    pub adjacent_check_bb: [Bitboard; MAX_PLY + 1], // 近接駒による王手を表すbitboard
 }
 
 #[pymethods]
@@ -150,6 +152,7 @@ impl Position {
         }
 
         self.set_bitboard();
+        self.set_check_bb();
         self.hash[0] = self.calculate_hash();
 
         self.ply = 0;
@@ -269,6 +272,9 @@ impl Position {
 
         // 手番を変える
         self.side_to_move = self.side_to_move.get_op_color();
+
+        // 王手している駒を記録
+        self.set_check_bb();
     }
 
     pub fn undo_move(&mut self) {
@@ -370,6 +376,7 @@ impl Position {
             ply: 0,
             kif: [NULL_MOVE; MAX_PLY + 1],
             hash: [0; MAX_PLY + 1],
+            adjacent_check_bb: [0; MAX_PLY + 1],
         }
     }
 
@@ -387,6 +394,24 @@ impl Position {
             if self.board[i] != Piece::NoPiece {
                 self.piece_bb[self.board[i] as usize] |= 1 << i;
                 self.player_bb[self.board[i].get_color() as usize] |= 1 << i;
+            }
+        }
+    }
+
+    fn set_check_bb(&mut self) {
+        self.adjacent_check_bb[self.ply as usize] = 0;
+
+        let king_square =
+            get_square(self.piece_bb[PieceType::King.get_piece(self.side_to_move) as usize]);
+
+        assert!(king_square < SQUARE_NB);
+
+        for piece_type in PIECE_TYPE_ALL.iter() {
+            let check_bb = adjacent_attack(king_square, piece_type.get_piece(self.side_to_move))
+                & self.piece_bb[piece_type.get_piece(self.side_to_move.get_op_color()) as usize];
+
+            if check_bb != 0 {
+                self.adjacent_check_bb[self.ply as usize] |= check_bb;
             }
         }
     }
@@ -417,29 +442,6 @@ impl Position {
         is_hand: bool,
         allow_illegal: bool,
     ) -> std::vec::Vec<Move> {
-        // 近接駒による王手をされているか
-        let mut adjacent_check_bb: Bitboard = 0;
-        let mut adjacent_check_count: u8 = 0;
-
-        let king_square =
-            get_square(self.piece_bb[PieceType::King.get_piece(self.side_to_move) as usize]);
-
-        if !allow_illegal {
-            assert!(king_square < SQUARE_NB);
-
-            for piece_type in PIECE_TYPE_ALL.iter() {
-                let check_bb =
-                    adjacent_attack(king_square, piece_type.get_piece(self.side_to_move))
-                        & self.piece_bb
-                            [piece_type.get_piece(self.side_to_move.get_op_color()) as usize];
-
-                if check_bb != 0 {
-                    adjacent_check_count += 1;
-                    adjacent_check_bb |= check_bb;
-                }
-            }
-        }
-
         let mut moves: Vec<Move> = Vec::new();
 
         if is_board {
@@ -702,7 +704,8 @@ impl Position {
         }
 
         // 近接駒に王手されている場合、持ち駒を打つ手は全て非合法手
-        if is_hand && adjacent_check_count == 0 {
+        if is_hand && (allow_illegal || get_counts(self.adjacent_check_bb[self.ply as usize]) == 0)
+        {
             // 駒のない升を列挙
             let mut empty_squares: Vec<usize> = Vec::new();
             for i in 0..SQUARE_NB {
@@ -741,6 +744,9 @@ impl Position {
 
         // 非合法手を取り除く
         if !allow_illegal {
+            let king_square =
+                get_square(self.piece_bb[PieceType::King.get_piece(self.side_to_move) as usize]);
+
             let mut index: usize = 0;
 
             loop {
@@ -844,12 +850,12 @@ impl Position {
                             }
                         } else {
                             // 王以外を動かす場合
-                            if adjacent_check_count > 1 {
+                            if get_counts(self.adjacent_check_bb[self.ply as usize]) > 1 {
                                 // 近接駒に両王手されている場合は玉を動かさないといけない
                                 return false;
-                            } else if adjacent_check_count == 1 {
+                            } else if get_counts(self.adjacent_check_bb[self.ply as usize]) == 1 {
                                 // 王手している近接駒を取る手でないといけない
-                                if adjacent_check_bb & (1 << m.to) == 0 {
+                                if self.adjacent_check_bb[self.ply as usize] & (1 << m.to) == 0 {
                                     return false;
                                 }
                             }
