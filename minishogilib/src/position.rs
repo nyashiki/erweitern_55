@@ -19,11 +19,14 @@ pub struct Position {
     pub player_bb: [Bitboard; 2],
 
     pub ply: u16,
-    pub kif: [Move; MAX_PLY + 1], // ToDo: 連続で現在の手番が何回王手しているかを持つ
+    pub kif: [Move; MAX_PLY + 1],
 
     pub hash: [u64; MAX_PLY + 1],
 
     pub adjacent_check_bb: [Bitboard; MAX_PLY + 1], // 近接駒による王手を表すbitboard
+    pub long_check_bb: [Bitboard; MAX_PLY + 1],     // 長い利きを持つ駒による王手を表すbitboard
+
+    pub sequent_check_count: [u8; 2],
 }
 
 #[pymethods]
@@ -275,6 +278,15 @@ impl Position {
 
         // 王手している駒を記録
         self.set_check_bb();
+
+        // 連続王手のカウント
+        if self.adjacent_check_bb[self.ply as usize] != 0
+            || self.long_check_bb[self.ply as usize] != 0
+        {
+            self.sequent_check_count[self.side_to_move.get_op_color() as usize] += 1;
+        } else {
+            self.sequent_check_count[self.side_to_move.get_op_color() as usize] = 0;
+        }
     }
 
     pub fn undo_move(&mut self) {
@@ -341,8 +353,6 @@ impl Position {
     /// 千日手かどうかを返す
     /// (千日手かどうか, 連続王手の千日手かどうか)
     pub fn is_repetition(self) -> (bool, bool) {
-        // ToDo: 連続王手の千日手
-
         if self.ply == 0 {
             return (false, false);
         }
@@ -356,6 +366,11 @@ impl Position {
 
             // 現在の局面の1手前から数え始めているので、3回(+現在の局面 1回)で千日手
             if count == 3 {
+                // 連続王手
+                if self.sequent_check_count[self.side_to_move.get_op_color() as usize] >= 7 {
+                    return (true, true);
+                }
+
                 return (true, false);
             }
         }
@@ -377,6 +392,8 @@ impl Position {
             kif: [NULL_MOVE; MAX_PLY + 1],
             hash: [0; MAX_PLY + 1],
             adjacent_check_bb: [0; MAX_PLY + 1],
+            long_check_bb: [0; MAX_PLY + 1],
+            sequent_check_count: [0; 2],
         }
     }
 
@@ -414,6 +431,24 @@ impl Position {
                 self.adjacent_check_bb[self.ply as usize] |= check_bb;
             }
         }
+
+        let player_bb =
+            self.player_bb[Color::White as usize] | self.player_bb[Color::Black as usize];
+
+        // 角による王手
+        let bishop_check_bb = bishop_attack(king_square, player_bb);
+        self.long_check_bb[self.ply as usize] |= bishop_check_bb
+            & self.piece_bb[PieceType::Bishop.get_piece(self.side_to_move.get_op_color()) as usize];
+        self.long_check_bb[self.ply as usize] |= bishop_check_bb
+            & self.piece_bb
+                [PieceType::BishopX.get_piece(self.side_to_move.get_op_color()) as usize];
+
+        // 飛車による王手
+        let rook_check_bb = rook_attack(king_square, player_bb);
+        self.long_check_bb[self.ply as usize] |= rook_check_bb
+            & self.piece_bb[PieceType::Rook.get_piece(self.side_to_move.get_op_color()) as usize];
+        self.long_check_bb[self.ply as usize] |= rook_check_bb
+            & self.piece_bb[PieceType::RookX.get_piece(self.side_to_move.get_op_color()) as usize];
     }
 
     fn calculate_hash(self) -> u64 {
@@ -1173,6 +1208,7 @@ fn no_king_capture_move_in_legal_moves_test() {
             if moves.len() == 0 {
                 break;
             }
+
             let random_move = moves.choose(&mut rng).unwrap();
             position.do_move(random_move);
         }
@@ -1269,8 +1305,11 @@ fn repetition_test() {
 
     static START_POSITION_SFEN: &str = "rbsgk/4p/5/P4/KGSBR b - 1";
     static REPETITION_SFEN: &str = "rbsgk/4p/5/P4/KGSBR b - 1 moves 5e4d 1a2b 4d5e 2b1a 5e4d 1a2b 4d5e 2b1a 5e4d 1a2b 4d5e 2b1a";
+    static CHECK_REPETITION_SFEN: &str = "2k2/5/5/5/2K2 b R 1 moves R*3c 3a2a 3c2c 2a3a 2c3c 3a2a 3c2c 2a3a 2c3c 3a2a 3c2c 2a3a 2c3c";
     static NOT_REPETITION_SFEN: &str =
         "rbsgk/4p/5/P4/KGSBR b - 1 moves 5e4d 1a2b 4d5e 2b1a 5e4d 1a2b 4d5e 2b1a";
+    static NOT_CHECK_REPETITION_SFEN: &str =
+        "2k2/5/5/5/2K2 b R 1 moves R*3c 3a2a 3c2c 2a3a 2c3c 3a2a 3c2c 2a3a 2c3c 3a2a 3c2c 2a3a";
 
     position.set_sfen(START_POSITION_SFEN);
     assert_eq!(position.is_repetition(), (false, false));
@@ -1278,6 +1317,12 @@ fn repetition_test() {
     position.set_sfen(REPETITION_SFEN);
     assert_eq!(position.is_repetition(), (true, false));
 
+    position.set_sfen(CHECK_REPETITION_SFEN);
+    assert_eq!(position.is_repetition(), (true, true));
+
     position.set_sfen(NOT_REPETITION_SFEN);
+    assert_eq!(position.is_repetition(), (false, false));
+
+    position.set_sfen(NOT_CHECK_REPETITION_SFEN);
     assert_eq!(position.is_repetition(), (false, false));
 }
