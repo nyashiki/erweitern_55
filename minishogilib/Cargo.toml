@@ -1,7 +1,7 @@
 [package]
 name = "minishogilib"
 version = "0.1.0"
-authors = ["nakayashiki <tnakayashiki01@gmail.com>"]
+authors = ["nyashiki"]
 
 [lib]
 name = "minishogilib"
@@ -11,3 +11,7 @@ crate-type = ["cdylib"]
 version = "0.7.0"
 features = ["extension-module"]
 
+[dependencies]
+rand = "0.6"
+lazy_static = "0.2.1"
+bitintr = "0.3.0"
