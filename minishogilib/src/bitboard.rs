@@ -1,4 +1,5 @@
 use bitintr::Pext;
+use bitintr::Popcnt;
 
 use position::*;
 use types::*;
@@ -361,4 +362,9 @@ pub fn rook_attack(square: usize, player_bb: Bitboard) -> Bitboard {
 /// 一番末尾の1の場所を返す
 pub fn get_square(bb: Bitboard) -> usize {
     bb.trailing_zeros() as usize
+}
+
+/// 1の数を返す
+pub fn get_counts(bb: Bitboard) -> u32 {
+    bb.popcnt()
 }
