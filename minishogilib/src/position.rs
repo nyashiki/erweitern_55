@@ -154,7 +154,30 @@ impl Position {
 
         self.ply = 0;
 
-        // ToDo: movesに沿った局面進行
+        sfen_split.next(); // sfenプロトコルで常に1が格納されているはずなので、読み飛ばす
+
+        if sfen_split.next() == Some("moves") {
+            loop {
+                let sfen_move = sfen_split.next();
+
+                if !sfen_move.is_some() {
+                    break;
+                }
+
+                let moves = self.generate_moves();
+                let mut correctly_done = false;
+
+                for m in moves {
+                    if m.sfen() == sfen_move.unwrap() {
+                        self.do_move(&m);
+                        correctly_done = true;
+                        break;
+                    }
+                }
+
+                assert!(correctly_done);
+            }
+        }
     }
 
     pub fn set_start_position(&mut self) {
@@ -206,7 +229,8 @@ impl Position {
                 }
 
                 // hashの更新
-                self.hash[self.ply as usize + 1] ^= ::zobrist::BOARD_TABLE[m.to][m.capture_piece as usize];
+                self.hash[self.ply as usize + 1] ^=
+                    ::zobrist::BOARD_TABLE[m.to][m.capture_piece as usize];
             }
 
             if m.promotion {
@@ -231,10 +255,11 @@ impl Position {
 
             // hash値の更新
             self.hash[self.ply as usize + 1] ^= ::zobrist::BOARD_TABLE[m.from][m.piece as usize];
-            self.hash[self.ply as usize + 1] ^= ::zobrist::BOARD_TABLE[m.to][self.board[m.to] as usize];
+            self.hash[self.ply as usize + 1] ^=
+                ::zobrist::BOARD_TABLE[m.to][self.board[m.to] as usize];
         }
 
-        self.hash[self.ply as usize + 1] ^= 1;  // 手番bitの反転
+        self.hash[self.ply as usize + 1] ^= 1; // 手番bitの反転
 
         // 棋譜に登録
         self.kif[self.ply as usize] = *m;
@@ -305,6 +330,31 @@ impl Position {
                 }
             }
         }
+    }
+
+    /// 千日手かどうかを返す
+    /// (千日手かどうか, 連続王手の千日手かどうか)
+    pub fn is_repetition(self) -> (bool, bool) {
+        // ToDo: 連続王手の千日手
+
+        if self.ply == 0 {
+            return (false, false);
+        }
+
+        let mut count = 0;
+
+        for i in (0..self.ply - 1).rev() {
+            if self.hash[i as usize] == self.hash[self.ply as usize] {
+                count += 1;
+            }
+
+            // 現在の局面の1手前から数え始めているので、3回(+現在の局面 1回)で千日手
+            if count == 3 {
+                return (true, false);
+            }
+        }
+
+        return (false, false);
     }
 }
 
@@ -884,6 +934,8 @@ fn char_to_piece(c: char) -> Piece {
 
 #[test]
 fn pawn_flags_test() {
+    ::bitboard::init();
+
     const LOOP_NUM: i32 = 100000;
 
     let mut position = Position::empty_board();
@@ -929,6 +981,8 @@ fn pawn_flags_test() {
 
 #[test]
 fn move_do_undo_test() {
+    ::bitboard::init();
+
     const LOOP_NUM: i32 = 10000;
 
     let mut position = Position::empty_board();
@@ -995,6 +1049,8 @@ fn move_do_undo_test() {
 
 #[test]
 fn bitboard_test() {
+    ::bitboard::init();
+
     const LOOP_NUM: i32 = 100000;
 
     let mut position = Position::empty_board();
@@ -1087,6 +1143,8 @@ fn not_checkmate_positions() {
 
 #[test]
 fn no_king_capture_move_in_legal_moves_test() {
+    ::bitboard::init();
+
     const LOOP_NUM: i32 = 100000;
 
     let mut position = Position::empty_board();
@@ -1117,6 +1175,8 @@ fn no_king_capture_move_in_legal_moves_test() {
 
 #[test]
 fn generate_moves_test() {
+    ::bitboard::init();
+
     const LOOP_NUM: i32 = 10000;
 
     let mut position = Position::empty_board();
@@ -1160,6 +1220,9 @@ fn generate_moves_test() {
 
 #[test]
 fn hash_test() {
+    ::bitboard::init();
+    ::zobrist::init();
+
     const LOOP_NUM: i32 = 100000;
 
     let mut position = Position::empty_board();
@@ -1180,10 +1243,35 @@ fn hash_test() {
             assert_eq!(position.get_hash(), position.calculate_hash());
 
             // 手番bitと手番が一致することを確認する
-            assert_eq!(position.side_to_move == Color::Black, position.get_hash() & 1 != 0);
+            assert_eq!(
+                position.side_to_move == Color::Black,
+                position.get_hash() & 1 != 0
+            );
 
             let random_move = moves.choose(&mut rng).unwrap();
             position.do_move(random_move);
         }
     }
+}
+
+#[test]
+fn repetition_test() {
+    ::bitboard::init();
+    ::zobrist::init();
+
+    let mut position = Position::empty_board();
+
+    static START_POSITION_SFEN: &str = "rbsgk/4p/5/P4/KGSBR b - 1";
+    static REPETITION_SFEN: &str = "rbsgk/4p/5/P4/KGSBR b - 1 moves 5e4d 1a2b 4d5e 2b1a 5e4d 1a2b 4d5e 2b1a 5e4d 1a2b 4d5e 2b1a";
+    static NOT_REPETITION_SFEN: &str =
+        "rbsgk/4p/5/P4/KGSBR b - 1 moves 5e4d 1a2b 4d5e 2b1a 5e4d 1a2b 4d5e 2b1a";
+
+    position.set_sfen(START_POSITION_SFEN);
+    assert_eq!(position.is_repetition(), (false, false));
+
+    position.set_sfen(REPETITION_SFEN);
+    assert_eq!(position.is_repetition(), (true, false));
+
+    position.set_sfen(NOT_REPETITION_SFEN);
+    assert_eq!(position.is_repetition(), (false, false));
 }
