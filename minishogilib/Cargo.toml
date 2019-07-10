@@ -1,6 +1,6 @@
 [package]
 name = "minishogilib"
-version = "0.0.5"
+version = "0.0.6"
 authors = ["nakayashiki <tnakayashiki01@gmail.com>"]
 
 [lib]
