@@ -359,8 +359,9 @@ impl Position {
 
         let mut count = 0;
 
-        for i in (0..self.ply - 1).rev() {
-            if self.hash[i as usize] == self.hash[self.ply as usize] {
+        let mut ply = self.ply as i32 - 2;
+        while ply >= 0 {
+            if self.hash[ply as usize] == self.hash[self.ply as usize] {
                 count += 1;
             }
 
@@ -373,6 +374,8 @@ impl Position {
 
                 return (true, false);
             }
+
+            ply -= 2;  // 繰り返し回数は、同じ手番の過去局面だけを見れば良い
         }
 
         return (false, false);
