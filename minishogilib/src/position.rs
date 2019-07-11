@@ -26,7 +26,7 @@ pub struct Position {
     pub adjacent_check_bb: [Bitboard; MAX_PLY + 1], // 近接駒による王手を表すbitboard
     pub long_check_bb: [Bitboard; MAX_PLY + 1],     // 長い利きを持つ駒による王手を表すbitboard
 
-    pub sequent_check_count: [u8; 2],
+    pub sequent_check_count: [i8; 2],
 }
 
 #[pymethods]
@@ -348,6 +348,9 @@ impl Position {
                 }
             }
         }
+
+        self.sequent_check_count[self.side_to_move as usize] =
+            std::cmp::max(0, self.sequent_check_count[self.side_to_move as usize] - 1);
     }
 
     /// 千日手かどうかを返す
@@ -375,7 +378,7 @@ impl Position {
                 return (true, false);
             }
 
-            ply -= 2;  // 繰り返し回数は、同じ手番の過去局面だけを見れば良い
+            ply -= 2; // 繰り返し回数は、同じ手番の過去局面だけを見れば良い
         }
 
         return (false, false);
