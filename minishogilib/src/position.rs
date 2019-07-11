@@ -36,7 +36,7 @@ impl Position {
         obj.init(Position::empty_board());
     }
 
-    pub fn print(self) {
+    pub fn print(&self) {
         println!("side_to_move: {:?}", self.side_to_move);
 
         for y in 0..5 {
@@ -192,7 +192,7 @@ impl Position {
         self.set_sfen(START_POSITION_SFEN);
     }
 
-    pub fn generate_moves(self) -> std::vec::Vec<Move> {
+    pub fn generate_moves(&self) -> std::vec::Vec<Move> {
         return self.generate_moves_with_option(true, true, false);
     }
 
@@ -352,7 +352,7 @@ impl Position {
 
     /// 千日手かどうかを返す
     /// (千日手かどうか, 連続王手の千日手かどうか)
-    pub fn is_repetition(self) -> (bool, bool) {
+    pub fn is_repetition(&self) -> (bool, bool) {
         if self.ply == 0 {
             return (false, false);
         }
@@ -454,7 +454,7 @@ impl Position {
             & self.piece_bb[PieceType::RookX.get_piece(self.side_to_move.get_op_color()) as usize];
     }
 
-    fn calculate_hash(self) -> u64 {
+    fn calculate_hash(&self) -> u64 {
         let mut hash: u64 = 0;
 
         for i in 0..SQUARE_NB {
@@ -470,12 +470,12 @@ impl Position {
         return hash;
     }
 
-    fn get_hash(self) -> u64 {
+    fn get_hash(&self) -> u64 {
         return self.hash[self.ply as usize];
     }
 
     pub fn generate_moves_with_option(
-        self,
+        &self,
         is_board: bool,
         is_hand: bool,
         allow_illegal: bool,

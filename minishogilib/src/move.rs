@@ -16,7 +16,7 @@ pub struct Move {
 
 #[pymethods]
 impl Move {
-    pub fn sfen(self) -> String {
+    pub fn sfen(&self) -> String {
         const HAND_PIECE_TO_CHAR: [char; 7] = ['E', 'E', 'G', 'S', 'B', 'R', 'P'];
 
         if self.amount == 0 {
