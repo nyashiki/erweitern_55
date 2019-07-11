@@ -31,7 +31,7 @@ const CHANNEL_NUM: usize = CHANNEL_NUM_PER_HISTORY * HISTORY_NUM + 2;
 
 #[pymethods]
 impl Position {
-    /// [y座標][x座標][チャネル]の形式で返す
+    /// \[y座標\]\[x座標\]\[チャネル\]の形式で返す
     pub fn to_nninput(&self) -> std::vec::Vec<std::vec::Vec<std::vec::Vec<f32>>> {
         let mut input_layer = vec![vec![vec![0f32; CHANNEL_NUM]; 5]; 5];
 
