@@ -41,18 +41,17 @@ impl Position {
             for i in 0..5 {
                 for j in 0..5 {
                     // 盤上の駒を設定
-                    if position.board[i * 5 + j] == Piece::NoPiece {
-                        continue;
-                    }
-                    if self.side_to_move == Color::White {
-                        input_layer[i][j][history * CHANNEL_NUM_PER_HISTORY
-                            + piece_to_sequential_index(position.board[i * 5 + j])] = 1f32;
-                    } else {
-                        // 後手番の場合には、盤面を回転させて設定する
-                        input_layer[4 - i][4 - j][history * CHANNEL_NUM_PER_HISTORY
-                            + piece_to_sequential_index(
-                                position.board[i * 5 + j].get_op_piece(),
-                            )] = 1f32;
+                    if position.board[i * 5 + j] != Piece::NoPiece {
+                        if self.side_to_move == Color::White {
+                            input_layer[i][j][history * CHANNEL_NUM_PER_HISTORY
+                                + piece_to_sequential_index(position.board[i * 5 + j])] = 1f32;
+                        } else {
+                            // 後手番の場合には、盤面を回転させて設定する
+                            input_layer[4 - i][4 - j][history * CHANNEL_NUM_PER_HISTORY
+                                + piece_to_sequential_index(
+                                    position.board[i * 5 + j].get_op_piece(),
+                                )] = 1f32;
+                        }
                     }
 
                     // 繰り返し回数を設定
@@ -71,6 +70,10 @@ impl Position {
                                 [*piece_type as usize - 2] as f32;
                     }
                 }
+            }
+
+            if position.ply == 0 {
+                break;
             }
 
             // 局面を1手戻す
