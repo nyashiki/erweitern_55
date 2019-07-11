@@ -26,7 +26,7 @@ pub struct Position {
     pub adjacent_check_bb: [Bitboard; MAX_PLY + 1], // 近接駒による王手を表すbitboard
     pub long_check_bb: [Bitboard; MAX_PLY + 1],     // 長い利きを持つ駒による王手を表すbitboard
 
-    pub sequent_check_count: [i8; 2],
+    pub sequent_check_count: [[i8; 2]; MAX_PLY + 1],
 }
 
 #[pymethods]
@@ -283,10 +283,16 @@ impl Position {
         if self.adjacent_check_bb[self.ply as usize] != 0
             || self.long_check_bb[self.ply as usize] != 0
         {
-            self.sequent_check_count[self.side_to_move.get_op_color() as usize] += 1;
+            self.sequent_check_count[self.ply as usize]
+                [self.side_to_move.get_op_color() as usize] = self.sequent_check_count
+                [self.ply as usize - 1][self.side_to_move.get_op_color() as usize]
+                + 1;
         } else {
-            self.sequent_check_count[self.side_to_move.get_op_color() as usize] = 0;
+            self.sequent_check_count[self.ply as usize]
+                [self.side_to_move.get_op_color() as usize] = 0;
         }
+        self.sequent_check_count[self.ply as usize][self.side_to_move as usize] =
+            self.sequent_check_count[self.ply as usize - 1][self.side_to_move as usize];
     }
 
     pub fn undo_move(&mut self) {
@@ -348,9 +354,6 @@ impl Position {
                 }
             }
         }
-
-        self.sequent_check_count[self.side_to_move as usize] =
-            std::cmp::max(0, self.sequent_check_count[self.side_to_move as usize] - 1);
     }
 
     /// 千日手かどうかを返す
@@ -371,7 +374,10 @@ impl Position {
             // 現在の局面の1手前から数え始めているので、3回(+現在の局面 1回)で千日手
             if count == 3 {
                 // 連続王手
-                if self.sequent_check_count[self.side_to_move.get_op_color() as usize] >= 7 {
+                if self.sequent_check_count[self.ply as usize]
+                    [self.side_to_move.get_op_color() as usize]
+                    >= 7
+                {
                     return (true, true);
                 }
 
@@ -399,7 +405,7 @@ impl Position {
             hash: [0; MAX_PLY + 1],
             adjacent_check_bb: [0; MAX_PLY + 1],
             long_check_bb: [0; MAX_PLY + 1],
-            sequent_check_count: [0; 2],
+            sequent_check_count: [[0; 2]; MAX_PLY + 1],
         }
     }
 
@@ -1040,6 +1046,8 @@ fn move_do_undo_test() {
         position.set_start_position();
 
         while position.ply < MAX_PLY as u16 {
+            position.print();
+
             let moves = position.generate_moves();
 
             for m in &moves {
@@ -1081,6 +1089,23 @@ fn move_do_undo_test() {
                 }
 
                 assert_eq!(position.get_hash(), temp_position.get_hash());
+
+                for i in 0..position.ply as usize {
+                    assert_eq!(
+                        position.adjacent_check_bb[i],
+                        temp_position.adjacent_check_bb[i]
+                    );
+                    assert_eq!(position.long_check_bb[i], temp_position.long_check_bb[i]);
+                }
+
+                for i in 0..position.ply as usize {
+                    for j in 0..2 {
+                        assert_eq!(
+                            position.sequent_check_count[i][j],
+                            temp_position.sequent_check_count[i][j]
+                        );
+                    }
+                }
             }
 
             if moves.len() == 0 {
