@@ -389,6 +389,22 @@ impl Position {
 
         return (false, false);
     }
+
+    /// 現在の局面がこれまでに何回出てきたかを返す
+    pub fn get_repetition(&self) -> usize {
+        let mut count: usize = 0;
+
+        let mut ply = self.ply as i32 - 2;
+        while ply >= 0 {
+            if self.hash[ply as usize] == self.hash[self.ply as usize] {
+                count += 1;
+            }
+
+            ply -= 2; // 繰り返し回数は、同じ手番の過去局面だけを見れば良い
+        }
+
+        return count;
+    }
 }
 
 impl Position {
@@ -1328,7 +1344,7 @@ fn hash_test() {
 }
 
 #[test]
-fn repetition_test() {
+fn is_repetition_test() {
     ::bitboard::init();
     ::zobrist::init();
 
@@ -1356,4 +1372,35 @@ fn repetition_test() {
 
     position.set_sfen(NOT_CHECK_REPETITION_SFEN);
     assert_eq!(position.is_repetition(), (false, false));
+}
+
+#[test]
+fn get_repetition_test() {
+    ::bitboard::init();
+    ::zobrist::init();
+
+    let mut position = Position::empty_board();
+
+    static START_POSITION_SFEN: &str = "rbsgk/4p/5/P4/KGSBR b - 1";
+    static REPETITION_SFEN: &str = "rbsgk/4p/5/P4/KGSBR b - 1 moves 5e4d 1a2b 4d5e 2b1a 5e4d 1a2b 4d5e 2b1a 5e4d 1a2b 4d5e 2b1a";
+    static CHECK_REPETITION_SFEN: &str = "2k2/5/5/5/2K2 b R 1 moves R*3c 3a2a 3c2c 2a3a 2c3c 3a2a 3c2c 2a3a 2c3c 3a2a 3c2c 2a3a 2c3c";
+    static NOT_REPETITION_SFEN: &str =
+        "rbsgk/4p/5/P4/KGSBR b - 1 moves 5e4d 1a2b 4d5e 2b1a 5e4d 1a2b 4d5e 2b1a";
+    static NOT_CHECK_REPETITION_SFEN: &str =
+        "2k2/5/5/5/2K2 b R 1 moves R*3c 3a2a 3c2c 2a3a 2c3c 3a2a 3c2c 2a3a 2c3c 3a2a 3c2c 2a3a";
+
+    position.set_sfen(START_POSITION_SFEN);
+    assert_eq!(position.get_repetition(), 0);
+
+    position.set_sfen(REPETITION_SFEN);
+    assert_eq!(position.get_repetition(), 3);
+
+    position.set_sfen(CHECK_REPETITION_SFEN);
+    assert_eq!(position.get_repetition(), 3);
+
+    position.set_sfen(NOT_REPETITION_SFEN);
+    assert_eq!(position.get_repetition(), 2);
+
+    position.set_sfen(NOT_CHECK_REPETITION_SFEN);
+    assert_eq!(position.get_repetition(), 2);
 }
