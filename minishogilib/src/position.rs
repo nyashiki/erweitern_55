@@ -70,7 +70,7 @@ impl Position {
 
         println!("ply: {}", self.ply);
 
-        println!("hash: {:x}", self.calculate_hash());
+        println!("hash: {:x}", self.get_hash());
     }
 
     pub fn set_sfen(&mut self, sfen: &str) {
