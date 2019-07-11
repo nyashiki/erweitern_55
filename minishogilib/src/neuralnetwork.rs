@@ -1,7 +1,7 @@
-/// NeuralNetworkに関係のある部分の実装
-///
-/// ここでは、NeuralNetworkのForwardやBackpropagationなどを実装するのではなく、
-/// tensorflow等の使用を容易にすることを目指す
+//! NeuralNetworkに関係のある部分の実装
+//!
+//! ここでは、NeuralNetworkのForwardやBackpropagationなどを実装するのではなく、
+//! tensorflow等の使用を容易にすることを目指す
 use position::Position;
 use types::*;
 
