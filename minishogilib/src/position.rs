@@ -195,7 +195,9 @@ impl Position {
     /// sfen形式での指し手をMove構造体に変換する
     pub fn sfen_to_move(&self, sfen: String) -> Move {
         if sfen.as_bytes()[1] as char == '*' {
-            let piece = char_to_piece(sfen.as_bytes()[0] as char).get_piece_type().get_piece(self.side_to_move);
+            let piece = char_to_piece(sfen.as_bytes()[0] as char)
+                .get_piece_type()
+                .get_piece(self.side_to_move);
             let to = sfen_to_square(sfen[2..4].to_string());
 
             Move::hand_move(piece, to)
