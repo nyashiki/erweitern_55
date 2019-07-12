@@ -3,7 +3,7 @@ use pyo3::prelude::*;
 use types::*;
 
 #[pyclass]
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct Move {
     pub piece: Piece,
     pub from: usize,          // 移動元 (持ち駒を打つ場合には、打つ場所)
@@ -86,10 +86,14 @@ pub static NULL_MOVE: Move = Move {
     capture_piece: Piece::NoPiece,
 };
 
-fn square_to_sfen(square: usize) -> String {
+pub fn square_to_sfen(square: usize) -> String {
     format!(
         "{}{}",
         "54321".as_bytes()[square % 5 as usize] as char,
         "abcde".as_bytes()[square / 5 as usize] as char
     )
+}
+
+pub fn sfen_to_square(sfen: String) -> usize {
+    ((sfen.as_bytes()[1] - ('a' as u8)) * 5 + (('5' as u8) - sfen.as_bytes()[0])) as usize
 }
