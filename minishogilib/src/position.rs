@@ -192,6 +192,27 @@ impl Position {
         self.set_sfen(START_POSITION_SFEN);
     }
 
+    /// sfen形式での指し手をMove構造体に変換する
+    pub fn sfen_to_move(&self, sfen: String) -> Move {
+        if sfen.as_bytes()[1] as char == '*' {
+            let piece = char_to_piece(sfen.as_bytes()[0] as char).get_piece_type().get_piece(self.side_to_move);
+            let to = sfen_to_square(sfen[2..4].to_string());
+
+            Move::hand_move(piece, to)
+        } else {
+            let moves = self.generate_moves_with_option(true, false, false);
+
+            for m in moves {
+                if sfen == m.sfen() {
+                    return m;
+                }
+            }
+
+            assert!(false);
+            return NULL_MOVE;
+        }
+    }
+
     pub fn generate_moves(&self) -> std::vec::Vec<Move> {
         return self.generate_moves_with_option(true, true, false);
     }
@@ -1403,4 +1424,36 @@ fn get_repetition_test() {
 
     position.set_sfen(NOT_CHECK_REPETITION_SFEN);
     assert_eq!(position.get_repetition(), 2);
+}
+
+#[test]
+fn sfen_to_move_test() {
+    ::bitboard::init();
+    ::zobrist::init();
+
+    const LOOP_NUM: i32 = 1000;
+
+    let mut position = Position::empty_board();
+
+    let mut rng = rand::thread_rng();
+
+    for _ in 0..LOOP_NUM {
+        position.set_start_position();
+
+        while position.ply < MAX_PLY as u16 {
+            let moves = position.generate_moves();
+
+            if moves.len() == 0 {
+                break;
+            }
+
+            for m in &moves {
+                let sfen_move = position.sfen_to_move(m.sfen());
+                assert_eq!(sfen_move, *m);
+            }
+
+            let random_move = moves.choose(&mut rng).unwrap();
+            position.do_move(random_move);
+        }
+    }
 }
