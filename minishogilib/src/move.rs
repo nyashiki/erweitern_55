@@ -42,6 +42,29 @@ impl pyo3::class::basic::PyObjectProtocol for Move {
     }
 }
 
+#[pymethods]
+impl Move {
+    fn get_from(&self) -> usize {
+        self.from
+    }
+
+    fn get_to(&self) -> usize {
+        self.to
+    }
+
+    fn get_amount(&self) -> usize {
+        self.amount
+    }
+
+    fn get_promotion(&self) -> bool {
+        self.promotion
+    }
+
+    fn get_direction(&self) -> usize {
+        self.direction as usize
+    }
+}
+
 impl Move {
     pub fn board_move(
         piece: Piece,
