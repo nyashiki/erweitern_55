@@ -202,16 +202,14 @@ impl Position {
 
             Move::hand_move(piece, to)
         } else {
-            let moves = self.generate_moves_with_option(true, false, false);
+            let from = sfen_to_square(sfen[0..2].to_string());
+            let to = sfen_to_square(sfen[2..4].to_string());
+            let promotion = sfen.len() == 5;
+            let piece = self.board[from];
+            let (direction, amount) = get_relation(from, to);
+            let capture_piece = self.board[to];
 
-            for m in moves {
-                if sfen == m.sfen() {
-                    return m;
-                }
-            }
-
-            assert!(false);
-            return NULL_MOVE;
+            Move::board_move(piece, from, direction, amount, to, promotion, capture_piece)
         }
     }
 
@@ -1433,7 +1431,7 @@ fn sfen_to_move_test() {
     ::bitboard::init();
     ::zobrist::init();
 
-    const LOOP_NUM: i32 = 1000;
+    const LOOP_NUM: i32 = 10000;
 
     let mut position = Position::empty_board();
 
