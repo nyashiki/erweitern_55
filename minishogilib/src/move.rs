@@ -63,6 +63,10 @@ impl Move {
     fn get_direction(&self) -> usize {
         self.direction as usize
     }
+
+    fn get_hand_index(&self) -> usize {
+        self.piece.get_piece_type() as usize - 2
+    }
 }
 
 impl Move {
