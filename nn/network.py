@@ -1,6 +1,7 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.callbacks import LearningRateScheduler
+from tensorflow.keras.callbacks import ModelCheckpoint
 
 class Network:
     def __init__(self):
@@ -46,12 +47,16 @@ class Network:
 
         return x
 
-    def train(self, train_images, train_labels, batch_size, epochs):
+    def train(self, train_images, policy_label, value_label, batch_size, epochs):
         # epochによってlearning rateを変更する
         learning_rate_scheduler = LearningRateScheduler(lambda epoch: 0.01 if epoch==0 else 0.001 if epoch==1 else 0.0001,
                                                         verbose=True)
 
-        self.model.fit(train_images, train_labels, batch_size=batch_size, epochs=epochs, callbacks=[learning_rate_scheduler])
+        # epochごとに重みを保存
+        save_path = './weights/epoch_{epoch:02d}.hdf5'
+        model_check_point = ModelCheckpoint(filepath=save_path, verbose=1, save_best_only=False)
+
+        self.model.fit(train_images, [policy_label, value_label], batch_size=batch_size, epochs=epochs, callbacks=[model_check_point, learning_rate_scheduler])
 
     def accuracy(self, test_images, test_labels):
         test_loss, test_acc = self.model.evaluate(test_images, test_labels)
