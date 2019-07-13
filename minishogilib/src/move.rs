@@ -120,3 +120,59 @@ pub fn square_to_sfen(square: usize) -> String {
 pub fn sfen_to_square(sfen: String) -> usize {
     ((sfen.as_bytes()[1] - ('a' as u8)) * 5 + (('5' as u8) - sfen.as_bytes()[0])) as usize
 }
+
+lazy_static! {
+    /// 2つの座標を受け取り、その方向と距離を返す
+    /// e.g. RELATION_TABLE[20][15] = (Direction::N, 1)
+    static ref RELATION_TABLE: [[(Direction, usize); SQUARE_NB]; SQUARE_NB] = {
+        let mut table = [[(Direction::N, 0usize); SQUARE_NB]; SQUARE_NB];
+
+        const MOVE_DIRS: [Direction; 8] = [Direction::N, Direction::NE, Direction::E, Direction::SE, Direction::S, Direction::SW, Direction::W, Direction::NW];
+        const MOVE_DIFF: [(i8, i8); 8] = [(-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1)];
+
+        for from in 0..SQUARE_NB {
+            let y = (from as i8) / 5;
+            let x = (from as i8) % 5;
+
+            for dir in 0..8 {
+                for amount in 1..5 {
+                    let ny = y + MOVE_DIFF[dir].0 * amount;
+                    let nx = x + MOVE_DIFF[dir].1 * amount;
+
+                    if ny < 0 || ny >= 5 || nx < 0 || nx >= 5 {
+                        break;
+                    }
+
+                    table[(5 * y + x) as usize][(5 * ny + nx) as usize] = (MOVE_DIRS[dir], amount as usize);
+                }
+            }
+        }
+
+        return table;
+    };
+}
+
+pub fn init() {
+    lazy_static::initialize(&RELATION_TABLE);
+}
+
+pub fn get_relation(square1: usize, square2: usize) -> (Direction, usize) {
+    return RELATION_TABLE[square1][square2];
+}
+
+#[test]
+fn get_relation_test() {
+    assert_eq!(get_relation(20, 15), (Direction::N, 1));
+
+    assert_eq!(get_relation(20, 4), (Direction::NE, 4));
+    assert_eq!(get_relation(4, 20), (Direction::SW, 4));
+    assert_eq!(get_relation(0, 24), (Direction::SE, 4));
+    assert_eq!(get_relation(24, 0), (Direction::NW, 4));
+
+    assert_eq!(get_relation(20, 0), (Direction::N, 4));
+    assert_eq!(get_relation(0, 20), (Direction::S, 4));
+    assert_eq!(get_relation(0, 4), (Direction::E, 4));
+    assert_eq!(get_relation(4, 0), (Direction::W, 4));
+
+    assert_eq!(get_relation(21, 9), (Direction::NE, 3));
+}

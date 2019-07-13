@@ -24,6 +24,7 @@ fn version() -> &'static str {
 
 #[pymodule]
 fn minishogilib(_py: Python, m: &PyModule) -> PyResult<()> {
+    r#move::init();
     bitboard::init();
     zobrist::init();
 
