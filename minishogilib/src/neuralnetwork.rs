@@ -7,9 +7,6 @@ use types::*;
 
 use pyo3::prelude::*;
 
-/// 過去何手分の局面を入力層に含めるか
-const HISTORY_NUM: usize = 8;
-
 /// NeuralNetworkの入力層に与える形式に変換した際の、チャネル数
 ///
 /// --------------------------------------------------------------
@@ -26,48 +23,50 @@ const HISTORY_NUM: usize = 8;
 /// --------------------------------------------------------------
 /// Total                  (10 + 10 + 3 + 5 + 5) * HISTORY_NUM + 2
 /// --------------------------------------------------------------
-const CHANNEL_NUM_PER_HISTORY: usize = 10 + 10 + 3 + 5 + 5;
-const CHANNEL_NUM: usize = CHANNEL_NUM_PER_HISTORY * HISTORY_NUM + 2;
 
 #[pymethods]
 impl Position {
-    /// \[y座標\]\[x座標\]\[チャネル\]の形式で返す
-    pub fn to_nninput(&self) -> std::vec::Vec<std::vec::Vec<std::vec::Vec<f32>>> {
-        let mut input_layer = vec![vec![vec![0f32; CHANNEL_NUM]; 5]; 5];
+    /// \[チャネル\]\[y座標\]\[x座標\]の形式で返す
+    pub fn to_nninput(&self, hisotry: usize) -> std::vec::Vec<std::vec::Vec<std::vec::Vec<f32>>> {
+        let channel_num_per_history: usize = 10 + 10 + 3 + 5 + 5;
+        let channel_num: usize = channel_num_per_history * hisotry + 2;
+
+        let mut input_layer = vec![vec![vec![0f32; 5]; 5]; channel_num];
 
         let mut position = *self;
 
-        for history in 0..HISTORY_NUM {
+        for h in 0..hisotry {
+            if h > 0 {
+                // 局面を1手戻す
+                position.undo_move();
+            }
+
             for i in 0..5 {
                 for j in 0..5 {
                     // 盤上の駒を設定
                     if position.board[i * 5 + j] != Piece::NoPiece {
                         if self.side_to_move == Color::White {
-                            input_layer[i][j][history * CHANNEL_NUM_PER_HISTORY
-                                + piece_to_sequential_index(position.board[i * 5 + j])] = 1f32;
+                            input_layer[2 + h * channel_num_per_history
+                                + piece_to_sequential_index(position.board[i * 5 + j])][i][j] = 1f32;
                         } else {
                             // 後手番の場合には、盤面を回転させて設定する
-                            input_layer[4 - i][4 - j][history * CHANNEL_NUM_PER_HISTORY
+                            input_layer[2 + h * channel_num_per_history
                                 + piece_to_sequential_index(
                                     position.board[i * 5 + j].get_op_piece(),
-                                )] = 1f32;
+                                )][4 - i][4 - j] = 1f32;
                         }
                     }
 
                     // 繰り返し回数を設定
-                    input_layer[i][j]
-                        [history * CHANNEL_NUM_PER_HISTORY + 20 + position.get_repetition()] = 1f32;
+                    input_layer[2 + h * channel_num_per_history + 20 + position.get_repetition()][i][j]
+                            = 1f32;
 
                     // 持ち駒を設定
                     for piece_type in HAND_PIECE_TYPE_ALL.iter() {
-                        input_layer[i][j]
-                            [history * CHANNEL_NUM_PER_HISTORY + 23 + *piece_type as usize - 2] =
-                            position.hand[position.side_to_move as usize][*piece_type as usize - 2]
-                                as f32;
-                        input_layer[i][j]
-                            [history * CHANNEL_NUM_PER_HISTORY + 28 + *piece_type as usize - 2] =
-                            position.hand[position.side_to_move.get_op_color() as usize]
-                                [*piece_type as usize - 2] as f32;
+                        input_layer[2 + h * channel_num_per_history + 23 + *piece_type as usize - 2][i][j]
+                             = position.hand[position.side_to_move as usize][*piece_type as usize - 2] as f32;
+                        input_layer[2 + h * channel_num_per_history + 28 + *piece_type as usize - 2][i][j]
+                             = position.hand[position.side_to_move.get_op_color() as usize][*piece_type as usize - 2] as f32;
                     }
                 }
             }
@@ -75,20 +74,17 @@ impl Position {
             if position.ply == 0 {
                 break;
             }
-
-            // 局面を1手戻す
-            position.undo_move();
         }
 
         for i in 0..5 {
             for j in 0..5 {
                 // 手番を設定
                 if self.side_to_move == Color::Black {
-                    input_layer[i][j][CHANNEL_NUM - 2] = 1f32;
+                    input_layer[0][i][j] = 1f32;
                 }
 
                 // 手数を設定
-                input_layer[i][j][CHANNEL_NUM - 1] = self.ply as f32;
+                input_layer[1][i][j] = self.ply as f32;
             }
         }
 
