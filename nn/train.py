@@ -33,8 +33,8 @@ def load_teacher_onehot(filepath):
         - timestamp, # ply, comment, sfen kif
     """
 
-    MAX_ENTRY = 1024 # 10000 # 500000 # 200000
-    inputs = np.zeros((MAX_ENTRY, 266, 5, 5), dtype='float32')
+    MAX_ENTRY = 10000 # 1000000
+    inputs = np.zeros((MAX_ENTRY, 68, 5, 5), dtype='float32')
     policy = np.zeros((MAX_ENTRY, 69, 5, 5), dtype='float32')
     value = np.zeros((MAX_ENTRY, 1), dtype='float32')
 
@@ -59,21 +59,21 @@ def load_teacher_onehot(filepath):
             target_ply = random.randrange(len(sfen_split))
 
             for sfen_move in sfen_split:
+                if position_count == MAX_ENTRY:
+                    break
+
                 move = position.sfen_to_move(sfen_move)
 
-                if ply == target_ply:
-                    index = move_to_policy_index(position.get_side_to_move(), move)
+                index = move_to_policy_index(position.get_side_to_move(), move)
 
-                    onehot_policy = np.zeros((69, 5, 5))
-                    onehot_policy[index] = 1
+                onehot_policy = np.zeros((69, 5, 5))
+                onehot_policy[index] = 1
 
-                    nn_input = np.array(position.to_nninput(8))
-                    inputs[position_count] = nn_input
-                    policy[position_count] = onehot_policy
-                    value[position_count] = 1 if (ply % 2) == win_color else -1
-                    position_count += 1
-
-                    break
+                nn_input = np.array(position.to_nninput()).reshape(68, 5, 5)
+                inputs[position_count] = nn_input
+                policy[position_count] = onehot_policy
+                value[position_count] = 1 if (ply % 2) == win_color else -1
+                position_count += 1
 
                 position.do_move(move)
 
@@ -108,7 +108,7 @@ def main():
     batch_size = 1024
     batch_num_per_epoch = len(inputs) // batch_size
 
-    for epoch in range(10000):
+    for epoch in range(100):
         random_indices = list(range(len(inputs)))
         random.shuffle(random_indices)
 
@@ -122,6 +122,10 @@ def main():
 
             loss = neural_network.step(inputs_, policy_, value_)
             print(loss)
+
+        # save the model
+        filename = './weights/epoch_{:02}.h5'.format(epoch)
+        neural_network.model.save(filename, include_optimizer=True)
 
 if __name__ == '__main__':
     print(tf.__version__)

@@ -6,7 +6,7 @@ from tensorflow.keras.callbacks import ModelCheckpoint
 class Network:
     def __init__(self):
         # Input layer
-        input_image = keras.layers.Input(shape=[5, 5, 266], dtype='float32')
+        input_image = keras.layers.Input(shape=[5, 5, 68], dtype='float32')
 
         # Convolution layer
         x = keras.layers.Conv2D(128, [3, 3], padding='same', activation=tf.nn.relu)(input_image)
