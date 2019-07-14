@@ -46,11 +46,14 @@ impl Position {
                     // 盤上の駒を設定
                     if position.board[i * 5 + j] != Piece::NoPiece {
                         if self.side_to_move == Color::White {
-                            input_layer[2 + h * channel_num_per_history
-                                + piece_to_sequential_index(position.board[i * 5 + j])][i][j] = 1f32;
+                            input_layer[2
+                                + h * channel_num_per_history
+                                + piece_to_sequential_index(position.board[i * 5 + j])][i][j] =
+                                1f32;
                         } else {
                             // 後手番の場合には、盤面を回転させて設定する
-                            input_layer[2 + h * channel_num_per_history
+                            input_layer[2
+                                + h * channel_num_per_history
                                 + piece_to_sequential_index(
                                     position.board[i * 5 + j].get_op_piece(),
                                 )][4 - i][4 - j] = 1f32;
@@ -58,15 +61,19 @@ impl Position {
                     }
 
                     // 繰り返し回数を設定
-                    input_layer[2 + h * channel_num_per_history + 20 + position.get_repetition()][i][j]
-                            = 1f32;
+                    input_layer[2 + h * channel_num_per_history + 20 + position.get_repetition()]
+                        [i][j] = 1f32;
 
                     // 持ち駒を設定
                     for piece_type in HAND_PIECE_TYPE_ALL.iter() {
-                        input_layer[2 + h * channel_num_per_history + 23 + *piece_type as usize - 2][i][j]
-                             = position.hand[position.side_to_move as usize][*piece_type as usize - 2] as f32;
-                        input_layer[2 + h * channel_num_per_history + 28 + *piece_type as usize - 2][i][j]
-                             = position.hand[position.side_to_move.get_op_color() as usize][*piece_type as usize - 2] as f32;
+                        input_layer
+                            [2 + h * channel_num_per_history + 23 + *piece_type as usize - 2][i]
+                            [j] = position.hand[self.side_to_move as usize]
+                            [*piece_type as usize - 2] as f32;
+                        input_layer
+                            [2 + h * channel_num_per_history + 28 + *piece_type as usize - 2][i]
+                            [j] = position.hand[self.side_to_move.get_op_color() as usize]
+                            [*piece_type as usize - 2] as f32;
                     }
                 }
             }
