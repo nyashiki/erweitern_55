@@ -7,21 +7,23 @@ import network
 import random
 import sys
 
-def move_to_policy_index(move):
+def move_to_policy_index(color, move):
     """
     Convert a move (type: minishogilib.Move) into policy index.
     """
 
     if move.get_amount == 0:
         # In case of drawpping a prisoner.
-        return (64 + move.get_hand_index(), move.get_to() // 5, move.get_to() % 5)
+        move_to = (move.get_to() // 5, move.get_to() % 5) if color == 0 else (4 - move.get_to() // 5, 4 - move.get_to() % 5)
+        return (64 + move.get_hand_index(), move_to[0], move_to[1])
     else:
         # In case of moving a piece on the board.
+        move_from = (move.get_from() // 5, move.get_from() % 5) if color == 0 else (4 - move.get_from() // 5, 4 - move.get_from() % 5)
         if move.get_promotion():
             # In case of promotion
-            return (32 + 4 * move.get_direction() + (move.get_amount() - 1), move.get_from() // 5, move.get_from() % 5)
+            return (32 + 4 * move.get_direction() + (move.get_amount() - 1), move_from[0], move_from[1])
         else:
-            return (4 * move.get_direction() + (move.get_amount() - 1), move.get_from() // 5, move.get_from() % 5)
+            return (4 * move.get_direction() + (move.get_amount() - 1), move_from[0], move_from[1])
 
 def load_teacher_onehot(filepath):
     """
@@ -60,7 +62,7 @@ def load_teacher_onehot(filepath):
                 move = position.sfen_to_move(sfen_move)
 
                 if ply == target_ply:
-                    index = move_to_policy_index(move)
+                    index = move_to_policy_index(position.get_side_to_move(), move)
 
                     onehot_policy = np.zeros((69, 5, 5))
                     onehot_policy[index] = 1
@@ -84,7 +86,7 @@ def load_teacher_onehot(filepath):
 
         sys.stdout.write(' ... done.\n')
 
-    return inputs, policy, value
+    return inputs[:position_count], policy[:position_count], value[:position_count]
 
 def main():
     # Construct a neural network
@@ -98,23 +100,33 @@ def main():
 
     inputs, policy, value = load_teacher_onehot('./kif.txt')
 
-    print(inputs[0][3])
-    print(inputs[1][13])
-
-    # tranpose it into tensorflow-like format
+    # tranpose it into tensorflow-like format (i.e. BHWC order)
     inputs = np.transpose(inputs, axes=[0, 2, 3, 1])
     policy = np.transpose(policy, axes=[0, 2, 3, 1])
+    policy = np.reshape(policy, (-1, 5 * 5 * 69))
 
-    neural_network.step(inputs, policy, value, 128, 100)
-    predicts = neural_network.predict(inputs)
-    print(predicts)
+    batch_size = 1024
+    batch_num_per_epoch = len(inputs) // batch_size
 
-    inputs = np.transpose(inputs, axes=[0, 3, 1, 2])
-    print(inputs[0][3])
-    print(inputs[1][13])
+    for epoch in range(10000):
+        random_indices = list(range(len(inputs)))
+        random.shuffle(random_indices)
+
+        for b in range(batch_num_per_epoch):
+            start_index = b * batch_size
+            end_index = start_index + batch_size
+
+            inputs_ = inputs[random_indices[start_index:end_index]]
+            policy_ = policy[random_indices[start_index:end_index]]
+            value_ = value[random_indices[start_index:end_index]]
+
+            loss = neural_network.step(inputs_, policy_, value_)
+            print(loss)
 
 if __name__ == '__main__':
     print(tf.__version__)
+    print(minishogilib.version())
+
     tf.compat.v1.set_random_seed(1)
 
     main()
