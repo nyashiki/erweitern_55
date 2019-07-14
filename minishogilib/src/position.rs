@@ -213,6 +213,10 @@ impl Position {
         }
     }
 
+    pub fn get_side_to_move(&self) -> usize {
+        return self.side_to_move as usize;
+    }
+
     pub fn generate_moves(&self) -> std::vec::Vec<Move> {
         return self.generate_moves_with_option(true, true, false);
     }
