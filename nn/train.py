@@ -4,6 +4,7 @@ import numpy as np
 
 import minishogilib
 import network
+import random
 import sys
 
 def move_to_policy_index(move):
@@ -30,17 +31,15 @@ def load_teacher_onehot(filepath):
         - timestamp, # ply, comment, sfen kif
     """
 
-    MAX_ENTRY = 10000 # 500000 # 200000
-    positions = np.zeros((MAX_ENTRY, 266, 5, 5))
-    policy_labels = np.zeros((MAX_ENTRY, 69, 5, 5))
-    value_labels = np.zeros((MAX_ENTRY, 1))
+    MAX_ENTRY = 1024 # 10000 # 500000 # 200000
+    inputs = np.zeros((MAX_ENTRY, 266, 5, 5), dtype='float32')
+    policy = np.zeros((MAX_ENTRY, 69, 5, 5), dtype='float32')
+    value = np.zeros((MAX_ENTRY, 1), dtype='float32')
 
     with open(filepath) as f:
         line = f.readline()
         line_count = 0
         position_count = 0
-
-        prev_nninput = np.zeros((266, 5, 5))
 
         while line:
             if position_count == MAX_ENTRY:
@@ -55,55 +54,64 @@ def load_teacher_onehot(filepath):
             ply = 0
             win_color = 0 if len(sfen_split) % 2 == 1 else 1
 
+            target_ply = random.randrange(len(sfen_split))
+
             for sfen_move in sfen_split:
-                if position_count == MAX_ENTRY:
-                    break
-
                 move = position.sfen_to_move(sfen_move)
-                index = move_to_policy_index(move)
 
-                onehot_policy = np.zeros((69, 5, 5))
-                onehot_policy[index] = 1
+                if ply == target_ply:
+                    index = move_to_policy_index(move)
 
-                nn_input = np.array(position.to_nninput(1))
-                nn_input = np.concatenate([nn_input, prev_nninput[2:233]])
+                    onehot_policy = np.zeros((69, 5, 5))
+                    onehot_policy[index] = 1
 
-                positions[position_count] = nn_input
-                policy_labels[position_count] = onehot_policy
-                value_labels[position_count] = 1 if (ply % 2) == win_color else -1
+                    nn_input = np.array(position.to_nninput(8))
+                    inputs[position_count] = nn_input
+                    policy[position_count] = onehot_policy
+                    value[position_count] = 1 if (ply % 2) == win_color else -1
+                    position_count += 1
+
+                    break
 
                 position.do_move(move)
 
-                prev_nninput = nn_input
-                position_count += 1
                 ply += 1
 
             line_count += 1
-            sys.stdout.write('\rload ' + str(line_count) + ' lines (' + str(len(positions)) + ' positions).')
+            sys.stdout.write('\rload ' + str(line_count) + ' lines (' + str(position_count) + ' positions).')
 
             line = f.readline()
 
         sys.stdout.write(' ... done.\n')
 
-    return positions, policy_labels, value_labels
+    return inputs, policy, value
 
 def main():
     # Construct a neural network
     neural_network = network.Network()
 
     # Output a png file of the network
-    # plot_model(neural_network.model, show_shapes=True, show_layer_names=True, to_file='model.png')
+    plot_model(neural_network.model, show_shapes=True, show_layer_names=True, to_file='model.png')
 
     # Output information about the network
     neural_network.model.summary()
 
-    positions, policy_labels, value_labels = load_teacher_onehot('./kif.txt')
+    inputs, policy, value = load_teacher_onehot('./kif.txt')
+
+    print(inputs[0][3])
+    print(inputs[1][13])
 
     # tranpose it into tensorflow-like format
-    positions = np.transpose(positions, axes=[0, 2, 3, 1])
-    policy_labels = np.transpose(policy_labels, axes=[0, 2, 3, 1])
+    inputs = np.transpose(inputs, axes=[0, 2, 3, 1])
+    policy = np.transpose(policy, axes=[0, 2, 3, 1])
 
-    neural_network.train(positions, policy_labels, value_labels, 1024, 1)
+    neural_network.step(inputs, policy, value, 128, 100)
+    predicts = neural_network.predict(inputs)
+    print(predicts)
+
+    inputs = np.transpose(inputs, axes=[0, 3, 1, 2])
+    print(inputs[0][3])
+    print(inputs[1][13])
 
 if __name__ == '__main__':
     print(tf.__version__)
