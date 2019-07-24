@@ -36,8 +36,35 @@ impl Position {
         obj.init(Position::empty_board());
     }
 
-    pub fn copy(&self) -> Position {
-        *self
+    /// entireがTrueの時には，過去の棋譜もコピーする
+    pub fn copy(&self, entire: bool) -> Position {
+        if entire {
+            return *self;
+        }
+
+        let mut position = Position::empty_board();
+        position.side_to_move = self.side_to_move;
+        for i in 0..SQUARE_NB {
+            position.board[i] = self.board[i]
+        }
+        for i in 0..2 {
+            for j in 0..5 {
+                position.hand[i][j] = self.hand[i][j];
+            }
+            position.pawn_flags[i] = self.pawn_flags[i];
+            position.player_bb[i] = self.player_bb[i];
+        }
+
+        for piece in &PIECE_ALL {
+            position.piece_bb[*piece as usize] = self.piece_bb[*piece as usize];
+        }
+
+        position.hash[0] = self.hash[self.ply as usize];
+        position.adjacent_check_bb[0] = self.adjacent_check_bb[self.ply as usize];
+        position.long_check_bb[0] = self.long_check_bb[self.ply as usize];
+        position.sequent_check_count[0] = self.sequent_check_count[self.ply as usize];
+
+        return position;
     }
 
     pub fn print(&self) {
