@@ -36,6 +36,10 @@ impl Position {
         obj.init(Position::empty_board());
     }
 
+    pub fn copy(&self) -> Position {
+        *self
+    }
+
     pub fn print(&self) {
         println!("side_to_move: {:?}", self.side_to_move);
 
