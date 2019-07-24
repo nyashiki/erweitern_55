@@ -7,24 +7,6 @@ import network
 import random
 import sys
 
-def move_to_policy_index(color, move):
-    """
-    Convert a move (type: minishogilib.Move) into policy index.
-    """
-
-    if move.get_amount == 0:
-        # In case of drawpping a prisoner.
-        move_to = (move.get_to() // 5, move.get_to() % 5) if color == 0 else (4 - move.get_to() // 5, 4 - move.get_to() % 5)
-        return (64 + move.get_hand_index(), move_to[0], move_to[1])
-    else:
-        # In case of moving a piece on the board.
-        move_from = (move.get_from() // 5, move.get_from() % 5) if color == 0 else (4 - move.get_from() // 5, 4 - move.get_from() % 5)
-        if move.get_promotion():
-            # In case of promotion
-            return (32 + 4 * move.get_direction() + (move.get_amount() - 1), move_from[0], move_from[1])
-        else:
-            return (4 * move.get_direction() + (move.get_amount() - 1), move_from[0], move_from[1])
-
 def load_teacher_onehot(filepath):
     """
     Load sfen kifs and return positions and moves.
