@@ -24,7 +24,6 @@ class Node:
         c_init = 1.25
 
         C = ((1 + self.N + c_base) / c_base) + c_init
-
         Q = 0 if self.N == 0 else (1 - self.W / (self.N + self.virtual_loss))
         U = C * self.P * math.sqrt(parent_N) / (1 + self.N + self.virtual_loss)
 
@@ -34,9 +33,20 @@ class Node:
         return len(self.children) > 0 and not self.is_terminal
 
 def select_child(node):
-    _, move, child = max(((child.get_puct(node.N), move, child) for move, child in node.children.items()), key=itemgetter(0))
+    # _, move, child = max(((child.get_puct(node.N), move, child) for move, child in node.children.items()), key=itemgetter(0))
 
-    return move, child
+    max_puct = -math.inf
+    max_puct_move = None
+    max_puct_child = None
+
+    for (move, child) in node.children.items():
+        puct = child.get_puct(node.N)
+        if puct > max_puct:
+            max_puct = puct
+            max_puct_move = move
+            max_puct_child = child
+
+    return max_puct_move, max_puct_child
 
 def evaluate(nodes, positions, nn):
     nn_inputs = np.zeros((len(nodes), 68, 5, 5))
@@ -69,7 +79,12 @@ def evaluate(nodes, positions, nn):
             node.is_terminal = True
 
         if node.is_terminal:
-            values[b] = 0
+            if is_check_repetition:
+                values[b] = 0
+            elif is_repetition:
+                vakues[b] = 0 if position.get_side_to_move() == 0 else 1
+            else:
+                values[b] = 0
 
         # sef value and policy
         node.V = values[b]
@@ -97,7 +112,7 @@ def run_mcts(position, nn):
     root = Node()
     evaluate([root], [position], nn)
 
-    SIMULATION_NUM = 800
+    SIMULATION_NUM = 3200
     BATCH_SIZE = 16
 
     search_paths = [None for _ in range(BATCH_SIZE)]
@@ -129,7 +144,6 @@ def run_mcts(position, nn):
 
     return root
 
-
 def main():
     position = minishogilib.Position()
     position.set_start_position()
@@ -137,14 +151,35 @@ def main():
     neural_network = network.Network()
     neural_network.load('./nn/weights/epoch_99.h5')
 
-    start_time = time.time()
-    root = run_mcts(position, neural_network)
-    end_time = time.time()
+    while True:
+        start_time = time.time()
+        root = run_mcts(position, neural_network)
+        elapsed = time.time() - start_time
 
-    print('elapsed', end_time - start_time)
+        if len(root.children) == 0:
+            break
 
-    for (k, v) in root.children.items():
-        print(k, '\n  N:', v.N, 'P:', v.P, 'V:', v.V)
+        best_move = None
+        best_child = None
+
+        for (move, child) in root.children.items():
+            if best_child == None or child.N > best_child.N:
+                best_child = child
+                best_move = move
+
+        position.do_move(best_move)
+        print('--------------------')
+        position.print()
+        print('Q:', 1 - (best_child.W / best_child.N))
+        print('time:', elapsed)
+        print('--------------------')
+
+    # start_time = time.time()
+    # root = run_mcts(position, neural_network)
+    # end_time = time.time()
+    # print('elapsed', end_time - start_time)
+    # for (k, v) in root.children.items():
+    #     print(k, '\n  N:', v.N, 'P:', v.P, 'V:', v.V)
 
 if __name__ == '__main__':
     # output minishogilib version
