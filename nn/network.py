@@ -72,4 +72,7 @@ class Network:
         return loss
 
     def predict(self, images):
-        return self.model.predict(images, batch_size=len(images), verbose=1, steps=None)
+        return self.model.predict(images, batch_size=len(images), verbose=0, steps=None)
+
+    def load(self, filepath):
+        self.model = keras.models.load_model(filepath, compile=True)
