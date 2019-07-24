@@ -15,3 +15,5 @@ features = ["extension-module"]
 rand = "0.6"
 lazy_static = "0.2.1"
 bitintr = "0.3.0"
+ndarray = "0.12.1"
+numpy = "0.6.0"

@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate lazy_static;
 extern crate bitintr;
+extern crate numpy;
 extern crate pyo3;
 extern crate rand;
 

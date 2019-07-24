@@ -6,6 +6,7 @@ use position::Position;
 use types::*;
 
 use pyo3::prelude::*;
+use numpy::PyArray1;
 
 /// NeuralNetworkの入力層に与える形式に変換した際の、チャネル数
 ///
@@ -27,7 +28,7 @@ use pyo3::prelude::*;
 #[pymethods]
 impl Position {
     /// \[チャネル\]\[y座標\]\[x座標\]の形式で返す
-    pub fn to_nninput(&self) -> std::vec::Vec<f32> {
+    pub fn to_nninput(&self, py: Python) -> Py<PyArray1<f32>> {
         const HISTORY: usize = 2;
         const CHANNEL_NUM_PER_HISTORY: usize = 10 + 10 + 3 + 5 + 5;
         const CHANNEL_NUM: usize = CHANNEL_NUM_PER_HISTORY * HISTORY + 2;
@@ -85,7 +86,7 @@ impl Position {
             input_layer[SQUARE_NB + i] = self.ply as f32;
         }
 
-        return input_layer.to_vec();
+        return PyArray1::from_slice(py, &input_layer).to_owned();
     }
 }
 
