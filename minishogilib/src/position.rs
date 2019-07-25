@@ -501,6 +501,7 @@ impl Position {
 
     fn set_check_bb(&mut self) {
         self.adjacent_check_bb[self.ply as usize] = 0;
+        self.long_check_bb[self.ply as usize] = 0;
 
         let king_square =
             get_square(self.piece_bb[PieceType::King.get_piece(self.side_to_move) as usize]);
@@ -569,6 +570,12 @@ impl Position {
                     continue;
                 }
 
+                if !allow_illegal && get_counts(self.adjacent_check_bb[self.ply as usize] | self.long_check_bb[self.ply as usize]) > 1 {
+                    if self.board[i].get_piece_type() != PieceType::King {
+                        continue;
+                    }
+                }
+
                 const MOVE_TOS: [i8; 8] = [-5, -4, 1, 6, 5, 4, -1, -6];
 
                 // 飛び駒以外の駒の移動
@@ -610,6 +617,10 @@ impl Position {
                     }
 
                     let move_to = ((i as i8) + MOVE_TOS[move_dir as usize]) as usize;
+
+                    if !allow_illegal && self.adjacent_check_bb[self.ply as usize] != 0 && self.board[i].get_piece_type() != PieceType::King && (self.adjacent_check_bb[self.ply as usize] & (1 << move_to)) == 0 {
+                        continue
+                    }
 
                     let capture_piece = self.board[move_to];
 
@@ -823,7 +834,7 @@ impl Position {
         }
 
         // 近接駒に王手されている場合、持ち駒を打つ手は全て非合法手
-        if is_hand && (allow_illegal || get_counts(self.adjacent_check_bb[self.ply as usize]) == 0)
+        if is_hand && (allow_illegal || self.adjacent_check_bb[self.ply as usize] == 0)
         {
             // 駒のない升を列挙
             let mut empty_squares: Vec<usize> = Vec::new();
@@ -1118,8 +1129,6 @@ fn move_do_undo_test() {
         position.set_start_position();
 
         while position.ply < MAX_PLY as u16 {
-            position.print();
-
             let moves = position.generate_moves();
 
             for m in &moves {
