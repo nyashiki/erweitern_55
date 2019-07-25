@@ -14,19 +14,52 @@ lazy_static! {
 
         let mut position: Position = Position::empty_board();
 
+        const MOVE_TOS: [i8; 8] = [-5, -4, 1, 6, 5, 4, -1, -6];
+
         for i in 0..SQUARE_NB {
             for piece in PIECE_ALL.iter() {
                 position.board[i] = *piece;
                 position.side_to_move = piece.get_color();
 
-                let moves = position.generate_moves_with_option(true, false, true);
-
-                for m in moves {
-                    if m.amount != 1 {
+                for move_dir in position.board[i].get_move_dirs() {
+                    // これ以上左に行けない
+                    if i % 5 == 0
+                        && (move_dir == Direction::SW
+                            || move_dir == Direction::W
+                            || move_dir == Direction::NW)
+                    {
                         continue;
                     }
 
-                    aa[i][*piece as usize] |= 1 << m.to;
+                    // これ以上上に行けない
+                    if i / 5 == 0
+                        && (move_dir == Direction::N
+                            || move_dir == Direction::NE
+                            || move_dir == Direction::NW)
+                    {
+                        continue;
+                    }
+
+                    // これ以上右に行けない
+                    if i % 5 == 4
+                        && (move_dir == Direction::NE
+                            || move_dir == Direction::E
+                            || move_dir == Direction::SE)
+                    {
+                        continue;
+                    }
+
+                    // これ以上下に行けない
+                    if i / 5 == 4
+                        && (move_dir == Direction::SE
+                            || move_dir == Direction::S
+                            || move_dir == Direction::SW)
+                    {
+                        continue;
+                    }
+
+                    let move_to = ((i as i8) + MOVE_TOS[move_dir as usize]) as usize;
+                    aa[i][*piece as usize] |= 1 << move_to;
                 }
             }
             position.board[i] = Piece::NoPiece;
@@ -190,15 +223,53 @@ lazy_static! {
                         break;
                     }
                 }
-                position.board[i] = Piece::WBishop;
-                position.side_to_move = Color::White;
 
-                let moves = position.generate_moves_with_option(true, false, true);
+                const MOVE_TOS: [i8; 8] = [-5, -4, 1, 6, 5, 4, -1, -6];
+                const MOVE_DIRS: [Direction; 2] = [Direction::NE, Direction::SW];
+                for move_dir in &MOVE_DIRS {
+                    // これ以上左に行けない
+                    if i % 5 == 0 && (*move_dir == Direction::SW || *move_dir == Direction::NW)
+                    {
+                        continue;
+                    }
 
-                for m in moves {
-                    // 右上, 左下方向の合法手のみ取りだす
-                    if m.direction == Direction::NE || m.direction == Direction::SW {
-                        ba[i][player_bb] |= 1 << m.to;
+                    // これ以上上に行けない
+                    if i / 5 == 0 && (*move_dir == Direction::NE || *move_dir == Direction::NW)
+                    {
+                        continue;
+                    }
+
+                    // これ以上右に行けない
+                    if i % 5 == 4 && (*move_dir == Direction::NE || *move_dir == Direction::SE)
+                    {
+                        continue;
+                    }
+
+                    // これ以上下に行けない
+                    if i / 5 == 4 && (*move_dir == Direction::SE || *move_dir == Direction::SW)
+                    {
+                        continue;
+                    }
+
+                    for amount in 1..5 {
+                        let move_to = ((i as i8)
+                            + MOVE_TOS[*move_dir as usize] * (amount as i8))
+                            as usize;
+
+                        ba[i][player_bb] |= 1 << move_to;
+
+                        if position.board[move_to] != Piece::NoPiece {
+                            break;
+                        }
+
+                        // 端まで到達したらそれ以上進めない
+                        if move_to / 5 == 0
+                            || move_to / 5 == 4
+                            || move_to % 5 == 0
+                            || move_to % 5 == 4
+                        {
+                            break;
+                        }
                     }
                 }
             }
@@ -248,15 +319,53 @@ lazy_static! {
                         break;
                     }
                 }
-                position.board[i] = Piece::WBishop;
-                position.side_to_move = Color::White;
 
-                let moves = position.generate_moves_with_option(true, false, true);
+                const MOVE_TOS: [i8; 8] = [-5, -4, 1, 6, 5, 4, -1, -6];
+                const MOVE_DIRS: [Direction; 2] = [Direction::NW, Direction::SE];
+                for move_dir in &MOVE_DIRS {
+                    // これ以上左に行けない
+                    if i % 5 == 0 && (*move_dir == Direction::SW || *move_dir == Direction::NW)
+                    {
+                        continue;
+                    }
 
-                for m in moves {
-                    // 左上--右下方向の合法手のみ取りだす
-                    if m.direction == Direction::NW || m.direction == Direction::SE {
-                        ba[i][player_bb] |= 1 << m.to;
+                    // これ以上上に行けない
+                    if i / 5 == 0 && (*move_dir == Direction::NE || *move_dir == Direction::NW)
+                    {
+                        continue;
+                    }
+
+                    // これ以上右に行けない
+                    if i % 5 == 4 && (*move_dir == Direction::NE || *move_dir == Direction::SE)
+                    {
+                        continue;
+                    }
+
+                    // これ以上下に行けない
+                    if i / 5 == 4 && (*move_dir == Direction::SE || *move_dir == Direction::SW)
+                    {
+                        continue;
+                    }
+
+                    for amount in 1..5 {
+                        let move_to = ((i as i8)
+                            + MOVE_TOS[*move_dir as usize] * (amount as i8))
+                            as usize;
+
+                        ba[i][player_bb] |= 1 << move_to;
+
+                        if position.board[move_to] != Piece::NoPiece {
+                            break;
+                        }
+
+                        // 端まで到達したらそれ以上進めない
+                        if move_to / 5 == 0
+                            || move_to / 5 == 4
+                            || move_to % 5 == 0
+                            || move_to % 5 == 4
+                        {
+                            break;
+                        }
                     }
                 }
             }
@@ -281,15 +390,37 @@ lazy_static! {
                         position.board[left + j] = Piece::BPawn;
                     }
                 }
-                position.board[i] = Piece::WRook;
-                position.side_to_move = Color::White;
 
-                let moves = position.generate_moves_with_option(true, false, true);
+                const MOVE_TOS: [i8; 8] = [-5, -4, 1, 6, 5, 4, -1, -6];
+                const MOVE_DIRS: [Direction; 2] = [Direction::E, Direction::W];
+                for move_dir in &MOVE_DIRS {
+                    // これ以上左に行けない
+                    if i % 5 == 0 && *move_dir == Direction::W
+                    {
+                        continue;
+                    }
+                    // これ以上右に行けない
+                    if i % 5 == 4 && *move_dir == Direction::E
+                    {
+                        continue;
+                    }
 
-                for m in moves {
-                    // 横方向の合法手のみ取りだす
-                    if m.direction == Direction::E || m.direction == Direction::W {
-                        ra[i][player_bb] |= 1 << m.to;
+                    for amount in 1..5 {
+                        let move_to = ((i as i8)
+                            + MOVE_TOS[*move_dir as usize] * (amount as i8))
+                            as usize;
+
+                        ra[i][player_bb] |= 1 << move_to;
+
+                        if position.board[move_to] != Piece::NoPiece {
+                            break;
+                        }
+
+                        // 端まで到達したらそれ以上進めない
+                        if (*move_dir == Direction::E && move_to % 5 == 4) || (*move_dir == Direction::W && move_to % 5 == 0)
+                        {
+                            break;
+                        }
                     }
                 }
             }
@@ -314,15 +445,38 @@ lazy_static! {
                         position.board[top + 5 * j] = Piece::BPawn;
                     }
                 }
-                position.board[i] = Piece::WRook;
-                position.side_to_move = Color::White;
 
-                let moves = position.generate_moves_with_option(true, false, true);
+                const MOVE_TOS: [i8; 8] = [-5, -4, 1, 6, 5, 4, -1, -6];
+                const MOVE_DIRS: [Direction; 2] = [Direction::N, Direction::S];
+                for move_dir in &MOVE_DIRS {
+                    // これ以上上に行けない
+                    if i / 5 == 0 && *move_dir == Direction::N
+                    {
+                        continue;
+                    }
 
-                for m in moves {
-                    // 縦方向の合法手のみ取りだす
-                    if m.direction == Direction::N || m.direction == Direction::S {
-                        ra[i][player_bb] |= 1 << m.to;
+                    // これ以上下に行けない
+                    if i / 5 == 4 && *move_dir == Direction::S
+                    {
+                        continue;
+                    }
+
+                    for amount in 1..5 {
+                        let move_to = ((i as i8)
+                            + MOVE_TOS[*move_dir as usize] * (amount as i8))
+                            as usize;
+
+                        ra[i][player_bb] |= 1 << move_to;
+
+                        if position.board[move_to] != Piece::NoPiece {
+                            break;
+                        }
+
+                        // 端まで到達したらそれ以上進めない
+                        if (*move_dir == Direction::N && move_to / 5 == 0) || (*move_dir == Direction::S && move_to / 5 == 4)
+                        {
+                            break;
+                        }
                     }
                 }
             }
