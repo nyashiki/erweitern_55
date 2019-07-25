@@ -591,26 +591,25 @@ impl Position {
                             continue;
                         }
 
-                        // 行き場のない歩の不成を禁止
-                        if (self.board[i] == Piece::WPawn && move_to < 5)
-                            || (self.board[i] == Piece::BPawn && move_to >= 20)
-                        {
-                            move_tos ^= 1 << move_to;
-                            continue;
-                        }
 
                         let capture_piece = self.board[move_to];
                         let (move_dir, _) = get_relation(i, move_to);
 
-                        moves.push(Move::board_move(
-                            self.board[i],
-                            i,
-                            move_dir,
-                            1,
-                            move_to,
-                            false,
-                            capture_piece,
-                        ));
+                        if (self.board[i] == Piece::WPawn && move_to < 5)
+                            || (self.board[i] == Piece::BPawn && move_to >= 20)
+                        {
+                            // 行き場のない歩の不成の手は生成しない
+                        } else {
+                            moves.push(Move::board_move(
+                                self.board[i],
+                                i,
+                                move_dir,
+                                1,
+                                move_to,
+                                false,
+                                capture_piece,
+                            ));
+                        }
 
                         // 成る手の生成
                         if self.board[i].is_raw()
@@ -633,7 +632,7 @@ impl Position {
                     }
                 }
 
-                let all_player_bb = self.piece_bb[Color::White as usize] | self.piece_bb[Color::Black as usize];
+                let all_player_bb = self.player_bb[Color::White as usize] | self.player_bb[Color::Black as usize];
 
                 // 飛び駒の移動
                 // 角、馬
@@ -1402,4 +1401,16 @@ fn sfen_to_move_test() {
             position.do_move(random_move);
         }
     }
+}
+
+#[test]
+fn init_position_moves_test() {
+    ::bitboard::init();
+    ::zobrist::init();
+
+    let mut position = Position::empty_board();
+    position.set_start_position();
+    let moves = position.generate_moves();
+
+    assert_eq!(moves.len(), 14);
 }
