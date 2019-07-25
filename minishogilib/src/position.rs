@@ -570,69 +570,38 @@ impl Position {
                     continue;
                 }
 
+                // 量王手がかかっているときは，玉を逃げる以外は非合法手
                 if !allow_illegal && get_counts(self.adjacent_check_bb[self.ply as usize] | self.long_check_bb[self.ply as usize]) > 1 {
                     if self.board[i].get_piece_type() != PieceType::King {
                         continue;
                     }
                 }
 
-                const MOVE_TOS: [i8; 8] = [-5, -4, 1, 6, 5, 4, -1, -6];
-
                 // 飛び駒以外の駒の移動
-                for move_dir in self.board[i].get_move_dirs() {
-                    // これ以上左に行けない
-                    if i % 5 == 0
-                        && (move_dir == Direction::SW
-                            || move_dir == Direction::W
-                            || move_dir == Direction::NW)
-                    {
-                        continue;
-                    }
+                {
+                    let mut move_tos: Bitboard = adjacent_attack(i, self.board[i]); // 利きの取得
+                    move_tos &= !self.piece_bb[self.side_to_move as usize]; // 自分の駒がある場所には動けない
 
-                    // これ以上上に行けない
-                    if i / 5 == 0
-                        && (move_dir == Direction::N
-                            || move_dir == Direction::NE
-                            || move_dir == Direction::NW)
-                    {
-                        continue;
-                    }
+                    while move_tos != 0 {
+                        let move_to: usize = get_square(move_tos); // 行先を1か所取得する
 
-                    // これ以上右に行けない
-                    if i % 5 == 4
-                        && (move_dir == Direction::NE
-                            || move_dir == Direction::E
-                            || move_dir == Direction::SE)
-                    {
-                        continue;
-                    }
+                        // 近接王手がかかっていて，玉以外を動かす場合には，王手している駒を取るしかない
+                        if !allow_illegal && self.adjacent_check_bb[self.ply as usize] != 0 && self.board[i].get_piece_type() != PieceType::King && (self.adjacent_check_bb[self.ply as usize] & (1 << move_to)) == 0 {
+                            move_tos ^= 1 << move_to;
+                            continue;
+                        }
 
-                    // これ以上下に行けない
-                    if i / 5 == 4
-                        && (move_dir == Direction::SE
-                            || move_dir == Direction::S
-                            || move_dir == Direction::SW)
-                    {
-                        continue;
-                    }
+                        // 行き場のない歩の不成を禁止
+                        if (self.board[i] == Piece::WPawn && move_to < 5)
+                            || (self.board[i] == Piece::BPawn && move_to >= 20)
+                        {
+                            move_tos ^= 1 << move_to;
+                            continue;
+                        }
 
-                    let move_to = ((i as i8) + MOVE_TOS[move_dir as usize]) as usize;
+                        let capture_piece = self.board[move_to];
+                        let (move_dir, _) = get_relation(i, move_to);
 
-                    if !allow_illegal && self.adjacent_check_bb[self.ply as usize] != 0 && self.board[i].get_piece_type() != PieceType::King && (self.adjacent_check_bb[self.ply as usize] & (1 << move_to)) == 0 {
-                        continue
-                    }
-
-                    let capture_piece = self.board[move_to];
-
-                    // 行き先に自分の駒がある場合には動かせない
-                    if capture_piece.get_color() == self.side_to_move {
-                        continue;
-                    }
-
-                    // 行き場のない歩の不成を禁止
-                    if !((self.board[i] == Piece::WPawn && move_to < 5)
-                        || (self.board[i] == Piece::BPawn && move_to >= 20))
-                    {
                         moves.push(Move::board_move(
                             self.board[i],
                             i,
@@ -642,192 +611,125 @@ impl Position {
                             false,
                             capture_piece,
                         ));
-                    }
 
-                    // 成る手の生成
-                    if self.board[i].is_raw()
-                        && self.board[i].is_promotable()
-                        && ((self.side_to_move == Color::White && (move_to < 5 || i < 5))
-                            || (self.side_to_move == Color::Black && (move_to >= 20 || i >= 20)))
-                    {
-                        moves.push(Move::board_move(
-                            self.board[i],
-                            i,
-                            move_dir,
-                            1,
-                            move_to,
-                            true,
-                            capture_piece,
-                        ));
+                        // 成る手の生成
+                        if self.board[i].is_raw()
+                            && self.board[i].is_promotable()
+                            && ((self.side_to_move == Color::White && (move_to < 5 || i < 5))
+                                || (self.side_to_move == Color::Black && (move_to >= 20 || i >= 20)))
+                        {
+                            moves.push(Move::board_move(
+                                self.board[i],
+                                i,
+                                move_dir,
+                                1,
+                                move_to,
+                                true,
+                                capture_piece,
+                            ));
+                        }
+
+                        move_tos ^= 1 << move_to;
                     }
                 }
+
+                let all_piece_bb = self.piece_bb[Color::White as usize] | self.piece_bb[Color::Black as usize];
 
                 // 飛び駒の移動
                 // 角、馬
                 if self.board[i].get_piece_type() == PieceType::Bishop
                     || self.board[i].get_piece_type() == PieceType::BishopX
                 {
-                    const MOVE_DIRS: [Direction; 4] =
-                        [Direction::NE, Direction::SE, Direction::SW, Direction::NW];
+                    let mut move_tos: Bitboard = bishop_attack(i, all_piece_bb);
+                    move_tos &= !self.piece_bb[self.side_to_move as usize];
 
-                    for move_dir in &MOVE_DIRS {
-                        // これ以上左に行けない
-                        if i % 5 == 0 && (*move_dir == Direction::SW || *move_dir == Direction::NW)
-                        {
+                    while move_tos != 0 {
+                        let move_to: usize = get_square(move_tos);
+
+                        if !allow_illegal && self.adjacent_check_bb[self.ply as usize] != 0 && self.board[i].get_piece_type() != PieceType::King && (self.adjacent_check_bb[self.ply as usize] & (1 << move_to)) == 0 {
+                            move_tos ^= 1 << move_to;
                             continue;
                         }
 
-                        // これ以上上に行けない
-                        if i / 5 == 0 && (*move_dir == Direction::NE || *move_dir == Direction::NW)
+                        let capture_piece = self.board[move_to];
+                        let (move_dir, amount) = get_relation(i, move_to);
+
+                        moves.push(Move::board_move(
+                            self.board[i],
+                            i,
+                            move_dir,
+                            amount,
+                            move_to,
+                            false,
+                            capture_piece,
+                        ));
+
+                        // 成る手の生成
+                        if self.board[i].is_raw()
+                            && self.board[i].is_promotable()
+                            && ((self.side_to_move == Color::White && (move_to < 5 || i < 5))
+                                || (self.side_to_move == Color::Black && (move_to >= 20 || i >= 20)))
                         {
-                            continue;
-                        }
-
-                        // これ以上右に行けない
-                        if i % 5 == 4 && (*move_dir == Direction::NE || *move_dir == Direction::SE)
-                        {
-                            continue;
-                        }
-
-                        // これ以上下に行けない
-                        if i / 5 == 4 && (*move_dir == Direction::SE || *move_dir == Direction::SW)
-                        {
-                            continue;
-                        }
-
-                        for amount in 1..5 {
-                            let move_to = ((i as i8)
-                                + MOVE_TOS[*move_dir as usize] * (amount as i8))
-                                as usize;
-
-                            let capture_piece = self.board[move_to];
-
-                            // 自分の駒があったらそれ以上進めない
-                            if capture_piece.get_color() == self.side_to_move {
-                                break;
-                            }
-
                             moves.push(Move::board_move(
                                 self.board[i],
                                 i,
-                                *move_dir,
+                                move_dir,
                                 amount,
                                 move_to,
-                                false,
+                                true,
                                 capture_piece,
                             ));
-                            // 成る手の生成
-                            if (self.board[i] == Piece::WBishop && (move_to < 5 || i < 5))
-                                || (self.board[i] == Piece::BBishop && (move_to >= 20 || i >= 20))
-                            {
-                                moves.push(Move::board_move(
-                                    self.board[i],
-                                    i,
-                                    *move_dir,
-                                    amount,
-                                    move_to,
-                                    true,
-                                    capture_piece,
-                                ));
-                            }
-
-                            // 端まで到達したらそれ以上進めない
-                            if move_to / 5 == 0
-                                || move_to / 5 == 4
-                                || move_to % 5 == 0
-                                || move_to % 5 == 4
-                            {
-                                break;
-                            }
-
-                            // 相手の駒があったらそれ以上進めない
-                            if capture_piece.get_color() == self.side_to_move.get_op_color() {
-                                break;
-                            }
                         }
+
+                        move_tos ^= 1 << move_to;
                     }
                 }
-
                 // 飛、龍
-                if self.board[i].get_piece_type() == PieceType::Rook
+                else if self.board[i].get_piece_type() == PieceType::Rook
                     || self.board[i].get_piece_type() == PieceType::RookX
                 {
-                    const MOVE_DIRS: [Direction; 4] =
-                        [Direction::N, Direction::E, Direction::S, Direction::W];
+                    let mut move_tos: Bitboard = rook_attack(i, all_piece_bb);
+                    move_tos &= !self.piece_bb[self.side_to_move as usize];
 
-                    for move_dir in &MOVE_DIRS {
-                        // これ以上左に行けない
-                        if i % 5 == 0 && *move_dir == Direction::W {
+                    while move_tos != 0 {
+                        let move_to: usize = get_square(move_tos);
+
+                        if !allow_illegal && self.adjacent_check_bb[self.ply as usize] != 0 && self.board[i].get_piece_type() != PieceType::King && (self.adjacent_check_bb[self.ply as usize] & (1 << move_to)) == 0 {
+                            move_tos ^= 1 << move_to;
                             continue;
                         }
 
-                        // これ以上上に行けない
-                        if i / 5 == 0 && *move_dir == Direction::N {
-                            continue;
-                        }
+                        let capture_piece = self.board[move_to];
+                        let (move_dir, amount) = get_relation(i, move_to);
 
-                        // これ以上右に行けない
-                        if i % 5 == 4 && *move_dir == Direction::E {
-                            continue;
-                        }
+                        moves.push(Move::board_move(
+                            self.board[i],
+                            i,
+                            move_dir,
+                            amount,
+                            move_to,
+                            false,
+                            capture_piece,
+                        ));
 
-                        // これ以上下に行けない
-                        if i / 5 == 4 && *move_dir == Direction::S {
-                            continue;
-                        }
-
-                        for amount in 1..5 {
-                            let move_to = ((i as i8)
-                                + MOVE_TOS[*move_dir as usize] * (amount as i8))
-                                as usize;
-
-                            let capture_piece = self.board[move_to as usize];
-
-                            // 自分の駒があったらそれ以上進めない
-                            if capture_piece.get_color() == self.side_to_move {
-                                break;
-                            }
-
+                        // 成る手の生成
+                        if self.board[i].is_raw()
+                            && self.board[i].is_promotable()
+                            && ((self.side_to_move == Color::White && (move_to < 5 || i < 5))
+                                || (self.side_to_move == Color::Black && (move_to >= 20 || i >= 20)))
+                        {
                             moves.push(Move::board_move(
                                 self.board[i],
                                 i,
-                                *move_dir,
+                                move_dir,
                                 amount,
                                 move_to,
-                                false,
+                                true,
                                 capture_piece,
                             ));
-                            // 成る手の生成
-                            if (self.board[i] == Piece::WRook && (move_to < 5 || i < 5))
-                                || (self.board[i] == Piece::BRook && (move_to >= 20 || i >= 20))
-                            {
-                                moves.push(Move::board_move(
-                                    self.board[i],
-                                    i,
-                                    *move_dir,
-                                    amount,
-                                    move_to,
-                                    true,
-                                    capture_piece,
-                                ));
-                            }
-
-                            // 端まで到達したらそれ以上進めない
-                            if (*move_dir == Direction::N && move_to / 5 == 0)
-                                || (*move_dir == Direction::E && move_to % 5 == 4)
-                                || (*move_dir == Direction::S && move_to / 5 == 4)
-                                || (*move_dir == Direction::W && move_to % 5 == 0)
-                            {
-                                break;
-                            }
-
-                            // 相手の駒があったらそれ以上進めない
-                            if self.board[move_to as usize].get_color()
-                                == self.side_to_move.get_op_color()
-                            {
-                                break;
-                            }
                         }
+
+                        move_tos ^= 1 << move_to;
                     }
                 }
             }
