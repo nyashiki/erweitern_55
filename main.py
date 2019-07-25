@@ -7,6 +7,8 @@ from operator import itemgetter
 import time
 
 import numpy as np
+import graphviz
+
 from nn import network
 
 class Node:
@@ -143,6 +145,36 @@ def run_mcts(position, nn):
             backpropagate(search_paths[b], values[b])
 
     return root
+
+def visualize(node, filename='search_tree'):
+    search_tree = graphviz.Digraph(format='png')
+    search_tree.attr('node', shape='box')
+
+    nodes = [node]
+    parents = {}
+    node_count = 0
+
+    while node_count < 20:
+        if len(nodes) == 0:
+            break
+
+        max_N_index = 0
+        for i in range(len(nodes)):
+            if nodes[i].N > nodes[max_N_index].N:
+                max_N_index = i
+
+        max_node = nodes.pop(max_N_index)
+        search_tree.node(str(node_count), 'N:{}\nP:{:.3f}\nV:{:.3f}\nQ:{:.3f}'.format(max_node.N, max_node.P, max_node.V, 0 if max_node.N == 0 else max_node.W / max_node.N))
+        if max_node in parents:
+            search_tree.edge(str(parents[max_node][0]), str(node_count), label=parents[max_node][1].sfen())
+
+        for (move, child) in max_node.children.items():
+            parents[child] = (node_count, move)
+            nodes.append(child)
+
+        node_count += 1
+
+    search_tree.render(filename)
 
 def main():
     position = minishogilib.Position()
