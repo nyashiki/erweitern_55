@@ -84,7 +84,7 @@ def evaluate(nodes, positions, nn):
             if is_check_repetition:
                 values[b] = 0
             elif is_repetition:
-                vakues[b] = 0 if position.get_side_to_move() == 0 else 1
+                values[b] = 0 if position.get_side_to_move() == 0 else 1
             else:
                 values[b] = 0
 
