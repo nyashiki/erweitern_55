@@ -580,7 +580,7 @@ impl Position {
                 // 飛び駒以外の駒の移動
                 {
                     let mut move_tos: Bitboard = adjacent_attack(i, self.board[i]); // 利きの取得
-                    move_tos &= !self.piece_bb[self.side_to_move as usize]; // 自分の駒がある場所には動けない
+                    move_tos = move_tos & !self.player_bb[self.side_to_move as usize]; // 自分の駒がある場所には動けない
 
                     while move_tos != 0 {
                         let move_to: usize = get_square(move_tos); // 行先を1か所取得する
@@ -633,15 +633,15 @@ impl Position {
                     }
                 }
 
-                let all_piece_bb = self.piece_bb[Color::White as usize] | self.piece_bb[Color::Black as usize];
+                let all_player_bb = self.piece_bb[Color::White as usize] | self.piece_bb[Color::Black as usize];
 
                 // 飛び駒の移動
                 // 角、馬
                 if self.board[i].get_piece_type() == PieceType::Bishop
                     || self.board[i].get_piece_type() == PieceType::BishopX
                 {
-                    let mut move_tos: Bitboard = bishop_attack(i, all_piece_bb);
-                    move_tos &= !self.piece_bb[self.side_to_move as usize];
+                    let mut move_tos: Bitboard = bishop_attack(i, all_player_bb);
+                    move_tos &= !self.player_bb[self.side_to_move as usize];
 
                     while move_tos != 0 {
                         let move_to: usize = get_square(move_tos);
@@ -688,8 +688,8 @@ impl Position {
                 else if self.board[i].get_piece_type() == PieceType::Rook
                     || self.board[i].get_piece_type() == PieceType::RookX
                 {
-                    let mut move_tos: Bitboard = rook_attack(i, all_piece_bb);
-                    move_tos &= !self.piece_bb[self.side_to_move as usize];
+                    let mut move_tos: Bitboard = rook_attack(i, all_player_bb);
+                    move_tos &= !self.player_bb[self.side_to_move as usize];
 
                     while move_tos != 0 {
                         let move_to: usize = get_square(move_tos);
