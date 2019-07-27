@@ -5,6 +5,7 @@ use types::*;
 use pyo3::prelude::*;
 use numpy::PyArray1;
 
+#[derive(Clone)]
 pub struct Node {
     pub n: u32,
     pub v: f32,
@@ -50,25 +51,18 @@ impl Node {
 
 #[pyclass]
 pub struct MCTS {
-    pub game_tree: [Node; 100000], // 0 represents nothing. Indexing should be start from 1.
+    pub game_tree: std::vec::Vec<Node>,
     pub node_count: usize
 }
 
+#[pymethods]
 impl MCTS {
-    pub fn select_puct_max_child(&self, node: usize) -> usize {
-        let mut puct_max: f32 = 0.0;
-        let mut puct_max_child: usize = 0;
-
-        for child in &self.game_tree[node].children {
-            let puct = self.game_tree[*child].get_puct(self.game_tree[node].n);
-
-            if puct > puct_max {
-                puct_max = puct;
-                puct_max_child = *child;
-            }
-        }
-
-        return puct_max_child;
+    #[new]
+    pub fn new(obj: &PyRawObject) {
+        obj.init(MCTS{
+            game_tree: vec![Node::new(0, NULL_MOVE, 0.0); 100000],
+            node_count: 1
+        });
     }
 
     pub fn select_leaf(&mut self, root_node: usize, position: &mut Position) -> usize {
@@ -83,8 +77,8 @@ impl MCTS {
         return node;
     }
 
-    pub fn evaluate(&mut self, node: usize, position: &Position, np_policy: PyArray1<f32>, mut value: f32) -> f32 {
-        let policy = np_policy.as_slice();
+    pub fn evaluate(&mut self, node: usize, position: &Position, np_policy: &PyArray1<f32>, mut value: f32) -> f32 {
+        let policy = np_policy.as_array();
         let mut legal_policy_sum: f32 = 0.0;
 
         let moves = position.generate_moves();
@@ -136,6 +130,24 @@ impl MCTS {
             node = self.game_tree[node].parent;
             flip = !flip;
         }
+    }
+}
+
+impl MCTS {
+    pub fn select_puct_max_child(&self, node: usize) -> usize {
+        let mut puct_max: f32 = 0.0;
+        let mut puct_max_child: usize = 0;
+
+        for child in &self.game_tree[node].children {
+            let puct = self.game_tree[*child].get_puct(self.game_tree[node].n);
+
+            if puct > puct_max {
+                puct_max = puct;
+                puct_max_child = *child;
+            }
+        }
+
+        return puct_max_child;
     }
 }
 

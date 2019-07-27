@@ -17,6 +17,7 @@ use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
 use position::*;
+use mcts::*;
 use r#move::*;
 
 #[pyfunction]
@@ -33,6 +34,7 @@ fn minishogilib(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(version))?;
 
     m.add_class::<Position>()?;
+    m.add_class::<MCTS>()?;
     m.add_class::<Move>()?;
 
     Ok(())
