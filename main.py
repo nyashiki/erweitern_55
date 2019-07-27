@@ -11,140 +11,33 @@ import graphviz
 
 from nn import network
 
-class Node:
-    def __init__(self, policy=0):
-        self.N = 0
-        self.V = 0
-        self.P = policy
-        self.W = 0
-        self.children = {}
-        self.is_terminal = False
-        self.virtual_loss = 0
-
-    def get_puct(self, parent_N):
-        c_base = 19652
-        c_init = 1.25
-
-        C = ((1 + self.N + c_base) / c_base) + c_init
-        Q = 0 if self.N == 0 else (1 - self.W / (self.N + self.virtual_loss))
-        U = C * self.P * math.sqrt(parent_N) / (1 + self.N + self.virtual_loss)
-
-        return (Q + U)
-
-    def expanded(self):
-        return len(self.children) > 0 and not self.is_terminal
-
-def select_child(node):
-    # _, move, child = max(((child.get_puct(node.N), move, child) for move, child in node.children.items()), key=itemgetter(0))
-
-    max_puct = -math.inf
-    max_puct_move = None
-    max_puct_child = None
-
-    for (move, child) in node.children.items():
-        puct = child.get_puct(node.N)
-        if puct > max_puct:
-            max_puct = puct
-            max_puct_move = move
-            max_puct_child = child
-
-    return max_puct_move, max_puct_child
-
-def evaluate(nodes, positions, nn):
-    nn_inputs = np.zeros((len(nodes), 68, 5, 5))
-
-    for b in range(len(nodes)):
-        nn_input = np.array(positions[b].to_nninput()).reshape(1, 68, 5, 5)
-        nn_inputs[b] = nn_input
-
-    # Use the neural network to predict current win rate and probabilities along the next moves
-    nn_inputs = np.transpose(nn_inputs, axes=[0, 2, 3, 1])
-    policies, values = nn.predict(nn_inputs)
-
-    values = values.flatten()
-    values = (values + 1) / 2
-
-    policies = policies.reshape(len(nodes), 5, 5, 69)
-    policies = np.transpose(policies, [0, 3, 1, 2])
-
-    for b in range(len(nodes)):
-        node = nodes[b]
-        position = positions[b]
-
-        moves = position.generate_moves()
-
-        policy = policies[b]
-        legal_policy_sum = np.sum([policy[network.move_to_policy_index(position.get_side_to_move(), m)] for m in moves])
-
-        is_repetition, is_check_repetition = position.is_repetition()
-        if is_repetition or len(moves) == 0:
-            node.is_terminal = True
-
-        if node.is_terminal:
-            if is_check_repetition:
-                values[b] = 0
-            elif is_repetition:
-                values[b] = 0 if position.get_side_to_move() == 0 else 1
-            else:
-                values[b] = 0
-
-        # sef value and policy
-        node.V = values[b]
-
-        for i, move in enumerate(moves):
-            node.children[move] = Node(policy[network.move_to_policy_index(position.get_side_to_move(), move)] / legal_policy_sum)
-
-    return values
-
-def backpropagate(search_path, value):
-    flip = False
-    while True:
-        node = search_path.pop()
-
-        node.W += value if not flip else (1 - value)
-        node.N += 1
-
-        if len(search_path) == 0:
-            break
-
-        node.virtual_loss -= 1
-        flip = not flip
-
 def run_mcts(position, nn):
-    root = Node()
-    evaluate([root], [position], nn)
+    mcts = minishogilib.MCTS()
 
-    SIMULATION_NUM = 3200
-    BATCH_SIZE = 16
+    root = mcts.set_root()
+    mcts.evaluate(root, position, np.random.rand(69 * 5 * 5).astype('f'), np.random.rand())
 
-    search_paths = [None for _ in range(BATCH_SIZE)]
+    SIMULATION_NUM = 800
+    BATCH_SIZE = 8
+
+    values = [None for _ in range(BATCH_SIZE)]
     leaf_nodes = [None for _ in range(BATCH_SIZE)]
     leaf_positions = [None for _ in range(BATCH_SIZE)]
 
     for _ in range(SIMULATION_NUM // BATCH_SIZE):
         for b in range(BATCH_SIZE):
             leaf_positions[b] = position.copy(False)
+            leaf_nodes[b] = mcts.select_leaf(root, leaf_positions[b])
 
-            node = root
-            search_paths[b] = collections.deque([node])
-
-            while node.expanded():
-                move, node = select_child(node)
-                node.virtual_loss += 1
-
-                leaf_positions[b].do_move(move)
-
-                # record path
-                search_paths[b].append(node)
-
-            leaf_nodes[b] = node
-
-        values = evaluate(leaf_nodes, leaf_positions, nn)
+        # neural network here
 
         for b in range(BATCH_SIZE):
-            backpropagate(search_paths[b], values[b])
+            values[b] = mcts.evaluate(leaf_nodes[b], leaf_positions[b], np.random.rand(69 * 5 * 5).astype('f'), np.random.rand())
 
-    return root
+        for b in range(BATCH_SIZE):
+            mcts.backpropagate(leaf_nodes[b], values[b])
+
+    return mcts.best_move(root)
 
 def visualize(node, filename='search_tree'):
     search_tree = graphviz.Digraph(format='png')
@@ -181,30 +74,28 @@ def main():
     position.set_start_position()
 
     neural_network = network.Network()
-    neural_network.load('./nn/weights/epoch_99.h5')
+    neural_network.load('./nn/weights/epoch_052.h5')
+
+    # 1回predictを行い，1回目の実行が遅くならないようにする
+    random_input = np.random.rand(1, 5, 5, 134)
+    neural_network.predict(random_input)
 
     while True:
         start_time = time.time()
-        root = run_mcts(position, neural_network)
+        best_move = run_mcts(position, neural_network)
         elapsed = time.time() - start_time
 
-        if len(root.children) == 0:
+        if best_move.is_null_move():
             break
 
-        best_move = None
-        best_child = None
-
-        for (move, child) in root.children.items():
-            if best_child == None or child.N > best_child.N:
-                best_child = child
-                best_move = move
-
         position.do_move(best_move)
+
         print('--------------------')
         position.print()
-        print('Q:', 1 - (best_child.W / best_child.N))
         print('time:', elapsed)
         print('--------------------')
+
+        # visualize(root)
 
     # start_time = time.time()
     # root = run_mcts(position, neural_network)
