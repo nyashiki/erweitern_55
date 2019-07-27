@@ -71,10 +71,11 @@ impl MCTS {
         return puct_max_child;
     }
 
-    pub fn select_leaf(&self, root_node: usize, position: &mut Position) -> usize {
+    pub fn select_leaf(&mut self, root_node: usize, position: &mut Position) -> usize {
         let mut node = root_node;
 
         while self.game_tree[node].expanded() {
+            self.game_tree[node].virtual_loss += 1.0;
             node = self.select_puct_max_child(node);
             position.do_move(&self.game_tree[node].m);
         }
@@ -82,7 +83,7 @@ impl MCTS {
         return node;
     }
 
-    pub fn evaluate(&mut self, node: usize, position: &Position, np_policy: PyArray1<f32>, mut value: f32) {
+    pub fn evaluate(&mut self, node: usize, position: &Position, np_policy: PyArray1<f32>, mut value: f32) -> f32 {
         let policy = np_policy.as_slice();
         let mut legal_policy_sum: f32 = 0.0;
 
@@ -99,6 +100,7 @@ impl MCTS {
             self.game_tree[node].is_terminal = true;
         }
 
+        // win or lose is determined by the game rule
         if self.game_tree[node].is_terminal {
             if is_check_repetition {
                 value = 0.0;
@@ -109,13 +111,30 @@ impl MCTS {
             }
         }
 
-        self.game_tree[node].v = value;
+        // set policy and vaue
         for m in &moves {
             let index = move_to_policy_index(m, position.side_to_move);
 
             self.game_tree[self.node_count] = Node::new(node, *m, policy[index] / legal_policy_sum);
             self.game_tree[node].children.push(self.node_count);
             self.node_count += 1;
+        }
+        self.game_tree[node].v = value;
+
+        return value;
+    }
+
+    pub fn backpropagate(&mut self, leaf_node: usize, value: f32) {
+        let mut node = leaf_node;
+        let mut flip = false;
+
+        while node != 0 {
+            self.game_tree[node].w += if !flip { value } else { 1.0 - value };
+            self.game_tree[node].n += 1;
+            self.game_tree[node].virtual_loss -= 1.0;
+
+            node = self.game_tree[node].parent;
+            flip = !flip;
         }
     }
 }
