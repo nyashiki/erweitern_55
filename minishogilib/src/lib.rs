@@ -7,6 +7,7 @@ extern crate rand;
 
 pub mod bitboard;
 pub mod r#move;
+pub mod mcts;
 pub mod neuralnetwork;
 pub mod position;
 pub mod types;
