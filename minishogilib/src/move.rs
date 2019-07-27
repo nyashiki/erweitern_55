@@ -44,6 +44,10 @@ impl pyo3::class::basic::PyObjectProtocol for Move {
 
 #[pymethods]
 impl Move {
+    pub fn is_null_move(&self) -> bool {
+        self.piece == Piece::NoPiece
+    }
+
     pub fn get_from(&self) -> usize {
         self.from
     }
