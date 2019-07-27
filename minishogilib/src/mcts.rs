@@ -70,6 +70,20 @@ impl MCTS {
         return 1;
     }
 
+    pub fn best_move(&self, node: usize) -> Move {
+        let mut n_max = 0;
+        let mut m = NULL_MOVE;
+
+        for child in &self.game_tree[node].children {
+            if self.game_tree[*child].n > n_max {
+                n_max = self.game_tree[*child].n;
+                m = self.game_tree[*child].m;
+            }
+        }
+
+        return m;
+    }
+
     pub fn print(&self, node: usize) {
         println!("n: {}\nv: {}, p: {}", self.game_tree[node].n, self.game_tree[node].v, self.game_tree[node].p);
         println!("children:");
