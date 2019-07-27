@@ -1,7 +1,9 @@
-use pyo3::prelude::*;
-
 use r#move::*;
+use position::*;
 use types::*;
+
+use pyo3::prelude::*;
+use numpy::PyArray1;
 
 pub struct Node {
     pub n: u32,
@@ -16,13 +18,13 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn new(parent: usize, policy: f32) -> Node {
+    pub fn new(parent: usize, m: Move, policy: f32) -> Node {
         Node {
             n: 0,
             v: 0.0,
             p: policy,
             w: 0.0,
-            m: NULL_MOVE,
+            m: m,
             parent: parent,
             children: Vec::new(),
             is_terminal: false,
@@ -48,7 +50,8 @@ impl Node {
 
 #[pyclass]
 pub struct MCTS {
-    pub game_tree: [Node; 100000]  // 0 represents nothing. Indexing should be start from 1.
+    pub game_tree: [Node; 100000], // 0 represents nothing. Indexing should be start from 1.
+    pub node_count: usize
 }
 
 impl MCTS {
@@ -67,4 +70,78 @@ impl MCTS {
 
         return puct_max_child;
     }
+
+    pub fn select_leaf(&self, root_node: usize, position: &mut Position) -> usize {
+        let mut node = root_node;
+
+        while self.game_tree[node].expanded() {
+            node = self.select_puct_max_child(node);
+            position.do_move(&self.game_tree[node].m);
+        }
+
+        return node;
+    }
+
+    pub fn evaluate(&mut self, node: usize, position: &Position, np_policy: PyArray1<f32>, mut value: f32) {
+        let policy = np_policy.as_slice();
+        let mut legal_policy_sum: f32 = 0.0;
+
+        let moves = position.generate_moves();
+
+        for m in &moves {
+            let index = move_to_policy_index(m, position.side_to_move);
+            legal_policy_sum += policy[index];
+        }
+
+        let (is_repetition, is_check_repetition) = position.is_repetition();
+
+        if is_repetition || moves.len() == 0 {
+            self.game_tree[node].is_terminal = true;
+        }
+
+        if self.game_tree[node].is_terminal {
+            if is_check_repetition {
+                value = 0.0;
+            } else if is_repetition {
+                value = if position.side_to_move == Color::White { 0.0 } else { 1.0 }
+            } else {
+                value = 0.0
+            }
+        }
+
+        self.game_tree[node].v = value;
+        for m in &moves {
+            let index = move_to_policy_index(m, position.side_to_move);
+
+            self.game_tree[self.node_count] = Node::new(node, *m, policy[index] / legal_policy_sum);
+            self.game_tree[node].children.push(self.node_count);
+            self.node_count += 1;
+        }
+    }
+}
+
+fn move_to_policy_index(m: &Move, c: Color) -> usize {
+    let index = if m.amount == 0 {
+                        if c == Color::White {
+                            (64 + m.get_hand_index(), m.to / 5, m.to % 5)
+                        } else {
+                            (64 + m.get_hand_index(), 4 - m.to / 5, 4 - m.to % 5)
+                        }
+                    } else {
+                        if m.get_promotion() {
+                            if c == Color::White {
+                                (32 + 4 * m.direction as usize + m.amount - 1, m.from / 5, m.from % 5)
+                            } else {
+                                (32 + 4 * m.direction as usize + m.amount - 1, 4 - m.from / 5, 4 - m.from % 5)
+                            }
+                        } else {
+                            if c == Color::White {
+                                (4 * m.direction as usize + m.amount - 1, m.from / 5, m.from % 5)
+                            } else {
+                                (4 * m.direction as usize + m.amount - 1, 4 - m.from / 5, 4 - m.from % 5)
+                            }
+                        }
+                    };
+
+    return index.0 * 25 + index.1 * 5 + index.2;
 }
