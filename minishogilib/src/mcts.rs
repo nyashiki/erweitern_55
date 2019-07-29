@@ -38,7 +38,7 @@ impl Node {
         const C_INIT: f32 = 1.25;
 
         let c: f32 = ((1.0 + (self.n as f32) + C_BASE) / C_BASE).log2() + C_INIT;
-        let q: f32 = if self.n as f32 + self.virtual_loss == 0.0 { 0.0 } else { (1.0 - (self.w + self.virtual_loss) / ((self.n as f32 + self.virtual_loss))) };
+        let q: f32 = if self.n as f32 + self.virtual_loss == 0.0 { 0.0 } else { 1.0 - (self.w + self.virtual_loss) / ((self.n as f32 + self.virtual_loss)) };
         let u: f32 = c * self.p * parent_n.sqrt() / (1.0 + (self.n as f32) + self.virtual_loss);
 
         return q + u;
@@ -105,7 +105,7 @@ impl MCTS {
     }
 
     pub fn evaluate(&mut self, node: usize, position: &Position, np_policy: &PyArray1<f32>, mut value: f32) -> f32 {
-        if self.game_tree[node].expanded() {
+        if self.game_tree[node].n > 0 {
             return self.game_tree[node].v;
         }
 
@@ -150,10 +150,6 @@ impl MCTS {
     }
 
     pub fn backpropagate(&mut self, leaf_node: usize, value: f32) {
-        if self.game_tree[leaf_node].n > 0 {
-            return;
-        }
-
         let mut node = leaf_node;
         let mut flip = false;
 
@@ -163,6 +159,65 @@ impl MCTS {
             self.game_tree[node].virtual_loss -= 1.0;
             node = self.game_tree[node].parent;
             flip = !flip;
+        }
+    }
+
+    pub fn visualize(&self, node: usize, node_num: usize) -> String {
+        let mut dot = String::new();
+
+        dot.push_str("digraph game_tree {\n");
+
+        let mut nodes: std::vec::Vec<usize> = Vec::new();
+
+        let mut counter: usize = 0;
+        nodes.push(node);
+
+        while counter < node_num && nodes.len() > 0 {
+            let mut n_max: i32 = -1;
+            let mut n_max_node = 0;
+            let mut index = 0;
+
+            for (i, n) in nodes.iter().enumerate() {
+                if self.game_tree[*n].n as i32 > n_max  {
+                    n_max = self.game_tree[*n].n as i32;
+                    n_max_node = *n;
+                    index = i;
+                }
+            }
+
+            nodes.swap_remove(index);
+
+            dot.push_str(&format!("  {} [label=\"N:{}\\nP:{:.3}\\nV:{:.3}\\nQ:{:.3}\"];\n", n_max_node,
+                                                                                 self.game_tree[n_max_node].n,
+                                                                                 self.game_tree[n_max_node].p,
+                                                                                 self.game_tree[n_max_node].v,
+                                                                                 if self.game_tree[n_max_node].n == 0 { 0.0 } else { self.game_tree[n_max_node].w / self.game_tree[n_max_node].n as f32 }).to_string());
+            if self.game_tree[n_max_node].parent != 0 {
+                dot.push_str(&format!("  {} -> {} [label=\"{}\"];\n", self.game_tree[n_max_node].parent, n_max_node, self.game_tree[n_max_node].m.sfen()).to_string());
+            }
+
+            counter += 1;
+            for child in &self.game_tree[n_max_node].children {
+                assert!(*child != 0);
+                nodes.push(*child);
+            }
+        }
+
+        dot.push_str("}");
+
+        return dot;
+    }
+
+    pub fn debug(&self, node: usize) {
+        for child in &self.game_tree[node].children {
+            println!("{}, p:{:.3}, v:{:.3}, w:{:.3}, n:{:.3}, puct:{:.3}, vloss: {:.3}, parentn: {}", self.game_tree[*child].m.sfen(),
+                                                            self.game_tree[*child].p,
+                                                            self.game_tree[*child].v,
+                                                            self.game_tree[*child].w,
+                                                            self.game_tree[*child].n,
+                                                            self.game_tree[*child].get_puct(self.game_tree[node].n as f32),
+                                                            self.game_tree[*child].virtual_loss,
+                                                            self.game_tree[node].n);
         }
     }
 }
