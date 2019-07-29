@@ -3,6 +3,9 @@ from tensorflow import keras
 from tensorflow.keras.callbacks import LearningRateScheduler
 from tensorflow.keras.callbacks import ModelCheckpoint
 
+
+INPUT_CHANNEL = 134
+
 def move_to_policy_index(color, move):
     """
     Convert a move (type: minishogilib.Move) into policy index.
@@ -31,7 +34,7 @@ class Network:
         keras.backend.set_session(sess)
 
         # Input layer
-        input_image = keras.layers.Input(shape=[5, 5, 134], dtype='float32')
+        input_image = keras.layers.Input(shape=[5, 5, INPUT_CHANNEL], dtype='float32')
 
         # Convolution layer
         x = keras.layers.Conv2D(256, [3, 3], padding='same', activation=tf.nn.relu)(input_image)

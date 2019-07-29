@@ -15,8 +15,8 @@ def load_teacher_onehot(filepath):
         - timestamp, # ply, comment, sfen kif
     """
 
-    MAX_ENTRY = 10000 # 1000000
-    inputs = np.zeros((MAX_ENTRY, 68, 5, 5), dtype='float32')
+    MAX_ENTRY = 3000000
+    inputs = np.zeros((MAX_ENTRY, network.INPUT_CHANNEL, 5, 5), dtype='float32')
     policy = np.zeros((MAX_ENTRY, 69, 5, 5), dtype='float32')
     value = np.zeros((MAX_ENTRY, 1), dtype='float32')
 
@@ -46,12 +46,12 @@ def load_teacher_onehot(filepath):
 
                 move = position.sfen_to_move(sfen_move)
 
-                index = move_to_policy_index(position.get_side_to_move(), move)
+                index = network.move_to_policy_index(position.get_side_to_move(), move)
 
                 onehot_policy = np.zeros((69, 5, 5))
                 onehot_policy[index] = 1
 
-                nn_input = np.array(position.to_nninput()).reshape(68, 5, 5)
+                nn_input = np.array(position.to_nninput()).reshape(network.INPUT_CHANNEL, 5, 5)
                 inputs[position_count] = nn_input
                 policy[position_count] = onehot_policy
                 value[position_count] = 1 if (ply % 2) == win_color else -1
@@ -90,7 +90,7 @@ def main():
     batch_size = 1024
     batch_num_per_epoch = len(inputs) // batch_size
 
-    for epoch in range(100):
+    for epoch in range(1000):
         random_indices = list(range(len(inputs)))
         random.shuffle(random_indices)
 
@@ -106,7 +106,7 @@ def main():
             print(loss)
 
         # save the model
-        filename = './weights/epoch_{:02}.h5'.format(epoch)
+        filename = './weights/epoch_{:03}.h5'.format(epoch)
         neural_network.model.save(filename, include_optimizer=True)
 
 if __name__ == '__main__':
