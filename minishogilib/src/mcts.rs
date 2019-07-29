@@ -66,6 +66,10 @@ impl MCTS {
     }
 
     pub fn set_root(&mut self) -> usize {
+        for node in &mut self.game_tree {
+            *node = Node::new(0, NULL_MOVE, 0.0);
+        }
+
         self.node_count = 2;
         return 1;
     }
