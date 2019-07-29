@@ -60,7 +60,7 @@ impl MCTS {
     #[new]
     pub fn new(obj: &PyRawObject) {
         obj.init(MCTS{
-            game_tree: vec![Node::new(0, NULL_MOVE, 0.0); 100000],
+            game_tree: vec![Node::new(0, NULL_MOVE, 0.0); 1000000],
             node_count: 0
         });
     }
@@ -71,27 +71,20 @@ impl MCTS {
     }
 
     pub fn best_move(&self, node: usize) -> Move {
-        let mut n_max = 0;
-        let mut m = NULL_MOVE;
+        let best_child: usize = self.select_n_max_child(node);
 
-        for child in &self.game_tree[node].children {
-            if self.game_tree[*child].n > n_max {
-                n_max = self.game_tree[*child].n;
-                m = self.game_tree[*child].m;
-            }
-        }
-
-        return m;
+        return self.game_tree[best_child].m;
     }
 
-    pub fn print(&self, node: usize) {
-        println!("n: {}\nv: {}, p: {}", self.game_tree[node].n, self.game_tree[node].v, self.game_tree[node].p);
-        println!("children:");
-        print!("  ");
-        for child in &self.game_tree[node].children {
-            print!("{}, ", self.game_tree[*child].m.sfen());
-        }
-        println!("");
+    pub fn print(&self, root: usize) {
+        println!("playout: {}", self.game_tree[root].n);
+
+        let best_child: usize = self.select_n_max_child(root);
+
+        println!("N(s, a): {}", self.game_tree[best_child].n);
+        println!("P(s, a): {}", self.game_tree[best_child].p);
+        println!("V(s, a): {}", self.game_tree[best_child].v);
+        println!("Q(s, a): {}", if self.game_tree[best_child].n == 0 { 0.0 } else { self.game_tree[best_child].w / self.game_tree[best_child].n as f32 });
     }
 
     pub fn select_leaf(&mut self, root_node: usize, position: &mut Position) -> usize {
@@ -112,6 +105,10 @@ impl MCTS {
     }
 
     pub fn evaluate(&mut self, node: usize, position: &Position, np_policy: &PyArray1<f32>, mut value: f32) -> f32 {
+        if self.game_tree[node].expanded() {
+            return self.game_tree[node].v;
+        }
+
         let policy = np_policy.as_array();
         let mut legal_policy_sum: f32 = 0.0;
 
@@ -153,6 +150,10 @@ impl MCTS {
     }
 
     pub fn backpropagate(&mut self, leaf_node: usize, value: f32) {
+        if self.game_tree[leaf_node].n > 0 {
+            return;
+        }
+
         let mut node = leaf_node;
         let mut flip = false;
 
@@ -181,6 +182,20 @@ impl MCTS {
         }
 
         return puct_max_child;
+    }
+
+    pub fn select_n_max_child(&self, node: usize) -> usize {
+        let mut n_max: u32 = 0;
+        let mut n_max_child: usize = 0;
+
+        for child in &self.game_tree[node].children {
+            if self.game_tree[*child].n > n_max {
+                n_max = self.game_tree[*child].n;
+                n_max_child = *child;
+            }
+        }
+
+        return n_max_child;
     }
 }
 
