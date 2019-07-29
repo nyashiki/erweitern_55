@@ -23,18 +23,25 @@ def move_to_policy_index(color, move):
 
 class Network:
     def __init__(self):
+        # Keras config
+        config = tf.ConfigProto()
+        # config.gpu_options.allow_growth = True
+        config.gpu_options.per_process_gpu_memory_fraction = 0.9
+        sess = tf.Session(config=config)
+        keras.backend.set_session(sess)
+
         # Input layer
-        input_image = keras.layers.Input(shape=[5, 5, 68], dtype='float32')
+        input_image = keras.layers.Input(shape=[5, 5, 134], dtype='float32')
 
         # Convolution layer
-        x = keras.layers.Conv2D(128, [3, 3], padding='same', activation=tf.nn.relu)(input_image)
+        x = keras.layers.Conv2D(256, [3, 3], padding='same', activation=tf.nn.relu)(input_image)
 
         # Residual blocks
-        for i in range(5):
+        for i in range(10):
             x = self.residual_block(x)
 
         # Policy head
-        policy = keras.layers.Conv2D(128, [3, 3], padding='same', activation=tf.nn.relu)(x)
+        policy = keras.layers.Conv2D(256, [3, 3], padding='same', activation=tf.nn.relu)(x)
         policy = keras.layers.Conv2D(69, [3, 3], padding='same', activation=tf.nn.relu)(policy)
         policy = keras.layers.Flatten()(policy)
         policy = keras.layers.Softmax(name='policy')(policy)
