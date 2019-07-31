@@ -2,6 +2,7 @@
 //!
 //! ここでは、NeuralNetworkのForwardやBackpropagationなどを実装するのではなく、
 //! tensorflow等の使用を容易にすることを目指す
+use r#move::*;
 use position::Position;
 use types::*;
 
@@ -87,6 +88,37 @@ impl Position {
         }
 
         return PyArray1::from_slice(py, &input_layer).to_owned();
+    }
+}
+
+#[pymethods]
+impl Move {
+    pub fn to_policy_index(&self) -> usize {
+        let c: Color = self.piece.get_color();
+
+        let index = if self.amount == 0 {
+            if c == Color::White {
+                (64 + self.get_hand_index(), self.to)
+            } else {
+                (64 + self.get_hand_index(), 24 - self.to)
+            }
+        } else {
+            if self.get_promotion() {
+                if c == Color::White {
+                    (32 + 4 * self.direction as usize + self.amount - 1, self.from)
+                } else {
+                    (32 + 4 * ((self.direction as usize + 4) % 8) + self.amount - 1, 24 - self.from)
+                }
+            } else {
+                if c == Color::White {
+                    (4 * self.direction as usize + self.amount - 1, self.from)
+                } else {
+                    (4 * ((self.direction as usize + 4) % 8) + self.amount - 1, 24 - self.from)
+                }
+            }
+        };
+
+        return index.0 * 25 + index.1;
     }
 }
 

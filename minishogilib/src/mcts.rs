@@ -119,7 +119,7 @@ impl MCTS {
         let moves = position.generate_moves();
 
         for m in &moves {
-            let index = move_to_policy_index(m, position.side_to_move);
+            let index = m.to_policy_index();
             legal_policy_sum += policy[index];
         }
 
@@ -142,7 +142,7 @@ impl MCTS {
 
         // set policy and vaue
         for m in &moves {
-            let index = move_to_policy_index(m, position.side_to_move);
+            let index = m.to_policy_index();
 
             self.game_tree[self.node_count] = Node::new(node, *m, policy[index] / legal_policy_sum);
             self.game_tree[node].children.push(self.node_count);
@@ -256,30 +256,4 @@ impl MCTS {
 
         return n_max_child;
     }
-}
-
-fn move_to_policy_index(m: &Move, c: Color) -> usize {
-    let index = if m.amount == 0 {
-                        if c == Color::White {
-                            (64 + m.get_hand_index(), m.to / 5, m.to % 5)
-                        } else {
-                            (64 + m.get_hand_index(), 4 - m.to / 5, 4 - m.to % 5)
-                        }
-                    } else {
-                        if m.get_promotion() {
-                            if c == Color::White {
-                                (32 + 4 * m.direction as usize + m.amount - 1, m.from / 5, m.from % 5)
-                            } else {
-                                (32 + 4 * m.direction as usize + m.amount - 1, 4 - m.from / 5, 4 - m.from % 5)
-                            }
-                        } else {
-                            if c == Color::White {
-                                (4 * m.direction as usize + m.amount - 1, m.from / 5, m.from % 5)
-                            } else {
-                                (4 * m.direction as usize + m.amount - 1, 4 - m.from / 5, 4 - m.from % 5)
-                            }
-                        }
-                    };
-
-    return index.0 * 25 + index.1 * 5 + index.2;
 }
