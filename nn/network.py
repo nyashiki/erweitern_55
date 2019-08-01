@@ -55,7 +55,7 @@ class Network:
         value = keras.layers.Dense(256, activation=tf.nn.relu)(value)
         value = keras.layers.Dense(1, activation=tf.nn.tanh, name='value')(value)
 
-        # 入力層、出力層を定義
+        # define the model
         self.model = keras.Model(inputs=input_image, outputs=[policy, value])
 
         # optimizerを定義

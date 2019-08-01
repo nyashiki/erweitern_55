@@ -188,6 +188,7 @@ impl MCTS {
         }
     }
 
+    /// dot言語で探索木を書き出す
     pub fn visualize(&self, node: usize, node_num: usize) -> String {
         let mut dot = String::new();
 
@@ -252,6 +253,7 @@ impl MCTS {
         return dot;
     }
 
+    /// nodeの子に関する情報を出力する
     pub fn debug(&self, node: usize) {
         for child in &self.game_tree[node].children {
             println!(
