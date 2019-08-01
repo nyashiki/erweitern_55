@@ -674,5 +674,16 @@ pub const HAND_PIECE_TYPE_ALL: [PieceType; 5] = [
     PieceType::Rook,
     PieceType::Pawn,
 ];
+pub const DIRECTION_ALL: [Direction; 8] = [
+    Direction::N,
+    Direction::NE,
+    Direction::E,
+    Direction::SE,
+    Direction::S,
+    Direction::SW,
+    Direction::W,
+    Direction::NW,
+];
+
 pub const SQUARE_NB: usize = 5 * 5;
 pub const MAX_PLY: usize = 512;
