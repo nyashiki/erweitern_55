@@ -2,6 +2,10 @@
 //!
 //! ここでは、NeuralNetworkのForwardやBackpropagationなどを実装するのではなく、
 //! tensorflow等の使用を容易にすることを目指す
+
+#[cfg(test)]
+use rand::seq::SliceRandom;
+
 use position::Position;
 use r#move::*;
 use types::*;
@@ -139,6 +143,90 @@ impl Move {
         };
 
         return index.0 * 25 + index.1;
+    }
+}
+
+#[cfg(test)]
+fn index_to_move(position: &Position, index: usize) -> Move {
+    let mut moves: std::vec::Vec<Move> = Vec::new();
+
+    if index >= 64 * 25 {
+        for i in 0..5 {
+            for j in 0..SQUARE_NB {
+                let temp = if position.side_to_move == Color::White {
+                    (64 + i) * 25 + j
+                } else {
+                    (64 + i) * 25 + (SQUARE_NB - j - 1)
+                };
+
+                if temp == index {
+                    moves.push(Move::hand_move(HAND_PIECE_TYPE_ALL[i].get_piece(position.side_to_move), j));
+                }
+            }
+        }
+    } else {
+        for direction in 0..8 {
+            for amount in 0..4 {
+                for i in 0..SQUARE_NB {
+                    for promotion in 0..2 {
+                        let temp = if position.side_to_move == Color::White {
+                            (32 * promotion + ((direction * 4) + amount)) * 25 + i
+                        } else {
+                            (32 * promotion + ((((direction + 4) % 8) * 4) + amount)) * 25 + (SQUARE_NB - i - 1)
+                        };
+
+                        if temp == index {
+                            moves.push(Move::board_move(Piece::NoPiece, i, DIRECTION_ALL[direction], amount + 1, 0, promotion != 0, Piece::NoPiece));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    assert_eq!(moves.len(), 1);
+    return moves[0];
+}
+
+#[test]
+fn to_policy_index_test() {
+    ::bitboard::init();
+
+    const LOOP_NUM: i32 = 10000;
+
+    let mut position = Position::empty_board();
+
+    let mut rng = rand::thread_rng();
+
+    for _ in 0..LOOP_NUM {
+        position.set_start_position();
+
+        while position.ply < MAX_PLY as u16 {
+            let moves = position.generate_moves();
+
+            for m in &moves {
+                let index = m.to_policy_index();
+                let move_from_index = index_to_move(&position, index);
+
+                assert_eq!(m.amount, move_from_index.amount);
+                assert_eq!(m.direction, move_from_index.direction);
+
+                if m.amount == 0 {
+                    assert_eq!(m.to, move_from_index.to);
+                } else {
+                    assert_eq!(m.from, move_from_index.from);
+                    assert_eq!(m.promotion, move_from_index.promotion);
+                }
+            }
+
+            // ランダムに局面を進める
+            if moves.len() == 0 {
+                break;
+            }
+
+            let random_move = moves.choose(&mut rng).unwrap();
+            position.do_move(random_move);
+        }
     }
 }
 
