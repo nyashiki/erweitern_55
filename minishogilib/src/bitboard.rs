@@ -505,12 +505,12 @@ pub fn adjacent_attack(square: usize, piece: Piece) -> Bitboard {
 
 pub fn bishop_attack(square: usize, player_bb: Bitboard) -> Bitboard {
     BISHOP_ATTACK1[square][player_bb.pext(BISHOP_MASK1[square]) as usize]
-        | BISHOP_ATTACK2[square][player_bb.pext(BISHOP_MASK2[square]) as usize]
+    | BISHOP_ATTACK2[square][player_bb.pext(BISHOP_MASK2[square]) as usize]
 }
 
 pub fn rook_attack(square: usize, player_bb: Bitboard) -> Bitboard {
     ROOK_ATTACK1[square][player_bb.pext(ROOK_MASK1[square]) as usize]
-        | ROOK_ATTACK2[square][player_bb.pext(ROOK_MASK2[square]) as usize]
+    | ROOK_ATTACK2[square][player_bb.pext(ROOK_MASK2[square]) as usize]
 }
 
 /// 一番末尾の1の場所を返す
