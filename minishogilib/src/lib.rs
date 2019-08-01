@@ -6,6 +6,7 @@ extern crate pyo3;
 extern crate rand;
 
 pub mod bitboard;
+pub mod checkmate;
 pub mod mcts;
 pub mod r#move;
 pub mod neuralnetwork;
@@ -15,10 +16,6 @@ pub mod zobrist;
 
 use pyo3::prelude::*;
 
-use mcts::*;
-use position::*;
-use r#move::*;
-
 #[pymodule]
 fn minishogilib(_py: Python, m: &PyModule) -> PyResult<()> {
     r#move::init();
@@ -27,9 +24,9 @@ fn minishogilib(_py: Python, m: &PyModule) -> PyResult<()> {
 
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
 
-    m.add_class::<Position>()?;
-    m.add_class::<MCTS>()?;
-    m.add_class::<Move>()?;
+    m.add_class::<position::Position>()?;
+    m.add_class::<mcts::MCTS>()?;
+    m.add_class::<r#move::Move>()?;
 
     Ok(())
 }
