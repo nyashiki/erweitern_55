@@ -11,12 +11,9 @@ import graphviz
 
 from nn import network
 
-def run_mcts(position, nn):
-    mcts = minishogilib.MCTS()
-
+def run_mcts(position, nn, mcts):
     root = mcts.set_root()
-    nninput = position.to_nninput().reshape((1, 134, 5, 5))
-    nninput = np.transpose(nninput, axes=[0, 2, 3, 1])
+    nninput = position.to_nninput().reshape((1, network.INPUT_CHANNEL, 5, 5))
     policy, value = nn.predict(nninput)
     value = (value + 1) / 2
 
@@ -35,10 +32,9 @@ def run_mcts(position, nn):
             leaf_nodes[b] = mcts.select_leaf(root, leaf_positions[b])
 
         # use neural network to evaluate the position
-        nninputs = np.zeros((BATCH_SIZE, 134, 5, 5))
+        nninputs = np.zeros((BATCH_SIZE, network.INPUT_CHANNEL, 5, 5))
         for b in range(BATCH_SIZE):
-            nninputs[b] = leaf_positions[b].to_nninput().reshape((1, 134, 5, 5))
-        nninputs = np.transpose(nninputs, axes=[0, 2, 3, 1])
+            nninputs[b] = leaf_positions[b].to_nninput().reshape((1, network.INPUT_CHANNEL, 5, 5))
         policy, value = nn.predict(nninputs)
         value = (value + 1) / 2
 
@@ -48,94 +44,82 @@ def run_mcts(position, nn):
         for b in range(BATCH_SIZE):
             mcts.backpropagate(leaf_nodes[b], values[b])
 
-    mcts.print(root)
+    return root
 
-    return mcts.best_move(root)
+def policy_max_move(position, nn):
+    moves = position.generate_moves()
 
-def visualize(node, filename='search_tree'):
-    search_tree = graphviz.Digraph(format='png')
-    search_tree.attr('node', shape='box')
+    nninput = np.reshape(position.to_nninput(), (1, network.INPUT_CHANNEL, 5, 5))
+    policy, value = nn.predict(nninput)
 
-    nodes = [node]
-    parents = {}
-    node_count = 0
+    policy_max = -1
+    policy_max_move = None
+    for move in moves:
+        p = policy[move.to_policy_index()]
+        if  p > policy_max:
+            policy_max = p
+            policy_max_move = move
 
-    while node_count < 20:
-        if len(nodes) == 0:
-            break
+    return policy_max_move
 
-        max_N_index = 0
-        for i in range(len(nodes)):
-            if nodes[i].N > nodes[max_N_index].N:
-                max_N_index = i
+def value_max_move(position, nn):
+    moves = position.generate_moves()
 
-        max_node = nodes.pop(max_N_index)
-        search_tree.node(str(node_count), 'N:{}\nP:{:.3f}\nV:{:.3f}\nQ:{:.3f}'.format(max_node.N, max_node.P, max_node.V, 0 if max_node.N == 0 else max_node.W / max_node.N))
-        if max_node in parents:
-            search_tree.edge(str(parents[max_node][0]), str(node_count), label=parents[max_node][1].sfen())
+    nninputs = np.zeros((len(moves), network.INPUT_CHANNEL, 5, 5))
+    for (i, move) in enumerate(moves):
+        pos = position.copy(False)
+        pos.do_move(move)
+        nninputs[i] = np.reshape(pos.to_nninput(), (network.INPUT_CHANNEL, 5, 5))
 
-        for (move, child) in max_node.children.items():
-            parents[child] = (node_count, move)
-            nodes.append(child)
+    policy, value = nn.predict(nninputs)
+    value = (value + 1) / 2
 
-        node_count += 1
+    value_max = -1
+    value_max_move = None
+    for (i, move) in enumerate(moves):
+        v = value[i][0]
+        if v > value_max:
+            value_max = v
+            value_max_move = move
 
-    search_tree.render(filename)
+    return value_max_move
 
 def main():
     position = minishogilib.Position()
     position.set_start_position()
 
     neural_network = network.Network()
-    # neural_network.load('./nn/weights/epoch_052.h5')
-    # neural_network.load('./nn/weights_old/epoch_99.h5')
+    # neural_network.load('')
 
     # 1回predictを行い，1回目の実行が遅くならないようにする
-    random_input = np.random.rand(1, 5, 5, 134)
+    random_input = np.random.rand(1, network.INPUT_CHANNEL, 5, 5)
     neural_network.predict(random_input)
+
+    mcts = minishogilib.MCTS()
 
     while True:
         start_time = time.time()
-        best_move = run_mcts(position, neural_network)
+        root = run_mcts(position, neural_network, mcts)
         elapsed = time.time() - start_time
+
+        best_move = mcts.best_move(root)
 
         if best_move.is_null_move():
             break
 
-        print(best_move)
         position.do_move(best_move)
 
         print('--------------------')
         position.print()
+        print(best_move)
+        mcts.print(root)
         print('time:', elapsed)
         print('--------------------')
 
-        # visualize(root)
-
-    # start_time = time.time()
-    # root = run_mcts(position, neural_network)
-    # end_time = time.time()
-    # print('elapsed', end_time - start_time)
-    # for (k, v) in root.children.items():
-    #     print(k, '\n  N:', v.N, 'P:', v.P, 'V:', v.V)
-
-def debug():
-    position = minishogilib.Position()
-    position.set_sfen("2k2/5/2P2/5/2K2 b G 1")
-
-    neural_network = network.Network()
-    best_move = run_mcts(position, neural_network)
-    print(best_move)
-    position.do_move(best_move)
-    position.print()
-
 if __name__ == '__main__':
-    # output minishogilib version
-    print(minishogilib.version())
+    print(minishogilib.__version__)
 
     # fix the seed
     np.random.seed(0)
 
-    # main()
-
-    debug()
+    main()
