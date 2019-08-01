@@ -161,6 +161,34 @@ impl Piece {
         }
     }
 
+    pub fn get_op_piece(self) -> Piece {
+        match self {
+            Piece::NoPiece => Piece::NoPiece,
+
+            Piece::WKing => Piece::BKing,
+            Piece::WGold => Piece::BGold,
+            Piece::WSilver => Piece::BSilver,
+            Piece::WBishop => Piece::BBishop,
+            Piece::WRook => Piece::BRook,
+            Piece::WPawn => Piece::BPawn,
+            Piece::WSilverX => Piece::BSilverX,
+            Piece::WBishopX => Piece::BBishopX,
+            Piece::WRookX => Piece::BRookX,
+            Piece::WPawnX => Piece::BPawnX,
+
+            Piece::BKing => Piece::WKing,
+            Piece::BGold => Piece::WGold,
+            Piece::BSilver => Piece::WSilver,
+            Piece::BBishop => Piece::WBishop,
+            Piece::BRook => Piece::WRook,
+            Piece::BPawn => Piece::WPawn,
+            Piece::BSilverX => Piece::WSilverX,
+            Piece::BBishopX => Piece::WBishopX,
+            Piece::BRookX => Piece::WRookX,
+            Piece::BPawnX => Piece::WPawnX,
+        }
+    }
+
     pub fn get_move_dirs(self) -> std::vec::Vec<Direction> {
         match self {
             Piece::WKing => vec![
@@ -510,6 +538,35 @@ fn get_piece_test() {
 }
 
 #[test]
+fn get_op_piece_test() {
+    assert!(Piece::NoPiece.get_op_piece() == Piece::NoPiece);
+
+    // White
+    assert!(Piece::WKing.get_op_piece() == Piece::BKing);
+    assert!(Piece::WGold.get_op_piece() == Piece::BGold);
+    assert!(Piece::WSilver.get_op_piece() == Piece::BSilver);
+    assert!(Piece::WBishop.get_op_piece() == Piece::BBishop);
+    assert!(Piece::WRook.get_op_piece() == Piece::BRook);
+    assert!(Piece::WPawn.get_op_piece() == Piece::BPawn);
+    assert!(Piece::WSilverX.get_op_piece() == Piece::BSilverX);
+    assert!(Piece::WBishopX.get_op_piece() == Piece::BBishopX);
+    assert!(Piece::WRookX.get_op_piece() == Piece::BRookX);
+    assert!(Piece::WPawnX.get_op_piece() == Piece::BPawnX);
+
+    // Black
+    assert!(Piece::BKing.get_op_piece() == Piece::WKing);
+    assert!(Piece::BGold.get_op_piece() == Piece::WGold);
+    assert!(Piece::BSilver.get_op_piece() == Piece::WSilver);
+    assert!(Piece::BBishop.get_op_piece() == Piece::WBishop);
+    assert!(Piece::BRook.get_op_piece() == Piece::WRook);
+    assert!(Piece::BPawn.get_op_piece() == Piece::WPawn);
+    assert!(Piece::BSilverX.get_op_piece() == Piece::WSilverX);
+    assert!(Piece::BBishopX.get_op_piece() == Piece::WBishopX);
+    assert!(Piece::BRookX.get_op_piece() == Piece::WRookX);
+    assert!(Piece::BPawnX.get_op_piece() == Piece::WPawnX);
+}
+
+#[test]
 fn get_color_test() {
     assert!(Piece::NoPiece.get_color() == Color::NoColor);
 
@@ -617,5 +674,16 @@ pub const HAND_PIECE_TYPE_ALL: [PieceType; 5] = [
     PieceType::Rook,
     PieceType::Pawn,
 ];
+pub const DIRECTION_ALL: [Direction; 8] = [
+    Direction::N,
+    Direction::NE,
+    Direction::E,
+    Direction::SE,
+    Direction::S,
+    Direction::SW,
+    Direction::W,
+    Direction::NW,
+];
+
 pub const SQUARE_NB: usize = 5 * 5;
 pub const MAX_PLY: usize = 512;

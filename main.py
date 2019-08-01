@@ -7,111 +7,119 @@ from operator import itemgetter
 import time
 
 import numpy as np
+import graphviz
 
+from nn import network
 
-class Node:
-  def __init__(self, policy=0):
-    self.N = 0
-    self.V = 0
-    self.P = policy
-    self.W = 0
-    self.children = {}
-    self.checkmate = False
+def run_mcts(position, nn, mcts):
+    root = mcts.set_root()
+    nninput = position.to_nninput().reshape((1, network.INPUT_CHANNEL, 5, 5))
+    policy, value = nn.predict(nninput)
+    value = (value + 1) / 2
 
-  def get_puct(self, parent_N):
-    c_base = 19652
-    c_init = 1.25
+    mcts.evaluate(root, position, policy[0], value[0][0])
 
-    C = ((1 + self.N + c_base) / c_base) + c_init
+    SIMULATION_NUM = 800
+    BATCH_SIZE = 32
 
-    Q = 0 if self.N == 0 else self.W / self.N
-    U = C * self.P * math.sqrt(parent_N) / (1 + self.N)
+    values = [None for _ in range(BATCH_SIZE)]
+    leaf_nodes = [None for _ in range(BATCH_SIZE)]
+    leaf_positions = [None for _ in range(BATCH_SIZE)]
 
-    return (Q + U)
+    for _ in range(SIMULATION_NUM // BATCH_SIZE):
+        for b in range(BATCH_SIZE):
+            leaf_positions[b] = position.copy(True)
+            leaf_nodes[b] = mcts.select_leaf(root, leaf_positions[b])
 
-  def expanded(self):
-    return len(self.children) > 0 and not self.checkmate
+        # use neural network to evaluate the position
+        nninputs = np.zeros((BATCH_SIZE, network.INPUT_CHANNEL, 5, 5))
+        for b in range(BATCH_SIZE):
+            nninputs[b] = leaf_positions[b].to_nninput().reshape((1, network.INPUT_CHANNEL, 5, 5))
+        policy, value = nn.predict(nninputs)
+        value = (value + 1) / 2
 
-def select_child(node):
-  _, move, child = max(((child.get_puct(node.N), move, child) for move, child in node.children.items()), key=itemgetter(0))
+        for b in range(BATCH_SIZE):
+            values[b] = mcts.evaluate(leaf_nodes[b], leaf_positions[b], policy[b], value[b][0])
 
-  return move, child
+        for b in range(BATCH_SIZE):
+            mcts.backpropagate(leaf_nodes[b], values[b])
 
-def evaluate(node, position):
-  moves = position.generate_moves()
+    return root
 
-  if len(moves) == 0:
-    node.checkmate = True
+def policy_max_move(position, nn):
+    moves = position.generate_moves()
 
-  if node.checkmate:
-    value, policy = 0, []
-  else:
-    # ToDo: Use neural network
-    value, policy = np.random.uniform(0, 1), np.random.uniform(0, 1, len(moves))
+    nninput = np.reshape(position.to_nninput(), (1, network.INPUT_CHANNEL, 5, 5))
+    policy, value = nn.predict(nninput)
 
-  # sef value and policy
-  node.V = value
-  for i, move in enumerate(moves):
-    node.children[move] = Node(policy[i])
+    policy_max = -1
+    policy_max_move = None
+    for move in moves:
+        p = policy[move.to_policy_index()]
+        if  p > policy_max:
+            policy_max = p
+            policy_max_move = move
 
-  return value
+    return policy_max_move
 
-def backpropagate(position, search_path, value):
-  flip = False
-  while True:
-    node = search_path.pop()
+def value_max_move(position, nn):
+    moves = position.generate_moves()
 
-    node.W += value if not flip else (1 - value)
-    node.N += 1
+    nninputs = np.zeros((len(moves), network.INPUT_CHANNEL, 5, 5))
+    for (i, move) in enumerate(moves):
+        pos = position.copy(False)
+        pos.do_move(move)
+        nninputs[i] = np.reshape(pos.to_nninput(), (network.INPUT_CHANNEL, 5, 5))
 
-    if len(search_path) == 0:
-      break
+    policy, value = nn.predict(nninputs)
+    value = (value + 1) / 2
 
-    position.undo_move()
-    flip = not flip
+    value_max = -1
+    value_max_move = None
+    for (i, move) in enumerate(moves):
+        v = value[i][0]
+        if v > value_max:
+            value_max = v
+            value_max_move = move
 
-def run_mcts(position):
-  root = Node()
-  evaluate(root, position)
-
-  SIMULATION_NUM = 800
-
-  for _ in range(SIMULATION_NUM):
-    node = root
-    search_path = collections.deque([node])
-
-    while node.expanded():
-      move, node = select_child(node)
-
-      position.do_move(move)
-
-      # record path
-      search_path.append(node)
-
-    value = evaluate(node, position)
-    backpropagate(position, search_path, value)
+    return value_max_move
 
 def main():
-  position = minishogilib.Position()
-  position.set_start_position()
+    position = minishogilib.Position()
+    position.set_start_position()
 
-  LOOP_NUM = 100
+    neural_network = network.Network()
+    # neural_network.load('')
 
-  start_time = time.time()
+    # 1回predictを行い，1回目の実行が遅くならないようにする
+    random_input = np.random.rand(1, network.INPUT_CHANNEL, 5, 5)
+    neural_network.predict(random_input)
 
-  for i in range(LOOP_NUM):
-    run_mcts(position)
+    mcts = minishogilib.MCTS()
 
-  elapsed = time.time() - start_time
+    while True:
+        start_time = time.time()
+        root = run_mcts(position, neural_network, mcts)
+        elapsed = time.time() - start_time
 
-  print('elapsed: ', elapsed)
-  print('time per call', elapsed / LOOP_NUM)
+        best_move = mcts.best_move(root)
+
+        if best_move.is_null_move():
+            break
+
+        position.do_move(best_move)
+
+        print('--------------------')
+        position.print()
+        print(best_move)
+        mcts.print(root)
+        print('time:', elapsed)
+        print('--------------------')
 
 if __name__ == '__main__':
-  # output minishogilib version
-  print(minishogilib.version())
+    print(minishogilib.__version__)
 
-  # fix the seed
-  np.random.seed(0)
+    # fix the seed
+    np.random.seed(0)
 
-  main()
+    main()
