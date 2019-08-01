@@ -44,27 +44,31 @@ impl pyo3::class::basic::PyObjectProtocol for Move {
 
 #[pymethods]
 impl Move {
-    fn get_from(&self) -> usize {
+    pub fn is_null_move(&self) -> bool {
+        self.piece == Piece::NoPiece
+    }
+
+    pub fn get_from(&self) -> usize {
         self.from
     }
 
-    fn get_to(&self) -> usize {
+    pub fn get_to(&self) -> usize {
         self.to
     }
 
-    fn get_amount(&self) -> usize {
+    pub fn get_amount(&self) -> usize {
         self.amount
     }
 
-    fn get_promotion(&self) -> bool {
+    pub fn get_promotion(&self) -> bool {
         self.promotion
     }
 
-    fn get_direction(&self) -> usize {
+    pub fn get_direction(&self) -> usize {
         self.direction as usize
     }
 
-    fn get_hand_index(&self) -> usize {
+    pub fn get_hand_index(&self) -> usize {
         self.piece.get_piece_type() as usize - 2
     }
 }

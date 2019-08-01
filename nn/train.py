@@ -8,16 +8,15 @@ import random
 import sys
 
 def load_teacher_onehot(filepath):
-    """
-    Load sfen kifs and return positions and moves.
+    """Load sfen kifs and return positions and moves.
 
     The file should be a csv file and be formatted as follows, and in which file a line represents a game.
         - timestamp, # ply, comment, sfen kif
     """
 
-    MAX_ENTRY = 10000 # 1000000
-    inputs = np.zeros((MAX_ENTRY, 68, 5, 5), dtype='float32')
-    policy = np.zeros((MAX_ENTRY, 69, 5, 5), dtype='float32')
+    MAX_ENTRY = 3000000
+    inputs = np.zeros((MAX_ENTRY, network.INPUT_CHANNEL, 5, 5), dtype='float32')
+    policy = np.zeros((MAX_ENTRY, 69 * 5 * 5), dtype='float32')
     value = np.zeros((MAX_ENTRY, 1), dtype='float32')
 
     with open(filepath) as f:
@@ -46,12 +45,11 @@ def load_teacher_onehot(filepath):
 
                 move = position.sfen_to_move(sfen_move)
 
-                index = move_to_policy_index(position.get_side_to_move(), move)
-
-                onehot_policy = np.zeros((69, 5, 5))
+                index = move.to_policy_index()
+                onehot_policy = np.zeros(69 * 5 * 5)
                 onehot_policy[index] = 1
 
-                nn_input = np.array(position.to_nninput()).reshape(68, 5, 5)
+                nn_input = np.array(position.to_nninput()).reshape(network.INPUT_CHANNEL, 5, 5)
                 inputs[position_count] = nn_input
                 policy[position_count] = onehot_policy
                 value[position_count] = 1 if (ply % 2) == win_color else -1
@@ -82,15 +80,10 @@ def main():
 
     inputs, policy, value = load_teacher_onehot('./kif.txt')
 
-    # tranpose it into tensorflow-like format (i.e. BHWC order)
-    inputs = np.transpose(inputs, axes=[0, 2, 3, 1])
-    policy = np.transpose(policy, axes=[0, 2, 3, 1])
-    policy = np.reshape(policy, (-1, 5 * 5 * 69))
-
     batch_size = 1024
     batch_num_per_epoch = len(inputs) // batch_size
 
-    for epoch in range(100):
+    for epoch in range(1000):
         random_indices = list(range(len(inputs)))
         random.shuffle(random_indices)
 
@@ -106,12 +99,12 @@ def main():
             print(loss)
 
         # save the model
-        filename = './weights/epoch_{:02}.h5'.format(epoch)
+        filename = './weights/epoch_{:03}.h5'.format(epoch)
         neural_network.model.save(filename, include_optimizer=True)
 
 if __name__ == '__main__':
     print(tf.__version__)
-    print(minishogilib.version())
+    print(minishogilib.__version__)
 
     tf.compat.v1.set_random_seed(1)
 

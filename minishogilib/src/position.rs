@@ -571,7 +571,12 @@ impl Position {
                 }
 
                 // 量王手がかかっているときは，玉を逃げる以外は非合法手
-                if !allow_illegal && get_counts(self.adjacent_check_bb[self.ply as usize] | self.long_check_bb[self.ply as usize]) > 1 {
+                if !allow_illegal
+                    && get_counts(
+                        self.adjacent_check_bb[self.ply as usize]
+                            | self.long_check_bb[self.ply as usize],
+                    ) > 1
+                {
                     if self.board[i].get_piece_type() != PieceType::King {
                         continue;
                     }
@@ -586,11 +591,14 @@ impl Position {
                         let move_to: usize = get_square(move_tos); // 行先を1か所取得する
 
                         // 近接王手がかかっていて，玉以外を動かす場合には，王手している駒を取るしかない
-                        if !allow_illegal && self.adjacent_check_bb[self.ply as usize] != 0 && self.board[i].get_piece_type() != PieceType::King && (self.adjacent_check_bb[self.ply as usize] & (1 << move_to)) == 0 {
+                        if !allow_illegal
+                            && self.adjacent_check_bb[self.ply as usize] != 0
+                            && self.board[i].get_piece_type() != PieceType::King
+                            && (self.adjacent_check_bb[self.ply as usize] & (1 << move_to)) == 0
+                        {
                             move_tos ^= 1 << move_to;
                             continue;
                         }
-
 
                         let capture_piece = self.board[move_to];
                         let (move_dir, _) = get_relation(i, move_to);
@@ -615,7 +623,8 @@ impl Position {
                         if self.board[i].is_raw()
                             && self.board[i].is_promotable()
                             && ((self.side_to_move == Color::White && (move_to < 5 || i < 5))
-                                || (self.side_to_move == Color::Black && (move_to >= 20 || i >= 20)))
+                                || (self.side_to_move == Color::Black
+                                    && (move_to >= 20 || i >= 20)))
                         {
                             moves.push(Move::board_move(
                                 self.board[i],
@@ -632,7 +641,8 @@ impl Position {
                     }
                 }
 
-                let all_player_bb = self.player_bb[Color::White as usize] | self.player_bb[Color::Black as usize];
+                let all_player_bb =
+                    self.player_bb[Color::White as usize] | self.player_bb[Color::Black as usize];
 
                 // 飛び駒の移動
                 // 角、馬
@@ -645,7 +655,11 @@ impl Position {
                     while move_tos != 0 {
                         let move_to: usize = get_square(move_tos);
 
-                        if !allow_illegal && self.adjacent_check_bb[self.ply as usize] != 0 && self.board[i].get_piece_type() != PieceType::King && (self.adjacent_check_bb[self.ply as usize] & (1 << move_to)) == 0 {
+                        if !allow_illegal
+                            && self.adjacent_check_bb[self.ply as usize] != 0
+                            && self.board[i].get_piece_type() != PieceType::King
+                            && (self.adjacent_check_bb[self.ply as usize] & (1 << move_to)) == 0
+                        {
                             move_tos ^= 1 << move_to;
                             continue;
                         }
@@ -667,7 +681,8 @@ impl Position {
                         if self.board[i].is_raw()
                             && self.board[i].is_promotable()
                             && ((self.side_to_move == Color::White && (move_to < 5 || i < 5))
-                                || (self.side_to_move == Color::Black && (move_to >= 20 || i >= 20)))
+                                || (self.side_to_move == Color::Black
+                                    && (move_to >= 20 || i >= 20)))
                         {
                             moves.push(Move::board_move(
                                 self.board[i],
@@ -693,7 +708,11 @@ impl Position {
                     while move_tos != 0 {
                         let move_to: usize = get_square(move_tos);
 
-                        if !allow_illegal && self.adjacent_check_bb[self.ply as usize] != 0 && self.board[i].get_piece_type() != PieceType::King && (self.adjacent_check_bb[self.ply as usize] & (1 << move_to)) == 0 {
+                        if !allow_illegal
+                            && self.adjacent_check_bb[self.ply as usize] != 0
+                            && self.board[i].get_piece_type() != PieceType::King
+                            && (self.adjacent_check_bb[self.ply as usize] & (1 << move_to)) == 0
+                        {
                             move_tos ^= 1 << move_to;
                             continue;
                         }
@@ -715,7 +734,8 @@ impl Position {
                         if self.board[i].is_raw()
                             && self.board[i].is_promotable()
                             && ((self.side_to_move == Color::White && (move_to < 5 || i < 5))
-                                || (self.side_to_move == Color::Black && (move_to >= 20 || i >= 20)))
+                                || (self.side_to_move == Color::Black
+                                    && (move_to >= 20 || i >= 20)))
                         {
                             moves.push(Move::board_move(
                                 self.board[i],
@@ -735,8 +755,7 @@ impl Position {
         }
 
         // 近接駒に王手されている場合、持ち駒を打つ手は全て非合法手
-        if is_hand && (allow_illegal || self.adjacent_check_bb[self.ply as usize] == 0)
-        {
+        if is_hand && (allow_illegal || self.adjacent_check_bb[self.ply as usize] == 0) {
             // 駒のない升を列挙
             let mut empty_squares: Vec<usize> = Vec::new();
             for i in 0..SQUARE_NB {
