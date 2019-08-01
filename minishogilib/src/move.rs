@@ -20,9 +20,11 @@ impl Move {
         const HAND_PIECE_TO_CHAR: [char; 7] = ['E', 'E', 'G', 'S', 'B', 'R', 'P'];
 
         if self.amount == 0 {
-            format!("{}*{}",
-                    HAND_PIECE_TO_CHAR[self.piece.get_piece_type() as usize],
-                    square_to_sfen(self.to))
+            format!(
+                "{}*{}",
+                HAND_PIECE_TO_CHAR[self.piece.get_piece_type() as usize],
+                square_to_sfen(self.to)
+            )
         } else {
             if self.promotion {
                 format!("{}{}+", square_to_sfen(self.from), square_to_sfen(self.to))
@@ -72,46 +74,55 @@ impl Move {
 }
 
 impl Move {
-    pub fn board_move(piece: Piece,
-                      from: usize,
-                      direction: Direction,
-                      amount: usize,
-                      to: usize,
-                      promotion: bool,
-                      capture_piece: Piece)
-                      -> Move {
-        Move { piece: piece,
-               from: from,
-               direction: direction,
-               amount: amount,
-               to: to,
-               promotion: promotion,
-               capture_piece: capture_piece }
+    pub fn board_move(
+        piece: Piece,
+        from: usize,
+        direction: Direction,
+        amount: usize,
+        to: usize,
+        promotion: bool,
+        capture_piece: Piece,
+    ) -> Move {
+        Move {
+            piece: piece,
+            from: from,
+            direction: direction,
+            amount: amount,
+            to: to,
+            promotion: promotion,
+            capture_piece: capture_piece,
+        }
     }
 
     pub fn hand_move(piece: Piece, to: usize) -> Move {
-        Move { piece: piece,
-               from: 0,
-               direction: Direction::N, // 不使用なので仮の値を入れておく
-               amount: 0,
-               to: to,
-               promotion: false,
-               capture_piece: Piece::NoPiece }
+        Move {
+            piece: piece,
+            from: 0,
+            direction: Direction::N, // 不使用なので仮の値を入れておく
+            amount: 0,
+            to: to,
+            promotion: false,
+            capture_piece: Piece::NoPiece,
+        }
     }
 }
 
-pub static NULL_MOVE: Move = Move { piece: Piece::NoPiece,
-                                    from: SQUARE_NB,
-                                    direction: Direction::N,
-                                    amount: 0,
-                                    to: 0,
-                                    promotion: false,
-                                    capture_piece: Piece::NoPiece };
+pub static NULL_MOVE: Move = Move {
+    piece: Piece::NoPiece,
+    from: SQUARE_NB,
+    direction: Direction::N,
+    amount: 0,
+    to: 0,
+    promotion: false,
+    capture_piece: Piece::NoPiece,
+};
 
 pub fn square_to_sfen(square: usize) -> String {
-    format!("{}{}",
-            "54321".as_bytes()[square % 5 as usize] as char,
-            "abcde".as_bytes()[square / 5 as usize] as char)
+    format!(
+        "{}{}",
+        "54321".as_bytes()[square % 5 as usize] as char,
+        "abcde".as_bytes()[square / 5 as usize] as char
+    )
 }
 
 pub fn sfen_to_square(sfen: String) -> usize {

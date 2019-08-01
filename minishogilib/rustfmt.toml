@@ -1,4 +1,4 @@
-indent_style = "Visual"
+indent_style = "Block"
 use_small_heuristics = "Max"
 hard_tabs = false
 normalize_comments = true
