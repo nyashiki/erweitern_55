@@ -157,7 +157,17 @@ impl MCTS {
                     1.0
                 }
             } else {
-                value = 0.0
+                value = if position.kif[position.ply as usize - 1]
+                    .piece
+                    .get_piece_type()
+                    == PieceType::Pawn
+                {
+                    // 打ち歩詰め
+                    1.0
+                } else {
+                    // 詰み
+                    0.0
+                };
             }
         }
 
