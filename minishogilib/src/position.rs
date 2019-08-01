@@ -548,6 +548,18 @@ impl Position {
         return self.hash[self.ply as usize];
     }
 
+    pub fn get_adjacent_check(&self) -> Bitboard {
+        return self.adjacent_check_bb[self.ply as usize];
+    }
+
+    pub fn get_long_check(&self) -> Bitboard {
+        return self.long_check_bb[self.ply as usize];
+    }
+
+    pub fn get_check(&self) -> Bitboard {
+        return self.get_adjacent_check() | self.get_long_check();
+    }
+
     pub fn generate_moves_with_option(
         &self,
         is_board: bool,
