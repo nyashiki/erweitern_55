@@ -6,8 +6,8 @@ extern crate pyo3;
 extern crate rand;
 
 pub mod bitboard;
-pub mod r#move;
 pub mod mcts;
+pub mod r#move;
 pub mod neuralnetwork;
 pub mod position;
 pub mod types;
@@ -15,8 +15,8 @@ pub mod zobrist;
 
 use pyo3::prelude::*;
 
-use position::*;
 use mcts::*;
+use position::*;
 use r#move::*;
 
 #[pymodule]

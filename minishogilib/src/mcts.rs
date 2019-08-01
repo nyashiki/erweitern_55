@@ -1,9 +1,9 @@
-use r#move::*;
 use position::*;
+use r#move::*;
 use types::*;
 
-use pyo3::prelude::*;
 use numpy::PyArray1;
+use pyo3::prelude::*;
 
 #[derive(Clone)]
 pub struct Node {
@@ -15,7 +15,7 @@ pub struct Node {
     pub parent: usize,
     pub children: std::vec::Vec<usize>,
     pub is_terminal: bool,
-    pub virtual_loss: f32
+    pub virtual_loss: f32,
 }
 
 impl Node {
@@ -29,7 +29,7 @@ impl Node {
             parent: parent,
             children: Vec::new(),
             is_terminal: false,
-            virtual_loss: 0.0
+            virtual_loss: 0.0,
         }
     }
 
@@ -38,7 +38,11 @@ impl Node {
         const C_INIT: f32 = 1.25;
 
         let c: f32 = ((1.0 + (self.n as f32) + C_BASE) / C_BASE).log2() + C_INIT;
-        let q: f32 = if self.n as f32 + self.virtual_loss == 0.0 { 0.0 } else { 1.0 - (self.w + self.virtual_loss) / ((self.n as f32 + self.virtual_loss)) };
+        let q: f32 = if self.n as f32 + self.virtual_loss == 0.0 {
+            0.0
+        } else {
+            1.0 - (self.w + self.virtual_loss) / (self.n as f32 + self.virtual_loss)
+        };
         let u: f32 = c * self.p * parent_n.sqrt() / (1.0 + (self.n as f32) + self.virtual_loss);
 
         return q + u;
@@ -52,16 +56,16 @@ impl Node {
 #[pyclass]
 pub struct MCTS {
     pub game_tree: std::vec::Vec<Node>,
-    pub node_count: usize
+    pub node_count: usize,
 }
 
 #[pymethods]
 impl MCTS {
     #[new]
     pub fn new(obj: &PyRawObject) {
-        obj.init(MCTS{
+        obj.init(MCTS {
             game_tree: vec![Node::new(0, NULL_MOVE, 0.0); 1000000],
-            node_count: 0
+            node_count: 0,
         });
     }
 
@@ -88,7 +92,14 @@ impl MCTS {
         println!("N(s, a): {}", self.game_tree[best_child].n);
         println!("P(s, a): {}", self.game_tree[best_child].p);
         println!("V(s, a): {}", self.game_tree[best_child].v);
-        println!("Q(s, a): {}", if self.game_tree[best_child].n == 0 { 0.0 } else { self.game_tree[best_child].w / self.game_tree[best_child].n as f32 });
+        println!(
+            "Q(s, a): {}",
+            if self.game_tree[best_child].n == 0 {
+                0.0
+            } else {
+                self.game_tree[best_child].w / self.game_tree[best_child].n as f32
+            }
+        );
     }
 
     pub fn select_leaf(&mut self, root_node: usize, position: &mut Position) -> usize {
@@ -108,7 +119,13 @@ impl MCTS {
         return node;
     }
 
-    pub fn evaluate(&mut self, node: usize, position: &Position, np_policy: &PyArray1<f32>, mut value: f32) -> f32 {
+    pub fn evaluate(
+        &mut self,
+        node: usize,
+        position: &Position,
+        np_policy: &PyArray1<f32>,
+        mut value: f32,
+    ) -> f32 {
         if self.game_tree[node].n > 0 {
             return self.game_tree[node].v;
         }
@@ -134,7 +151,11 @@ impl MCTS {
             if is_check_repetition {
                 value = 0.0;
             } else if is_repetition {
-                value = if position.side_to_move == Color::White { 0.0 } else { 1.0 }
+                value = if position.side_to_move == Color::White {
+                    0.0
+                } else {
+                    1.0
+                }
             } else {
                 value = 0.0
             }
@@ -182,7 +203,7 @@ impl MCTS {
             let mut index = 0;
 
             for (i, n) in nodes.iter().enumerate() {
-                if self.game_tree[*n].n as i32 > n_max  {
+                if self.game_tree[*n].n as i32 > n_max {
                     n_max = self.game_tree[*n].n as i32;
                     n_max_node = *n;
                     index = i;
@@ -191,13 +212,31 @@ impl MCTS {
 
             nodes.swap_remove(index);
 
-            dot.push_str(&format!("  {} [label=\"N:{}\\nP:{:.3}\\nV:{:.3}\\nQ:{:.3}\"];\n", n_max_node,
-                                                                                 self.game_tree[n_max_node].n,
-                                                                                 self.game_tree[n_max_node].p,
-                                                                                 self.game_tree[n_max_node].v,
-                                                                                 if self.game_tree[n_max_node].n == 0 { 0.0 } else { self.game_tree[n_max_node].w / self.game_tree[n_max_node].n as f32 }).to_string());
+            dot.push_str(
+                &format!(
+                    "  {} [label=\"N:{}\\nP:{:.3}\\nV:{:.3}\\nQ:{:.3}\"];\n",
+                    n_max_node,
+                    self.game_tree[n_max_node].n,
+                    self.game_tree[n_max_node].p,
+                    self.game_tree[n_max_node].v,
+                    if self.game_tree[n_max_node].n == 0 {
+                        0.0
+                    } else {
+                        self.game_tree[n_max_node].w / self.game_tree[n_max_node].n as f32
+                    }
+                )
+                .to_string(),
+            );
             if self.game_tree[n_max_node].parent != 0 {
-                dot.push_str(&format!("  {} -> {} [label=\"{}\"];\n", self.game_tree[n_max_node].parent, n_max_node, self.game_tree[n_max_node].m.sfen()).to_string());
+                dot.push_str(
+                    &format!(
+                        "  {} -> {} [label=\"{}\"];\n",
+                        self.game_tree[n_max_node].parent,
+                        n_max_node,
+                        self.game_tree[n_max_node].m.sfen()
+                    )
+                    .to_string(),
+                );
             }
 
             counter += 1;
@@ -214,14 +253,17 @@ impl MCTS {
 
     pub fn debug(&self, node: usize) {
         for child in &self.game_tree[node].children {
-            println!("{}, p:{:.3}, v:{:.3}, w:{:.3}, n:{:.3}, puct:{:.3}, vloss: {:.3}, parentn: {}", self.game_tree[*child].m.sfen(),
-                                                            self.game_tree[*child].p,
-                                                            self.game_tree[*child].v,
-                                                            self.game_tree[*child].w,
-                                                            self.game_tree[*child].n,
-                                                            self.game_tree[*child].get_puct(self.game_tree[node].n as f32),
-                                                            self.game_tree[*child].virtual_loss,
-                                                            self.game_tree[node].n);
+            println!(
+                "{}, p:{:.3}, v:{:.3}, w:{:.3}, n:{:.3}, puct:{:.3}, vloss: {:.3}, parentn: {}",
+                self.game_tree[*child].m.sfen(),
+                self.game_tree[*child].p,
+                self.game_tree[*child].v,
+                self.game_tree[*child].w,
+                self.game_tree[*child].n,
+                self.game_tree[*child].get_puct(self.game_tree[node].n as f32),
+                self.game_tree[*child].virtual_loss,
+                self.game_tree[node].n
+            );
         }
     }
 }
@@ -232,7 +274,8 @@ impl MCTS {
         let mut puct_max_child: usize = 0;
 
         for child in &self.game_tree[node].children {
-            let puct = self.game_tree[*child].get_puct(self.game_tree[node].n as f32 + self.game_tree[node].virtual_loss);
+            let puct = self.game_tree[*child]
+                .get_puct(self.game_tree[node].n as f32 + self.game_tree[node].virtual_loss);
 
             if puct > puct_max {
                 puct_max = puct;

@@ -2,12 +2,12 @@
 //!
 //! ここでは、NeuralNetworkのForwardやBackpropagationなどを実装するのではなく、
 //! tensorflow等の使用を容易にすることを目指す
-use r#move::*;
 use position::Position;
+use r#move::*;
 use types::*;
 
-use pyo3::prelude::*;
 use numpy::PyArray1;
+use pyo3::prelude::*;
 
 /// NeuralNetworkの入力層に与える形式に変換した際の、チャネル数
 ///
@@ -48,26 +48,37 @@ impl Position {
                 // 盤上の駒を設定
                 if position.board[i] != Piece::NoPiece {
                     if self.side_to_move == Color::White {
-                        input_layer[(2 + h * CHANNEL_NUM_PER_HISTORY + piece_to_sequential_index(position.board[i])) * SQUARE_NB + i] =
-                            1f32;
+                        input_layer[(2
+                            + h * CHANNEL_NUM_PER_HISTORY
+                            + piece_to_sequential_index(position.board[i]))
+                            * SQUARE_NB
+                            + i] = 1f32;
                     } else {
                         // 後手番の場合には、盤面を回転させて設定する
-                        input_layer[(2 + h * CHANNEL_NUM_PER_HISTORY + piece_to_sequential_index(position.board[i].get_op_piece())) * SQUARE_NB + (SQUARE_NB - i)] = 1f32;
+                        input_layer[(2
+                            + h * CHANNEL_NUM_PER_HISTORY
+                            + piece_to_sequential_index(position.board[i].get_op_piece()))
+                            * SQUARE_NB
+                            + (SQUARE_NB - i)] = 1f32;
                     }
                 }
 
                 // 繰り返し回数を設定
-                input_layer[(2 + h * CHANNEL_NUM_PER_HISTORY + 20 + position.get_repetition()) * SQUARE_NB + i] = 1f32;
+                input_layer[(2 + h * CHANNEL_NUM_PER_HISTORY + 20 + position.get_repetition())
+                    * SQUARE_NB
+                    + i] = 1f32;
 
                 // 持ち駒を設定
                 for piece_type in HAND_PIECE_TYPE_ALL.iter() {
-                    input_layer
-                        [(2 + h * CHANNEL_NUM_PER_HISTORY + 23 + *piece_type as usize - 2) * SQUARE_NB + i]
-                        = position.hand[self.side_to_move as usize]
-                        [*piece_type as usize - 2] as f32;
-                    input_layer
-                        [(2 + h * CHANNEL_NUM_PER_HISTORY + 28 + *piece_type as usize - 2) * SQUARE_NB + i]
-                        = position.hand[self.side_to_move.get_op_color() as usize]
+                    input_layer[(2 + h * CHANNEL_NUM_PER_HISTORY + 23 + *piece_type as usize
+                        - 2)
+                        * SQUARE_NB
+                        + i] =
+                        position.hand[self.side_to_move as usize][*piece_type as usize - 2] as f32;
+                    input_layer[(2 + h * CHANNEL_NUM_PER_HISTORY + 28 + *piece_type as usize
+                        - 2)
+                        * SQUARE_NB
+                        + i] = position.hand[self.side_to_move.get_op_color() as usize]
                         [*piece_type as usize - 2] as f32;
                 }
             }
@@ -105,15 +116,24 @@ impl Move {
         } else {
             if self.get_promotion() {
                 if c == Color::White {
-                    (32 + 4 * self.direction as usize + self.amount - 1, self.from)
+                    (
+                        32 + 4 * self.direction as usize + self.amount - 1,
+                        self.from,
+                    )
                 } else {
-                    (32 + 4 * ((self.direction as usize + 4) % 8) + self.amount - 1, 24 - self.from)
+                    (
+                        32 + 4 * ((self.direction as usize + 4) % 8) + self.amount - 1,
+                        24 - self.from,
+                    )
                 }
             } else {
                 if c == Color::White {
                     (4 * self.direction as usize + self.amount - 1, self.from)
                 } else {
-                    (4 * ((self.direction as usize + 4) % 8) + self.amount - 1, 24 - self.from)
+                    (
+                        4 * ((self.direction as usize + 4) % 8) + self.amount - 1,
+                        24 - self.from,
+                    )
                 }
             }
         };
