@@ -160,7 +160,10 @@ fn index_to_move(position: &Position, index: usize) -> Move {
                 };
 
                 if temp == index {
-                    moves.push(Move::hand_move(HAND_PIECE_TYPE_ALL[i].get_piece(position.side_to_move), j));
+                    moves.push(Move::hand_move(
+                        HAND_PIECE_TYPE_ALL[i].get_piece(position.side_to_move),
+                        j,
+                    ));
                 }
             }
         }
@@ -172,11 +175,20 @@ fn index_to_move(position: &Position, index: usize) -> Move {
                         let temp = if position.side_to_move == Color::White {
                             (32 * promotion + ((direction * 4) + amount)) * 25 + i
                         } else {
-                            (32 * promotion + ((((direction + 4) % 8) * 4) + amount)) * 25 + (SQUARE_NB - i - 1)
+                            (32 * promotion + ((((direction + 4) % 8) * 4) + amount)) * 25
+                                + (SQUARE_NB - i - 1)
                         };
 
                         if temp == index {
-                            moves.push(Move::board_move(Piece::NoPiece, i, DIRECTION_ALL[direction], amount + 1, 0, promotion != 0, Piece::NoPiece));
+                            moves.push(Move::board_move(
+                                Piece::NoPiece,
+                                i,
+                                DIRECTION_ALL[direction],
+                                amount + 1,
+                                0,
+                                promotion != 0,
+                                Piece::NoPiece,
+                            ));
                         }
                     }
                 }
