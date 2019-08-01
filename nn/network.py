@@ -2,7 +2,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.callbacks import LearningRateScheduler
 from tensorflow.keras.callbacks import ModelCheckpoint
-
+import numpy as np
 
 INPUT_CHANNEL = 134
 
@@ -41,7 +41,7 @@ class Network:
 
         # Residual blocks
         for i in range(10):
-            x = self.residual_block(x)
+            x = self._residual_block(x)
 
         # Policy head
         policy = keras.layers.Conv2D(256, [3, 3], padding='same', activation=tf.nn.relu)(x)
@@ -64,7 +64,7 @@ class Network:
                           'value': keras.losses.mean_squared_error},
                     loss_weights={'policy': 1, 'value': 1})
 
-    def residual_block(self, input_image, conv_kernel_shape=[3, 3]):
+    def _residual_block(self, input_image, conv_kernel_shape=[3, 3]):
         conv_filters = int(input_image.shape[3])
 
         x = keras.layers.Conv2D(conv_filters, conv_kernel_shape, padding='same')(input_image)
@@ -77,12 +77,33 @@ class Network:
 
         return x
 
-    def step(self, train_images, policy_label, value_label):
-        loss = self.model.train_on_batch(train_images, [policy_label, value_label])
+    def step(self, train_images, policy_labels, value_labels):
+        """Train the neural network one step.
+
+        train_images: [B, C, H, W] order
+        policy_labels: [B, C * H * W] order
+        value_labels: [B, 1] order
+        """
+
+        # transpose [B, C, H, W] order to [B, H, W, C] order
+        train_images = np.transpose(train_images, axes=[0, 2, 3, 1])
+        policy_labels = np.reshape(policy_labels, (-1, 69, 5, 5))
+        policy_labels = np.transpose(policy_labels, axes=[0, 2, 3, 1])
+        policy_labels = np.reshape(policy_labels, (-1, 5 * 5 * 69))
+
+        loss = self.model.train_on_batch(train_images, [policy_labels, value_labels])
         return loss
 
     def predict(self, images):
-        return self.model.predict(images, batch_size=len(images), verbose=0, steps=None)
+        images = np.transpose(images, axes=[0, 2, 3, 1])
+        policy, value = self.model.predict(images, batch_size=len(images), verbose=0, steps=None)
+
+        # transpose [B, H, W, C] order to [B, C, H, W] order
+        policy = np.reshape(policy, (-1, 5, 5, 69))
+        policy = np.transpose(policy, axes=[0, 3, 1, 2])
+        policy = np.reshape(policy, (-1, 69 * 5 * 5))
+
+        return policy, value
 
     def load(self, filepath):
         self.model = keras.models.load_model(filepath, compile=True)

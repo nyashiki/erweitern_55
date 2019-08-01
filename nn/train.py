@@ -8,8 +8,7 @@ import random
 import sys
 
 def load_teacher_onehot(filepath):
-    """
-    Load sfen kifs and return positions and moves.
+    """Load sfen kifs and return positions and moves.
 
     The file should be a csv file and be formatted as follows, and in which file a line represents a game.
         - timestamp, # ply, comment, sfen kif
@@ -17,7 +16,7 @@ def load_teacher_onehot(filepath):
 
     MAX_ENTRY = 3000000
     inputs = np.zeros((MAX_ENTRY, network.INPUT_CHANNEL, 5, 5), dtype='float32')
-    policy = np.zeros((MAX_ENTRY, 69, 5, 5), dtype='float32')
+    policy = np.zeros((MAX_ENTRY, 69 * 5 * 5), dtype='float32')
     value = np.zeros((MAX_ENTRY, 1), dtype='float32')
 
     with open(filepath) as f:
@@ -46,9 +45,8 @@ def load_teacher_onehot(filepath):
 
                 move = position.sfen_to_move(sfen_move)
 
-                index = network.move_to_policy_index(position.get_side_to_move(), move)
-
-                onehot_policy = np.zeros((69, 5, 5))
+                index = move.to_policy_index()
+                onehot_policy = np.zeros(69 * 5 * 5)
                 onehot_policy[index] = 1
 
                 nn_input = np.array(position.to_nninput()).reshape(network.INPUT_CHANNEL, 5, 5)
@@ -82,11 +80,6 @@ def main():
 
     inputs, policy, value = load_teacher_onehot('./kif.txt')
 
-    # tranpose it into tensorflow-like format (i.e. BHWC order)
-    inputs = np.transpose(inputs, axes=[0, 2, 3, 1])
-    policy = np.transpose(policy, axes=[0, 2, 3, 1])
-    policy = np.reshape(policy, (-1, 5 * 5 * 69))
-
     batch_size = 1024
     batch_num_per_epoch = len(inputs) // batch_size
 
@@ -111,7 +104,7 @@ def main():
 
 if __name__ == '__main__':
     print(tf.__version__)
-    print(minishogilib.version())
+    print(minishogilib.__version__)
 
     tf.compat.v1.set_random_seed(1)
 
