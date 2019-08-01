@@ -14,16 +14,10 @@ pub mod types;
 pub mod zobrist;
 
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 
 use position::*;
 use mcts::*;
 use r#move::*;
-
-#[pyfunction]
-fn version() -> &'static str {
-    env!("CARGO_PKG_VERSION")
-}
 
 #[pymodule]
 fn minishogilib(_py: Python, m: &PyModule) -> PyResult<()> {
@@ -31,7 +25,7 @@ fn minishogilib(_py: Python, m: &PyModule) -> PyResult<()> {
     bitboard::init();
     zobrist::init();
 
-    m.add_wrapped(wrap_pyfunction!(version))?;
+    m.add("__version__", env!("CARGO_PKG_VERSION"))?;
 
     m.add_class::<Position>()?;
     m.add_class::<MCTS>()?;
