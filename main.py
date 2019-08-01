@@ -91,7 +91,7 @@ def main():
     neural_network = network.Network()
     # neural_network.load('')
 
-    # 1回predictを行い，1回目の実行が遅くならないようにする
+    # do predict once because the first prediction takes more time than latter one
     random_input = np.random.rand(1, network.INPUT_CHANNEL, 5, 5)
     neural_network.predict(random_input)
 
