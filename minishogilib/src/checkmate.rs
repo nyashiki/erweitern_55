@@ -22,7 +22,7 @@ fn attack(position: &mut Position, depth: i32) -> (bool, Move) {
     for m in &moves {
         position.do_move(m);
 
-        if position.get_check() == 0 {
+        if position.get_check_bb() == 0 {
             position.undo_move();
             continue;
         }
@@ -40,7 +40,7 @@ fn attack(position: &mut Position, depth: i32) -> (bool, Move) {
 }
 
 fn defense(position: &mut Position, depth: i32) -> (bool, Move) {
-    let moves = position.generate_moves(); // ToDo: 王手生成ルーチン
+    let moves = position.generate_moves();
 
     if moves.len() == 0 && position.kif[position.ply as usize - 1].piece.get_piece_type() == PieceType::Pawn && position.kif[position.ply as usize - 1].amount == 0 {
         // 打ち歩詰め
