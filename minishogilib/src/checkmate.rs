@@ -7,7 +7,15 @@ use types::*;
 #[pymethods]
 impl Position {
     pub fn solve_checkmate_dfs(&mut self, depth: i32) -> (bool, Move) {
-        return attack(self, depth);
+        for i in (1..depth + 1).step_by(2) {
+            let (checkmate, m) = attack(self, i as i32);
+
+            if checkmate {
+                return (true, m);
+            }
+        }
+
+        return (false, NULL_MOVE);
     }
 }
 
