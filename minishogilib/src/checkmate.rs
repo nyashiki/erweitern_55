@@ -2,6 +2,7 @@ use pyo3::prelude::*;
 
 use position::*;
 use r#move::*;
+use types::*;
 
 #[pymethods]
 impl Position {
@@ -41,6 +42,11 @@ fn attack(position: &mut Position, depth: i32) -> (bool, Move) {
 fn defense(position: &mut Position, depth: i32) -> (bool, Move) {
     let moves = position.generate_moves(); // ToDo: 王手生成ルーチン
 
+    if moves.len() == 0 && position.kif[position.ply as usize - 1].piece.get_piece_type() == PieceType::Pawn && position.kif[position.ply as usize - 1].amount == 0 {
+        // 打ち歩詰め
+        return (false, NULL_MOVE);
+    }
+
     for m in &moves {
         position.do_move(m);
 
@@ -73,7 +79,6 @@ fn checkmate_test() {
 
     {
         position.set_sfen("5/5/2k2/5/2K2 b 3G 1");
-        position.print();
 
         let start = std::time::Instant::now();
         let (checkmate, checkmate_move) = position.solve_checkmate_dfs(7);
@@ -86,7 +91,6 @@ fn checkmate_test() {
 
     {
         position.set_sfen("5/5/2k2/5/2K2 b 2G 1");
-        position.print();
 
         let start = std::time::Instant::now();
         let (checkmate, checkmate_move) = position.solve_checkmate_dfs(7);
@@ -98,7 +102,28 @@ fn checkmate_test() {
 
     {
         position.set_sfen("2k2/5/2B2/5/2K2 b GSBRgsr2p 1");
-        position.print();
+
+        let start = std::time::Instant::now();
+        let (checkmate, checkmate_move) = position.solve_checkmate_dfs(7);
+        let elapsed = start.elapsed();
+
+        assert_eq!(checkmate, true);
+        println!("{} ... {}.{} sec.", checkmate_move.sfen(), elapsed.as_secs(), elapsed.subsec_nanos() / 1000000);
+    }
+
+    {
+        position.set_sfen("2G1k/5/4G/5/2K2 b P 1");
+
+        let start = std::time::Instant::now();
+        let (checkmate, checkmate_move) = position.solve_checkmate_dfs(7);
+        let elapsed = start.elapsed();
+
+        assert_eq!(checkmate, false);
+        println!("{} ... {}.{} sec.", checkmate_move.sfen(), elapsed.as_secs(), elapsed.subsec_nanos() / 1000000);
+    }
+
+    {
+        position.set_sfen("4k/5/4B/5/2K1R b - 1");
 
         let start = std::time::Instant::now();
         let (checkmate, checkmate_move) = position.solve_checkmate_dfs(7);
