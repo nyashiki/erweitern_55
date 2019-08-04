@@ -5,19 +5,29 @@ from nn import network
 
 class Config:
     def __init__(self):
-        self.batch_size = 32
+        self.batch_size = 16
         self.simulation_num = 800
+        self.dirichlet_alpha = 0.34
+        self.exploration_fraction = 0.25
 
 class MCTS():
     def __init__(self, config):
         self.config = config
         self.mcts = minishogilib.MCTS()
 
-    def run(self, position, nn):
+    def run(self, position, nn, use_dirichlet=False):
         root = self.mcts.set_root()
         nninput = position.to_nninput().reshape((1, network.INPUT_CHANNEL, 5, 5))
         policy, value = nn.predict(nninput)
         value = (value + 1) / 2
+
+        if use_dirichlet:
+            moves = position.generate_moves()
+            noise = np.random.gamma(self.config.dirichlet_alpha, 1, len(moves))
+            frac = self.config.exploration_fraction
+
+            for (i, m) in enumerate(moves):
+                policy[0][m.to_policy_index()] = (1 - frac) * policy[0][m.to_policy_index()] + frac * noise[i]
 
         self.mcts.evaluate(root, position, policy[0], value[0][0])
 
