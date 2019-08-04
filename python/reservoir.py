@@ -15,7 +15,13 @@ class Reservoir:
         with open(path, 'rb') as f:
             self.records = pickle.load(f)
 
-    def sample(self, size):
+    def sample(self, mini_batch_size):
+        """Sample positions from game records
+
+        Return: [(position, mcts_output)]
+            where
+                mcts_output: (sfen_move, N / playout_num)
+        """
         pass  # ToDo
 
     def len(self):
