@@ -11,7 +11,7 @@ import graphviz
 
 from nn import network
 
-def run_mcts(position, nn, mcts):
+def run_mcts(position, nn, mcts, config):
     root = mcts.set_root()
     nninput = position.to_nninput().reshape((1, network.INPUT_CHANNEL, 5, 5))
     policy, value = nn.predict(nninput)
@@ -19,29 +19,26 @@ def run_mcts(position, nn, mcts):
 
     mcts.evaluate(root, position, policy[0], value[0][0])
 
-    SIMULATION_NUM = 800
-    BATCH_SIZE = 32
+    values = [None for _ in range(config['batch_size'])]
+    leaf_nodes = [None for _ in range(config['batch_size'])]
+    leaf_positions = [None for _ in range(config['batch_size'])]
 
-    values = [None for _ in range(BATCH_SIZE)]
-    leaf_nodes = [None for _ in range(BATCH_SIZE)]
-    leaf_positions = [None for _ in range(BATCH_SIZE)]
-
-    for _ in range(SIMULATION_NUM // BATCH_SIZE):
-        for b in range(BATCH_SIZE):
+    for _ in range(config['simulation_num'] // config['batch_size']):
+        for b in range(config['batch_size']):
             leaf_positions[b] = position.copy(True)
             leaf_nodes[b] = mcts.select_leaf(root, leaf_positions[b])
 
         # use neural network to evaluate the position
-        nninputs = np.zeros((BATCH_SIZE, network.INPUT_CHANNEL, 5, 5))
-        for b in range(BATCH_SIZE):
+        nninputs = np.zeros((config['batch_size'], network.INPUT_CHANNEL, 5, 5))
+        for b in range(config['batch_size']):
             nninputs[b] = leaf_positions[b].to_nninput().reshape((1, network.INPUT_CHANNEL, 5, 5))
         policy, value = nn.predict(nninputs)
         value = (value + 1) / 2
 
-        for b in range(BATCH_SIZE):
+        for b in range(config['batch_size']):
             values[b] = mcts.evaluate(leaf_nodes[b], leaf_positions[b], policy[b], value[b][0])
 
-        for b in range(BATCH_SIZE):
+        for b in range(config['batch_size']):
             mcts.backpropagate(leaf_nodes[b], values[b])
 
     return root
@@ -89,20 +86,30 @@ def main():
     position.set_start_position()
 
     neural_network = network.Network()
-    # neural_network.load('')
+    neural_network.load('./nn/weights/epoch_030.h5')
 
     # do predict once because the first prediction takes more time than latter one
     random_input = np.random.rand(1, network.INPUT_CHANNEL, 5, 5)
     neural_network.predict(random_input)
 
     mcts = minishogilib.MCTS()
+    config = {
+        'batch_size': 32,
+        'simulation_num': 3200
+    }
 
     while True:
         start_time = time.time()
-        root = run_mcts(position, neural_network, mcts)
-        elapsed = time.time() - start_time
 
-        best_move = mcts.best_move(root)
+        checkmate, checkmate_move = position.solve_checkmate_dfs(7)
+        if checkmate:
+            best_move = checkmate_move
+        else:
+            root = run_mcts(position, neural_network, mcts, config)
+            best_move = mcts.best_move(root)
+            mcts.print(root)
+
+        elapsed = time.time() - start_time
 
         if best_move.is_null_move():
             break
@@ -112,7 +119,6 @@ def main():
         print('--------------------')
         position.print()
         print(best_move)
-        mcts.print(root)
         print('time:', elapsed)
         print('--------------------')
 
