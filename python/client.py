@@ -27,22 +27,31 @@ class Client:
                 sc.send(b'parameter')
                 data = sc.recv(16)
                 data_size = int.from_bytes(data, 'little')
+
                 data = utils.recvall(sc, data_size)
+
+                sc.send(b'parameter_ok')
 
                 weights = pickle.loads(data)
                 self.nn.model.set_weights(weights)
 
             # selfplay
-            game_record = selfplay.run(self.nn, search, selfplay_config)
+            game_record = selfplay.run(self.nn, search, selfplay_config, True)
 
             # send result
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sc:
                 sc.connect((self.host, self.port))
                 sc.send(b'record')
 
+                data = sc.recv(1024)
+
+                assert data == b'ready', 'Protocol violation!'
+
                 data = pickle.dumps(game_record, protocol=2)
-                sc.send(sys.getsizeof(data).to_bytes(16, 'little'))
-                sc.send(data)
+                sc.send(len(data).to_bytes(16, 'little'))
+                sc.sendall(data)
+
+                sc.send(b'record_ok')
 
 if __name__ == '__main__':
     parser = OptionParser()

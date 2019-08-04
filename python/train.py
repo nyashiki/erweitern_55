@@ -4,6 +4,7 @@ from optparse import OptionParser
 import pickle
 import sys
 import threading
+import time
 
 import mcts
 from nn import network
@@ -48,48 +49,70 @@ class Trainer():
                     with self.session.as_default():
                         with self.graph.as_default():
                             data = pickle.dumps(self.nn.model.get_weights(), protocol=2)
-                            conn.send(sys.getsizeof(data).to_bytes(16, 'little'))
-                            conn.send(data)
+                            conn.send(len(data).to_bytes(16, 'little'))
+                            conn.sendall(data)
+
+                            data = conn.recv(16)
+                            assert data == b'parameter_ok', 'Protocol violation!'
 
                 log_file.write('[{}] sent the parameters to {}\n'.format(datetime.datetime.now(datetime.timezone.utc), str(addr)))
 
             elif message == b'record':
+                conn.send(b'ready')
+
                 data = conn.recv(16)
                 data_size = int.from_bytes(data, 'little')
-
                 data = utils.recvall(conn, data_size)
+                game_record = pickle.loads(data)
+
+                data = conn.recv(16)
+                assert data == b'record_ok', 'Protocol violation!'
 
                 with self.reservoir_lock:
-                    game_record = pickle.loads(data)
                     self.reservoir.push(game_record)
 
                 log_file.write('[{}] received a game record from {}\n'.format(datetime.datetime.now(datetime.timezone.utc), str(addr)))
 
-                if self.reservoir.len() % 10 == 0:
-                    with reservoir_lock:
+                with self.reservoir_lock:
+                    if self.reservoir.len() % 10 == 0:
                         self.reservoir.save('records.pkl')
 
             log_file.flush()
             conn.close()
 
     def update_parameters(self):
-        BATCH_SIZE = 1024
+        BATCH_SIZE = 128
         RECENT_GAMES = 50000
 
         log_file = open('training_log.txt', 'w')
 
+        prev_time = time.time()
+
         while True:
             with self.reservoir_lock:
-                nninputs, policies, values = self.reservoir.sample(BATCH_SIZE, RECENT_GAMES)
+                reservoir_len = self.reservoir.len()
+                if reservoir_len > 20:
+                    nninputs, policies, values = self.reservoir.sample(BATCH_SIZE, RECENT_GAMES)
+
+            current_time = time.time()
+            elapsed = current_time - prev_time
+            if elapsed > 5:
+                print('[updater] reservoir_len', reservoir_len)
+                prev_time = time.time()
 
             # Update neural network parameters
-            with self.nn_lock:
-                with self.session.as_default():
-                    with self.graph.as_default():
-                        loss_sum, policy_loss, value_loss = self.nn.step(nninputs, policies, values)
+            if reservoir_len > 20:
+                with self.nn_lock:
+                    with self.session.as_default():
+                        with self.graph.as_default():
+                            loss_sum, policy_loss, value_loss = self.nn.step(nninputs, policies, values)
+                            self.steps += 1
 
-            log_file.write('{}, {}, {}, {}\n'.format(datetime.datetime.now(datetime.timezone.utc), str(loss_sum), str(policy_loss), str(value_loss)))
-            log_file.flush()
+                            if self.steps % 100 == 0:
+                                self.nn.model.save('./weights/iter_{}.h5'.format(self.steps), include_optimizer=True)
+
+                log_file.write('{}, {}, {}, {}\n'.format(datetime.datetime.now(datetime.timezone.utc), str(loss_sum), str(policy_loss), str(value_loss)))
+                log_file.flush()
 
     def run(self):
         # Make the server which receives game records by selfplay from clients

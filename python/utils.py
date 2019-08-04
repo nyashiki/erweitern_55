@@ -3,7 +3,7 @@ def recvall(sock, data_size):
     while len(data) < data_size:
         packet = sock.recv(data_size - len(data))
         if not packet:
-            return data
+            break
 
         data += packet
 
