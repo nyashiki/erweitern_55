@@ -1,3 +1,4 @@
+import datetime
 import socket
 import pickle
 import sys
@@ -18,10 +19,10 @@ def run():
 
     print('Ready')
 
+    log_file = open('connection_log.txt', 'w')
+
     while True:
         conn, addr = sc.accept()
-        print('connected by', addr)
-
         message = conn.recv(1024)
 
         if message == b'parameter':
@@ -29,19 +30,21 @@ def run():
             conn.send(sys.getsizeof(data).to_bytes(16, 'little'))
             conn.send(data)
 
+            log_file.write('[{}] sent the parameters to {}\n'.format(datetime.datetime.now(datetime.timezone.utc), str(addr)))
+
         elif message == b'record':
             data = conn.recv(16)
             data_size = int.from_bytes(data, 'little')
-            print('data_size', data_size)
 
             data = utils.recvall(conn, data_size)
 
             game_record = pickle.loads(data)
             reservoir.push(game_record)
 
-            print(game_record.sfen_kif)
+            log_file.write('[{}] received a game record from {}\n'.format(datetime.datetime.now(datetime.timezone.utc), str(addr)))
 
-        else:
-            print('Unknown command:', message)
+            if reservoir.len() % 10 == 0:
+                reservoir.save('records.pkl')
 
+        log_file.flush()
         conn.close()
