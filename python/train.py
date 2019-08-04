@@ -16,6 +16,8 @@ class Trainer:
         self.steps = 0
 
     def collect_records(self, port):
+        self.nn.load('./nn/weights/epoch_030.h5')
+
         sc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sc.bind(('localhost', port))
         sc.listen(128)
@@ -56,13 +58,19 @@ class Trainer:
         BATCH_SIZE = 1024
         RECENT_GAMES = 50000
 
+        self.nn.load('./nn/weights/epoch_030.h5')
+        self.reservoir.load('records.pkl')
+
+        log_file = open('training_log.txt', 'w')
+
         while True:
             nninputs, policies, values = self.reservoir.sample(BATCH_SIZE, RECENT_GAMES)
 
             # Update neural network parameters
-            loss = self.nn.step(nninputs, policies, values)
-            print(loss)
+            loss_sum, policy_loss, value_loss = self.nn.step(nninputs, policies, values)
 
+            log_file.write('{}, {}, {}, {}\n'.format(datetime.datetime.now(datetime.timezone.utc), str(loss_sum), str(policy_loss), str(value_loss)))
+            log_file.flush()
 
 if __name__ == '__main__':
     parser = OptionParser()
@@ -74,4 +82,4 @@ if __name__ == '__main__':
     # trainer.collect_records()
 
     # Continue to update the neural network parameters
-    # trainer.update_parameters()
+    trainer.update_parameters()
