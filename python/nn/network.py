@@ -2,7 +2,10 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.callbacks import LearningRateScheduler
 from tensorflow.keras.callbacks import ModelCheckpoint
+import tensorflow.keras.backend as K
+
 import numpy as np
+
 
 INPUT_CHANNEL = 134
 
@@ -29,7 +32,7 @@ class Network:
         # Keras config
         config = tf.ConfigProto()
         # config.gpu_options.allow_growth = True
-        config.gpu_options.per_process_gpu_memory_fraction = 0.9
+        config.gpu_options.per_process_gpu_memory_fraction = 0.4
         sess = tf.Session(config=config)
         keras.backend.set_session(sess)
 
@@ -90,6 +93,10 @@ class Network:
         policy_labels = np.reshape(policy_labels, (-1, 69, 5, 5))
         policy_labels = np.transpose(policy_labels, axes=[0, 2, 3, 1])
         policy_labels = np.reshape(policy_labels, (-1, 5 * 5 * 69))
+
+        # set the new learning rate
+        # ToDo:
+        # K.set_value(self.model.optimizer.lr, <new_learning_rate>)
 
         loss = self.model.train_on_batch(train_images, [policy_labels, value_labels])
         return loss
