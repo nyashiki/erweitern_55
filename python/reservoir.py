@@ -17,3 +17,6 @@ class Reservoir:
 
     def sample(self, size):
         pass  # ToDo
+
+    def len(self):
+        return len(self.records)
