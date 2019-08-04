@@ -3,6 +3,8 @@ import pickle
 import minishogilib
 import numpy as np
 
+from nn import network
+
 class Reservoir:
     def __init__(self):
         self.records = []
@@ -26,9 +28,9 @@ class Reservoir:
             recent: How many recent games are the target of sampling
 
         # Returns:
-            [(position, mcts_output)]
-                where
-                    mcts_output: (sfen_move, N / playout_num)
+            nninputs: the representation of the neural network input layer of positions
+            policies: the representation of distributions of MCTS outputs
+            values: the winners of games
         """
 
         recent_records = self.records[-recent:]
@@ -40,7 +42,9 @@ class Reservoir:
         target_plys = np.random.randint(0, all_ply, mini_batch_size)
         target_plys = np.sort(target_plys)
 
-        mini_batch = []
+        nninputs = np.zeros((mini_batch_size, network.INPUT_CHANNEL, 5, 5), dtype='float32')
+        policies = np.zeros((mini_batch_size, 69 * 5 * 5), dtype='float32')
+        values = np.zeros((mini_batch_size, 1), dtype='float32')
 
         current_ply = 0
         target_index = 0
@@ -57,10 +61,24 @@ class Reservoir:
                     continue_flag = True
 
                     while current_ply + ply == target_plys[target_index]:
-                        mcts_result = record.mcts_result[ply]
-                        mcts_result = [(m, N / mcts_result[0]) for (m, N) in mcts_result[2]]
+                        # input
+                        nninputs[target_index] = np.reshape(position.to_nninput(), (network.INPUT_CHANNEL, 5, 5))
 
-                        mini_batch.append((position.copy(True), mcts_result))
+                        # policy
+                        sum_N, q, playouts = record.mcts_result[ply]
+                        for playout in playouts:
+                            move = position.sfen_to_move(playout[0])
+                            policies[target_index][move.to_policy_index()] = playout[1] / sum_N
+
+                        # value
+                        if record.winner == 2:
+                            values[target_index] = 0
+                        elif record.winner == position.get_side_to_move():
+                            values[target_index] = 1
+                        else:
+                            values[target_index] = -1
+
+
                         target_index += 1
 
                         if target_index == len(target_plys) or current_ply + record.ply <= target_plys[target_index]:
@@ -75,7 +93,7 @@ class Reservoir:
 
             current_ply += record.ply
 
-        return mini_batch
+        return nninputs, policies, values
 
     def len(self):
         return len(self.records)
