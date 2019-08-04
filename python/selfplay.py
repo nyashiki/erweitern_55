@@ -4,20 +4,26 @@ import time
 
 import gamerecord
 
-def run(nn, search, verbose=False):
+class SelfplayConfig:
+    def __init__(self):
+        self.num_sampling_moves = 30
+        self.max_moves = 512
+        self.use_dirichlet = False
+
+def run(nn, search, config, verbose=False):
     position = minishogilib.Position()
     position.set_start_position()
 
     game_record = gamerecord.GameRecord()
 
-    while True:
+    for _ in range(config.max_moves):
         start_time = time.time()
 
         checkmate, checkmate_move = position.solve_checkmate_dfs(7)
         if checkmate:
             best_move = checkmate_move
         else:
-            root = search.run(position, nn)
+            root = search.run(position, nn, config.use_dirichlet)
             best_move = search.best_move(root)
 
         if verbose:
@@ -30,7 +36,6 @@ def run(nn, search, verbose=False):
 
         if best_move.is_null_move():
             game_record.winner = 1 - position.get_side_to_move()
-            game_record.timestamp = int(datetime.now().timestamp())
 
             break
 
@@ -50,4 +55,5 @@ def run(nn, search, verbose=False):
             print('time:', elapsed)
             print('--------------------')
 
+    game_record.timestamp = int(datetime.now().timestamp())
     return game_record
