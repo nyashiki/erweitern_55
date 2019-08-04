@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 
-class Search:
+class Search(metaclass=ABCMeta):
     @abstractmethod
     def run(self):
         raise NotImplementedError

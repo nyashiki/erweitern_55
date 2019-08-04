@@ -11,6 +11,8 @@ class Config:
 
 class MCTS(search.Search):
     def __init__(self, config):
+        super(MCTS, self).__init__()
+
         self.config = config
         self.mcts = minishogilib.MCTS()
 
