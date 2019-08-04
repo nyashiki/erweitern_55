@@ -6,7 +6,6 @@ import gamerecord
 
 class SelfplayConfig:
     def __init__(self):
-        self.num_sampling_moves = 30
         self.max_moves = 512
         self.use_dirichlet = False
 
