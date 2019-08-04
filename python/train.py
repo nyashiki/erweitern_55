@@ -13,10 +13,9 @@ class Trainer:
     def __init__(self):
         self.reservoir = Reservoir()
         self.nn = network.Network()
+        self.steps = 0
 
     def collect_records(self, port):
-        self.nn.load('./nn/weights/epoch_030.h5')
-
         sc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sc.bind(('localhost', port))
         sc.listen(128)
@@ -55,14 +54,14 @@ class Trainer:
 
     def update_parameters(self):
         BATCH_SIZE = 1024
+        RECENT_GAMES = 50000
 
-        mini_batch = self.reservoir.sample(BATCH_SIZE)
+        while True:
+            nninputs, policies, values = self.reservoir.sample(BATCH_SIZE, RECENT_GAMES)
 
-        # Convert sfen_kifs and mcts_outputs to the neural network format
-        # ToDo:
-
-        # Update neural network parameters
-
+            # Update neural network parameters
+            loss = self.nn.step(nninputs, policies, values)
+            print(loss)
 
 
 if __name__ == '__main__':
@@ -70,7 +69,9 @@ if __name__ == '__main__':
     parser.add_option('-p', '--port', dest='port', help='port')
 
     trainer = Trainer()
-    trainer.reservoir.load('records.pkl')
 
     # Make the server which receives game records by selfplay from clients
     # trainer.collect_records()
+
+    # Continue to update the neural network parameters
+    # trainer.update_parameters()
