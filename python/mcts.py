@@ -2,17 +2,14 @@ import minishogilib
 import numpy as np
 
 from nn import network
-import search
 
 class Config:
     def __init__(self):
         self.batch_size = 32
         self.simulation_num = 800
 
-class MCTS(search.Search):
+class MCTS():
     def __init__(self, config):
-        super(MCTS, self).__init__()
-
         self.config = config
         self.mcts = minishogilib.MCTS()
 
@@ -52,4 +49,7 @@ class MCTS(search.Search):
         return self.mcts.best_move(node)
 
     def dump(self, node):
+        return self.mcts.dump(node)
+
+    def print(self, node):
         self.mcts.print(node)

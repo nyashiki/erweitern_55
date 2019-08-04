@@ -1,9 +1,13 @@
 import minishogilib
 import time
 
+import gamerecord
+
 def run(nn, search, verbose=False):
     position = minishogilib.Position()
     position.set_start_position()
+
+    game_record = gamerecord.GameRecord()
 
     while True:
         start_time = time.time()
@@ -15,8 +19,11 @@ def run(nn, search, verbose=False):
             root = search.run(position, nn)
             best_move = search.best_move(root)
 
-            if verbose:
-                search.dump(root)
+        if verbose:
+            if checkmate:
+                print('checkmate!')
+            else:
+                search.print(root)
 
         elapsed = time.time() - start_time
 
@@ -24,6 +31,13 @@ def run(nn, search, verbose=False):
             break
 
         position.do_move(best_move)
+
+        game_record.ply += 1
+        game_record.sfen_kif.append(best_move.sfen())
+        if checkmate:
+            game_record.mcts_result.append((1, 1.0, [(checkmate_move.sfen(), 1)]))
+        else:
+            game_record.mcts_result.append(search.dump(root))
 
         if verbose:
             print('--------------------')
