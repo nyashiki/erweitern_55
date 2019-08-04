@@ -1,3 +1,4 @@
+from datetime import datetime
 import minishogilib
 import time
 
@@ -28,6 +29,9 @@ def run(nn, search, verbose=False):
         elapsed = time.time() - start_time
 
         if best_move.is_null_move():
+            game_record.winner = 1 - position.get_side_to_move()
+            game_record.timestamp = int(datetime.now().timestamp())
+
             break
 
         position.do_move(best_move)
@@ -45,3 +49,5 @@ def run(nn, search, verbose=False):
             print(best_move)
             print('time:', elapsed)
             print('--------------------')
+
+    return game_record
