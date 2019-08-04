@@ -253,6 +253,23 @@ impl MCTS {
         return dot;
     }
 
+    /// プレイアウト回数，Q値, それぞれの手の訪問回数を出力する
+    pub fn dump(&self, node: usize) -> (u32, f32, std::vec::Vec<(String, u32)>) {
+        let mut distribution: std::vec::Vec<(String, u32)> = std::vec::Vec::new();
+
+        let q: f32 = if self.game_tree[node].n == 0 {
+            0.0
+        } else {
+            self.game_tree[node].w / self.game_tree[node].n as f32
+        };
+
+        for child in &self.game_tree[node].children {
+            distribution.push((self.game_tree[*child].m.sfen(), self.game_tree[*child].n));
+        }
+
+        return (self.game_tree[node].n, q, distribution);
+    }
+
     /// nodeの子に関する情報を出力する
     pub fn debug(&self, node: usize) {
         for child in &self.game_tree[node].children {
