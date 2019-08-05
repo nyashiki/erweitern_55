@@ -106,13 +106,12 @@ class Trainer():
                     with self.session.as_default():
                         with self.graph.as_default():
                             loss_sum, policy_loss, value_loss = self.nn.step(nninputs, policies, values)
-                            self.steps += 1
-
-                            if self.steps % 100 == 0:
+                            if self.steps % 5000 == 0:
                                 self.nn.model.save('./weights/iter_{}.h5'.format(self.steps), include_optimizer=True)
 
-                log_file.write('{}, {}, {}, {}\n'.format(datetime.datetime.now(datetime.timezone.utc), str(loss_sum), str(policy_loss), str(value_loss)))
+                log_file.write('{}, {}, {}, {}, {}\n'.format(datetime.datetime.now(datetime.timezone.utc), self.steps, loss_sum, policy_loss, value_loss))
                 log_file.flush()
+                self.steps += 1
 
     def run(self):
         # Make the server which receives game records by selfplay from clients
