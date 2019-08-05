@@ -16,9 +16,11 @@ class Client:
         self.nn = network.Network()
 
     def run(self):
-        selfplay_config = selfplay.SelfplayConfig()
-        search = mcts.MCTS(mcts.Config())
-        selfplay_config.use_dirichlet = True
+        mcts_config = mcts.Config()
+        mcts_config.simulation_num = 800
+        mcts_config.use_dirichlet = True
+
+        search = mcts.MCTS(mcts_config)
 
         while True:
             # load neural network parameters from server
@@ -36,7 +38,7 @@ class Client:
                 self.nn.model.set_weights(weights)
 
             # selfplay
-            game_record = selfplay.run(self.nn, search, selfplay_config, True)
+            game_record = selfplay.run(self.nn, search, selfplay.SelfplayConfig(), True)
 
             # send result
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sc:

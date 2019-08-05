@@ -7,6 +7,7 @@ class Config:
     def __init__(self):
         self.batch_size = 16
         self.simulation_num = 800
+        self.use_dirichlet = False
         self.dirichlet_alpha = 0.34
         self.exploration_fraction = 0.25
 
@@ -15,13 +16,13 @@ class MCTS():
         self.config = config
         self.mcts = minishogilib.MCTS()
 
-    def run(self, position, nn, use_dirichlet=False):
+    def run(self, position, nn):
         root = self.mcts.set_root()
         nninput = position.to_nninput().reshape((1, network.INPUT_CHANNEL, 5, 5))
         policy, value = nn.predict(nninput)
         value = (value + 1) / 2
 
-        if use_dirichlet:
+        if self.config.use_dirichlet:
             moves = position.generate_moves()
             noise = np.random.gamma(self.config.dirichlet_alpha, 1, len(moves))
             frac = self.config.exploration_fraction

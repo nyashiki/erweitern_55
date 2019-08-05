@@ -7,7 +7,6 @@ import gamerecord
 class SelfplayConfig:
     def __init__(self):
         self.max_moves = 512
-        self.use_dirichlet = False
 
 def run(nn, search, config, verbose=False):
     position = minishogilib.Position()
@@ -22,7 +21,7 @@ def run(nn, search, config, verbose=False):
         if checkmate:
             best_move = checkmate_move
         else:
-            root = search.run(position, nn, config.use_dirichlet)
+            root = search.run(position, nn)
             best_move = search.best_move(root)
 
         if verbose:
