@@ -31,8 +31,8 @@ class Network:
     def __init__(self):
         # Keras config
         config = tf.ConfigProto()
-        # config.gpu_options.allow_growth = True
-        config.gpu_options.per_process_gpu_memory_fraction = 0.4
+        config.gpu_options.allow_growth = True
+        # config.gpu_options.per_process_gpu_memory_fraction = 0.4
         sess = tf.Session(config=config)
         keras.backend.set_session(sess)
 
@@ -43,7 +43,7 @@ class Network:
         x = keras.layers.Conv2D(256, [3, 3], padding='same', activation=tf.nn.relu)(input_image)
 
         # Residual blocks
-        for i in range(10):
+        for i in range(11):
             x = self._residual_block(x)
 
         # Policy head
