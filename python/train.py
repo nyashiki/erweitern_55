@@ -110,8 +110,18 @@ class Trainer():
                 with self.nn_lock:
                     with self.session.as_default():
                         with self.graph.as_default():
+                            if self.steps < 100000:
+                                learning_rate = 2e-1
+                            elif self.steps < 300000:
+                                learning_rate = 2e-2
+                            elif self.steps < 500000:
+                                learning_rate = 2e-3
+                            else:
+                                learning_rate = 2e-4
+
                             loss_sum, policy_loss, value_loss = self.nn.step(
-                                nninputs, policies, values)
+                                nninputs, policies, values, learning_rate)
+
                             if self.steps % 5000 == 0:
                                 self.nn.model.save(
                                     './weights/iter_{}.h5'.format(self.steps), include_optimizer=True)
