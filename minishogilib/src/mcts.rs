@@ -110,6 +110,8 @@ impl MCTS {
             }
 
             node = self.select_puct_max_child(node);
+
+            assert!(node > 0);
             position.do_move(&self.game_tree[node].m);
         }
 
