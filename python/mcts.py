@@ -5,7 +5,7 @@ from nn import network
 
 class Config:
     def __init__(self):
-        self.batch_size = 16
+        self.batch_size = 32
         self.simulation_num = 800
         self.use_dirichlet = False
         self.dirichlet_alpha = 0.34
