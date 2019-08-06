@@ -9,10 +9,11 @@ import time
 import numpy as np
 
 import mcts
-from nn import network
+import network
 import selfplay
 
 import train
+
 
 def main():
     neural_network = network.Network()
@@ -24,6 +25,7 @@ def main():
 
     search = mcts.MCTS(mcts.Config())
     selfplay.run(neural_network, search, selfplay.SelfplayConfig(), True)
+
 
 if __name__ == '__main__':
     print(minishogilib.__version__)

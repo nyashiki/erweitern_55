@@ -3,7 +3,8 @@ import pickle
 import minishogilib
 import numpy as np
 
-from nn import network
+import network
+
 
 class Reservoir:
     def __init__(self):
@@ -42,7 +43,8 @@ class Reservoir:
         target_plys = np.random.randint(0, all_ply, mini_batch_size)
         target_plys = np.sort(target_plys)
 
-        nninputs = np.zeros((mini_batch_size, network.INPUT_CHANNEL, 5, 5), dtype='float32')
+        nninputs = np.zeros(
+            (mini_batch_size, network.INPUT_CHANNEL, 5, 5), dtype='float32')
         policies = np.zeros((mini_batch_size, 69 * 5 * 5), dtype='float32')
         values = np.zeros((mini_batch_size, 1), dtype='float32')
 
@@ -62,13 +64,15 @@ class Reservoir:
 
                     while current_ply + ply == target_plys[target_index]:
                         # input
-                        nninputs[target_index] = np.reshape(position.to_nninput(), (network.INPUT_CHANNEL, 5, 5))
+                        nninputs[target_index] = np.reshape(
+                            position.to_nninput(), (network.INPUT_CHANNEL, 5, 5))
 
                         # policy
                         sum_N, q, playouts = record.mcts_result[ply]
                         for playout in playouts:
                             move = position.sfen_to_move(playout[0])
-                            policies[target_index][move.to_policy_index()] = playout[1] / sum_N
+                            policies[target_index][move.to_policy_index()
+                                                   ] = playout[1] / sum_N
 
                         # value
                         if record.winner == 2:
@@ -77,7 +81,6 @@ class Reservoir:
                             values[target_index] = 1
                         else:
                             values[target_index] = -1
-
 
                         target_index += 1
 

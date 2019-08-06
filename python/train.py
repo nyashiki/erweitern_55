@@ -7,11 +7,12 @@ import threading
 import time
 
 import mcts
-from nn import network
+import network
 from reservoir import Reservoir
 import tensorflow as tf
 import tensorflow.keras.backend as K
 import utils
+
 
 class Trainer():
     def __init__(self, port):
@@ -48,14 +49,16 @@ class Trainer():
                 with self.nn_lock:
                     with self.session.as_default():
                         with self.graph.as_default():
-                            data = pickle.dumps(self.nn.model.get_weights(), protocol=2)
+                            data = pickle.dumps(
+                                self.nn.model.get_weights(), protocol=2)
                             conn.send(len(data).to_bytes(16, 'little'))
                             conn.sendall(data)
 
                             data = conn.recv(16)
                             assert data == b'parameter_ok', 'Protocol violation!'
 
-                log_file.write('[{}] sent the parameters to {}\n'.format(datetime.datetime.now(datetime.timezone.utc), str(addr)))
+                log_file.write('[{}] sent the parameters to {}\n'.format(
+                    datetime.datetime.now(datetime.timezone.utc), str(addr)))
 
             elif message == b'record':
                 conn.send(b'ready')
@@ -71,7 +74,8 @@ class Trainer():
                 with self.reservoir_lock:
                     self.reservoir.push(game_record)
 
-                log_file.write('[{}] received a game record from {}\n'.format(datetime.datetime.now(datetime.timezone.utc), str(addr)))
+                log_file.write('[{}] received a game record from {}\n'.format(
+                    datetime.datetime.now(datetime.timezone.utc), str(addr)))
 
                 with self.reservoir_lock:
                     if self.reservoir.len() % 10 == 0:
@@ -92,7 +96,8 @@ class Trainer():
             with self.reservoir_lock:
                 reservoir_len = self.reservoir.len()
                 if reservoir_len > 20:
-                    nninputs, policies, values = self.reservoir.sample(BATCH_SIZE, RECENT_GAMES)
+                    nninputs, policies, values = self.reservoir.sample(
+                        BATCH_SIZE, RECENT_GAMES)
 
             current_time = time.time()
             elapsed = current_time - prev_time
@@ -105,11 +110,14 @@ class Trainer():
                 with self.nn_lock:
                     with self.session.as_default():
                         with self.graph.as_default():
-                            loss_sum, policy_loss, value_loss = self.nn.step(nninputs, policies, values)
+                            loss_sum, policy_loss, value_loss = self.nn.step(
+                                nninputs, policies, values)
                             if self.steps % 5000 == 0:
-                                self.nn.model.save('./weights/iter_{}.h5'.format(self.steps), include_optimizer=True)
+                                self.nn.model.save(
+                                    './weights/iter_{}.h5'.format(self.steps), include_optimizer=True)
 
-                log_file.write('{}, {}, {}, {}, {}\n'.format(datetime.datetime.now(datetime.timezone.utc), self.steps, loss_sum, policy_loss, value_loss))
+                log_file.write('{}, {}, {}, {}, {}\n'.format(datetime.datetime.now(
+                    datetime.timezone.utc), self.steps, loss_sum, policy_loss, value_loss))
                 log_file.flush()
                 self.steps += 1
 
@@ -118,10 +126,12 @@ class Trainer():
         collect_records_thread = threading.Thread(target=self.collect_records)
 
         # Continue to update the neural network parameters
-        update_parameters_thread = threading.Thread(target=self.update_parameters)
+        update_parameters_thread = threading.Thread(
+            target=self.update_parameters)
 
         collect_records_thread.start()
         update_parameters_thread.start()
+
 
 if __name__ == '__main__':
     parser = OptionParser()

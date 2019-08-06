@@ -1,7 +1,8 @@
 import minishogilib
 import numpy as np
 
-from nn import network
+import network
+
 
 class Config:
     def __init__(self):
@@ -10,6 +11,7 @@ class Config:
         self.use_dirichlet = False
         self.dirichlet_alpha = 0.34
         self.exploration_fraction = 0.25
+
 
 class MCTS():
     def __init__(self, config):
@@ -28,7 +30,8 @@ class MCTS():
             frac = self.config.exploration_fraction
 
             for (i, m) in enumerate(moves):
-                policy[0][m.to_policy_index()] = (1 - frac) * policy[0][m.to_policy_index()] + frac * noise[i]
+                policy[0][m.to_policy_index()] = (
+                    1 - frac) * policy[0][m.to_policy_index()] + frac * noise[i]
 
         self.mcts.evaluate(root, position, policy[0], value[0][0])
 
@@ -42,14 +45,17 @@ class MCTS():
                 leaf_nodes[b] = self.mcts.select_leaf(root, leaf_positions[b])
 
             # use neural network to evaluate the position
-            nninputs = np.zeros((self.config.batch_size, network.INPUT_CHANNEL, 5, 5))
+            nninputs = np.zeros(
+                (self.config.batch_size, network.INPUT_CHANNEL, 5, 5))
             for b in range(self.config.batch_size):
-                nninputs[b] = leaf_positions[b].to_nninput().reshape((1, network.INPUT_CHANNEL, 5, 5))
+                nninputs[b] = leaf_positions[b].to_nninput().reshape(
+                    (1, network.INPUT_CHANNEL, 5, 5))
             policy, value = nn.predict(nninputs)
             value = (value + 1) / 2
 
             for b in range(self.config.batch_size):
-                values[b] = self.mcts.evaluate(leaf_nodes[b], leaf_positions[b], policy[b], value[b][0])
+                values[b] = self.mcts.evaluate(
+                    leaf_nodes[b], leaf_positions[b], policy[b], value[b][0])
 
             for b in range(self.config.batch_size):
                 self.mcts.backpropagate(leaf_nodes[b], values[b])

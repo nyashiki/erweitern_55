@@ -4,7 +4,7 @@ import pickle
 import sys
 
 import mcts
-from nn import network
+import network
 import selfplay
 import utils
 
@@ -38,7 +38,8 @@ class Client:
                 self.nn.model.set_weights(weights)
 
             # selfplay
-            game_record = selfplay.run(self.nn, search, selfplay.SelfplayConfig(), True)
+            game_record = selfplay.run(
+                self.nn, search, selfplay.SelfplayConfig(), True)
 
             # send result
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sc:
@@ -55,10 +56,12 @@ class Client:
 
                 sc.send(b'record_ok')
 
+
 if __name__ == '__main__':
     parser = OptionParser()
     parser.add_option('-i', '--ip', dest='ip', help='connection target ip')
-    parser.add_option('-p', '--port', dest='port', help='connection target port')
+    parser.add_option('-p', '--port', dest='port',
+                      help='connection target port')
 
     (options, args) = parser.parse_args()
 
