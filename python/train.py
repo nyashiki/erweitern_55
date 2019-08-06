@@ -85,7 +85,7 @@ class Trainer():
             conn.close()
 
     def update_parameters(self):
-        BATCH_SIZE = 128
+        BATCH_SIZE = 1024
         RECENT_GAMES = 50000
 
         log_file = open('training_log.txt', 'w')
@@ -111,13 +111,13 @@ class Trainer():
                     with self.session.as_default():
                         with self.graph.as_default():
                             if self.steps < 100000:
-                                learning_rate = 2e-1
+                                learning_rate = 1e-3
                             elif self.steps < 300000:
-                                learning_rate = 2e-2
+                                learning_rate = 1e-4
                             elif self.steps < 500000:
-                                learning_rate = 2e-3
+                                learning_rate = 1e-5
                             else:
-                                learning_rate = 2e-4
+                                learning_rate = 1e-6
 
                             loss_sum, policy_loss, value_loss = self.nn.step(
                                 nninputs, policies, values, learning_rate)
