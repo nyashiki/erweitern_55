@@ -12,7 +12,7 @@ import utils
 class Client:
     def __init__(self, ip, port):
         self.host = ip
-        self.port = int(port)
+        self.port = port
         self.nn = network.Network()
 
     def run(self):
@@ -59,8 +59,9 @@ class Client:
 
 if __name__ == '__main__':
     parser = OptionParser()
-    parser.add_option('-i', '--ip', dest='ip', help='connection target ip')
-    parser.add_option('-p', '--port', dest='port',
+    parser.add_option('-i', '--ip', dest='ip',
+                      help='connection target ip', default='localhost')
+    parser.add_option('-p', '--port', dest='port', type='int', default=10055,
                       help='connection target port')
 
     (options, args) = parser.parse_args()

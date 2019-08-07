@@ -15,13 +15,13 @@ import utils
 
 
 class Trainer():
-    def __init__(self, port):
+    def __init__(self, port, store_only=False):
         self.port = port
 
         self.reservoir = Reservoir()
         self.nn = network.Network()
         self.nn.model._make_predict_function()
-        self.session = K.get_session()
+        self.session = tf.compat.v1.keras.backend.get_session()
         self.graph = tf.compat.v1.get_default_graph()
 
         self.steps = 0
@@ -29,7 +29,9 @@ class Trainer():
         self.nn_lock = threading.Lock()
         self.reservoir_lock = threading.Lock()
 
-        # self.nn.load('./nn/weights/epoch_030.h5')
+        self.store_only = store_only
+
+        self.nn.load('./weights/iter_75000.h5')
         # self.reservoir.load('records.pkl')
 
     def collect_records(self):
@@ -73,6 +75,7 @@ class Trainer():
 
                 with self.reservoir_lock:
                     self.reservoir.push(game_record)
+                    print('reservoir_len', self.reservoir.len())
 
                 log_file.write('[{}] received a game record from {}\n'.format(
                     datetime.datetime.now(datetime.timezone.utc), str(addr)))
@@ -90,20 +93,12 @@ class Trainer():
 
         log_file = open('training_log.txt', 'w')
 
-        prev_time = time.time()
-
         while True:
             with self.reservoir_lock:
                 reservoir_len = self.reservoir.len()
                 if reservoir_len > 20:
                     nninputs, policies, values = self.reservoir.sample(
                         BATCH_SIZE, RECENT_GAMES)
-
-            current_time = time.time()
-            elapsed = current_time - prev_time
-            if elapsed > 5:
-                print('[updater] reservoir_len', reservoir_len)
-                prev_time = time.time()
 
             # Update neural network parameters
             if reservoir_len > 20:
@@ -134,20 +129,23 @@ class Trainer():
     def run(self):
         # Make the server which receives game records by selfplay from clients
         collect_records_thread = threading.Thread(target=self.collect_records)
+        collect_records_thread.start()
 
         # Continue to update the neural network parameters
         update_parameters_thread = threading.Thread(
             target=self.update_parameters)
-
-        collect_records_thread.start()
-        update_parameters_thread.start()
+        if not self.store_only:
+            update_parameters_thread.start()
 
 
 if __name__ == '__main__':
     parser = OptionParser()
-    parser.add_option('-p', '--port', dest='port', help='port')
+    parser.add_option('-p', '--port', dest='port', type='int',
+                      default=10055, help='port')
+    parser.add_option('-s', '--store', action='store_true', dest='store', default=False,
+                      help='Only store game records. Training will not be conducted.',)
 
     (options, args) = parser.parse_args()
 
-    trainer = Trainer(int(options.port))
+    trainer = Trainer(options.port, options.store)
     trainer.run()
