@@ -13,7 +13,7 @@ class SelfplayConfig:
         # playout cap oscillation
         self.playout_cap_oscillation = False
         self.N = 800
-        self.n = 128
+        self.n = 256
         self.oscillation_frac = 0.25
 
 
@@ -74,7 +74,7 @@ def run(nn, search, config, verbose=False):
         else:
             game_record.mcts_result.append(search.dump(root))
 
-            if search.config.simulation_num == config.N:
+            if not config.playout_cap_oscillation or search.config.simulation_num >= config.N:
                 game_record.learning_target_plys.append(game_record.ply)
 
         game_record.ply += 1
