@@ -94,3 +94,6 @@ class Reservoir(object):
 
     def len(self):
         return len(self.records)
+
+    def len_learning_targets(self):
+        return len(sum(self.learning_targets, []))

@@ -31,7 +31,7 @@ class Trainer():
 
         self.store_only = store_only
 
-        self.nn.load('./weights/iter_75000.h5')
+        # self.nn.load('./weights/iter_75000.h5')
         # self.reservoir.load('records.pkl')
 
     def collect_records(self):
@@ -75,7 +75,8 @@ class Trainer():
 
                 with self.reservoir_lock:
                     self.reservoir.push(game_record)
-                    print('reservoir_len', self.reservoir.len())
+                    print('reservoir_len', self.reservoir.len(),
+                          self.reservoir.len_learning_targets())
 
                 log_file.write('[{}] received a game record from {}\n'.format(
                     datetime.datetime.now(datetime.timezone.utc), str(addr)))
@@ -95,36 +96,36 @@ class Trainer():
 
         while True:
             with self.reservoir_lock:
-                reservoir_len = self.reservoir.len()
-                if reservoir_len > 20:
-                    nninputs, policies, values = self.reservoir.sample(
-                        BATCH_SIZE, RECENT_GAMES)
+                if self.reservoir.len_learning_targets() < BATCH_SIZE:
+                    continue
+
+                nninputs, policies, values = self.reservoir.sample(
+                    BATCH_SIZE, RECENT_GAMES)
 
             # Update neural network parameters
-            if reservoir_len > 20:
-                with self.nn_lock:
-                    with self.session.as_default():
-                        with self.graph.as_default():
-                            if self.steps < 100000:
-                                learning_rate = 1e-3
-                            elif self.steps < 300000:
-                                learning_rate = 1e-4
-                            elif self.steps < 500000:
-                                learning_rate = 1e-5
-                            else:
-                                learning_rate = 1e-6
+            with self.nn_lock:
+                with self.session.as_default():
+                    with self.graph.as_default():
+                        if self.steps < 100000:
+                            learning_rate = 1e-3
+                        elif self.steps < 300000:
+                            learning_rate = 1e-4
+                        elif self.steps < 500000:
+                            learning_rate = 1e-5
+                        else:
+                            learning_rate = 1e-6
 
-                            loss_sum, policy_loss, value_loss = self.nn.step(
-                                nninputs, policies, values, learning_rate)
+                        loss_sum, policy_loss, value_loss = self.nn.step(
+                            nninputs, policies, values, learning_rate)
 
-                            if self.steps % 5000 == 0:
-                                self.nn.model.save(
-                                    './weights/iter_{}.h5'.format(self.steps), include_optimizer=True)
+                        if self.steps % 5000 == 0:
+                            self.nn.model.save(
+                                './weights/iter_{}.h5'.format(self.steps), include_optimizer=True)
 
-                log_file.write('{}, {}, {}, {}, {}\n'.format(datetime.datetime.now(
-                    datetime.timezone.utc), self.steps, loss_sum, policy_loss, value_loss))
-                log_file.flush()
-                self.steps += 1
+            log_file.write('{}, {}, {}, {}, {}\n'.format(datetime.datetime.now(
+                datetime.timezone.utc), self.steps, loss_sum, policy_loss, value_loss))
+            log_file.flush()
+            self.steps += 1
 
     def run(self):
         # Make the server which receives game records by selfplay from clients
