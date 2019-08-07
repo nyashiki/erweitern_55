@@ -13,7 +13,7 @@ class SelfplayConfig:
         # playout cap oscillation
         self.playout_cap_oscillation = False
         self.N = 800
-        self.n = 256
+        self.n = 128
         self.oscillation_frac = 0.25
 
 
