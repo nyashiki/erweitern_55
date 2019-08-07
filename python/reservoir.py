@@ -2,11 +2,12 @@ import pickle
 
 import minishogilib
 import numpy as np
+import random
 
 import network
 
 
-class Reservoir:
+class Reservoir(object):
     def __init__(self):
         self.records = []
         self.learning_targets = []
@@ -14,16 +15,18 @@ class Reservoir:
     def push(self, record):
         index = len(self.records)
         self.records.append(record)
-
         self.learning_targets.append(record.learning_target_plys)
 
     def save(self, path):
         with open(path, 'wb') as f:
-            pickle.dump(self.records, f, protocol=2)
+            pickle.dump(self.__dict__, f, protocol=2)
 
     def load(self, path):
         with open(path, 'rb') as f:
-            self.records = pickle.load(f)
+            data = pickle.load(f)
+
+        self.__dict__.clear()
+        self.__dict__.update(data)
 
     def sample(self, mini_batch_size, recent):
         """Sample positions from game records
@@ -38,12 +41,15 @@ class Reservoir:
             values: the winners of games
         """
 
+        # add index
         recent_targets = self.learning_targets[-recent:]
+        recent_targets = [[(i, t) for t in x]
+                          for (i, x) in enumerate(recent_targets)]
 
         # flatten targets
         recent_targets = sum(recent_targets, [])
 
-        target_plys = np.random.choice(recent_targets, mini_batch_size)
+        target_plys = random.sample(recent_targets, mini_batch_size)
         target_plys.sort()
 
         nninputs = np.zeros(
@@ -59,7 +65,7 @@ class Reservoir:
 
             record = self.records[target_plys[target_index][0]]
 
-            for ply in range(self.records[target_plys[target_index][1]]):
+            for ply in range(target_plys[target_index][1]):
                 move = position.sfen_to_move(record.sfen_kif[ply])
                 position.do_move(move)
 
@@ -68,7 +74,7 @@ class Reservoir:
                 position.to_nninput(), (network.INPUT_CHANNEL, 5, 5))
 
             # policy
-            sum_N, q, playouts = record.mcts_result[ply]
+            sum_N, q, playouts = record.mcts_result[target_plys[target_index][1]]
             for playout in playouts:
                 move = position.sfen_to_move(playout[0])
                 policies[target_index][move.to_policy_index()
