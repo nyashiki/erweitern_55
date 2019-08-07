@@ -9,9 +9,16 @@ import network
 class Reservoir:
     def __init__(self):
         self.records = []
+        self.learning_targets = []
 
-    def push(self, record):
+    def push(self, record, minimum_playouts=0):
+        index = len(self.records)
+
         self.records.append(record)
+
+        for ply in record.ply:
+            if record.mcts_result[ply].sum_N == 1 or record.mcts_result[ply].sum_N >= minimum_playouts:
+                self.learning_targets.append((index, ply))
 
     def save(self, path):
         with open(path, 'wb') as f:

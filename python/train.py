@@ -34,7 +34,7 @@ class Trainer():
         self.nn.load('./weights/iter_75000.h5')
         # self.reservoir.load('records.pkl')
 
-    def collect_records(self):
+    def collect_records(self, minimum_playouts=0):
         sc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sc.bind(('localhost', self.port))
         sc.listen(128)
@@ -74,7 +74,7 @@ class Trainer():
                 assert data == b'record_ok', 'Protocol violation!'
 
                 with self.reservoir_lock:
-                    self.reservoir.push(game_record)
+                    self.reservoir.push(game_record, minimum_playouts)
                     print('reservoir_len', self.reservoir.len())
 
                 log_file.write('[{}] received a game record from {}\n'.format(
