@@ -100,7 +100,7 @@ impl MCTS {
     }
 
     pub fn set_root(&mut self, position: &Position, reuse: bool) -> usize {
-        if reuse && self.game_tree[self.prev_root].is_used {
+        if reuse && self.game_tree[self.prev_root].is_used && position.ply > 0 {
             let last_move = position.kif[position.ply as usize - 1];
 
             let mut next_root: usize = 0;
