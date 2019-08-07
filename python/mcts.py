@@ -8,12 +8,15 @@ class Config:
     def __init__(self):
         self.batch_size = 32
         self.simulation_num = 800
+
         self.use_dirichlet = False
         self.dirichlet_alpha = 0.34
         self.exploration_fraction = 0.25
+
         self.forced_playouts = False
         self.reuse_tree = True
         self.target_pruning = False
+        self.immediate = False
 
 
 class MCTS():
@@ -23,6 +26,11 @@ class MCTS():
 
     def run(self, position, nn):
         root = self.mcts.set_root(position, self.config.reuse_tree)
+
+        if self.config.immediate:
+            if self.mcts.get_playouts(root) >= self.config.simulation_num:
+                return root
+
         nninput = position.to_nninput().reshape((1, network.INPUT_CHANNEL, 5, 5))
         policy, value = nn.predict(nninput)
         value = (value + 1) / 2
