@@ -11,6 +11,7 @@ class Config:
         self.use_dirichlet = False
         self.dirichlet_alpha = 0.34
         self.exploration_fraction = 0.25
+        self.forced_playouts = False
 
 
 class MCTS():
@@ -42,7 +43,8 @@ class MCTS():
         for _ in range(self.config.simulation_num // self.config.batch_size):
             for b in range(self.config.batch_size):
                 leaf_positions[b] = position.copy(True)
-                leaf_nodes[b] = self.mcts.select_leaf(root, leaf_positions[b])
+                leaf_nodes[b] = self.mcts.select_leaf(
+                    root, leaf_positions[b], self.config.forced_playouts)
 
             # use neural network to evaluate the position
             nninputs = np.zeros(

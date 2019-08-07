@@ -33,9 +33,22 @@ impl Node {
         }
     }
 
-    pub fn get_puct(&self, parent_n: f32) -> f32 {
+    pub fn get_puct(&self, parent_n: f32, forced_playouts: bool) -> f32 {
         const C_BASE: f32 = 19652.0;
         const C_INIT: f32 = 1.25;
+
+        // leaf nodes that are already selected do not have to be selected once more.
+        if !self.expanded() && self.virtual_loss > 0.0 {
+            return 0.0;
+        }
+
+        // KataGo approach (https://arxiv.org/abs/1902.10565)
+        if forced_playouts {
+            let n_forced: f32 = (2.0 * self.p * parent_n).sqrt();
+            if (self.n as f32) < n_forced {
+                return std::f32::MAX;
+            }
+        }
 
         let c: f32 = ((1.0 + (self.n as f32) + C_BASE) / C_BASE).log2() + C_INIT;
         let q: f32 = if self.n as f32 + self.virtual_loss == 0.0 {
@@ -99,7 +112,7 @@ impl MCTS {
         );
     }
 
-    pub fn select_leaf(&mut self, root_node: usize, position: &mut Position) -> usize {
+    pub fn select_leaf(&mut self, root_node: usize, position: &mut Position, forced_playouts: bool) -> usize {
         let mut node = root_node;
 
         loop {
@@ -109,7 +122,7 @@ impl MCTS {
                 break;
             }
 
-            node = self.select_puct_max_child(node);
+            node = self.select_puct_max_child(node, forced_playouts);
 
             assert!(node > 0);
             position.do_move(&self.game_tree[node].m);
@@ -282,7 +295,7 @@ impl MCTS {
                 self.game_tree[*child].v,
                 self.game_tree[*child].w,
                 self.game_tree[*child].n,
-                self.game_tree[*child].get_puct(self.game_tree[node].n as f32),
+                self.game_tree[*child].get_puct(self.game_tree[node].n as f32, false),
                 self.game_tree[*child].virtual_loss,
                 self.game_tree[node].n
             );
@@ -291,13 +304,13 @@ impl MCTS {
 }
 
 impl MCTS {
-    pub fn select_puct_max_child(&self, node: usize) -> usize {
+    pub fn select_puct_max_child(&self, node: usize, forced_playouts: bool) -> usize {
         let mut puct_max: f32 = -1.0;
         let mut puct_max_child: usize = 0;
 
         for child in &self.game_tree[node].children {
             let puct = self.game_tree[*child]
-                .get_puct(self.game_tree[node].n as f32 + self.game_tree[node].virtual_loss);
+                .get_puct(self.game_tree[node].n as f32 + self.game_tree[node].virtual_loss, forced_playouts);
 
             if puct > puct_max {
                 puct_max = puct;
