@@ -42,14 +42,15 @@ class Reservoir(object):
         """
 
         # add index
+        recent_records = self.records[-recent:]
         recent_targets = self.learning_targets[-recent:]
-        recent_targets = [[(i, t) for t in x]
+        target_plys = [[(i, t) for t in x]
                           for (i, x) in enumerate(recent_targets)]
 
         # flatten targets
-        recent_targets = sum(recent_targets, [])
+        target_plys = sum(target_plys, [])
 
-        target_plys = random.sample(recent_targets, mini_batch_size)
+        target_plys = random.sample(target_plys, mini_batch_size)
         target_plys.sort()
 
         nninputs = np.zeros(
@@ -63,7 +64,7 @@ class Reservoir(object):
             position = minishogilib.Position()
             position.set_start_position()
 
-            record = self.records[target_plys[target_index][0]]
+            record = recent_records[target_plys[target_index][0]]
 
             for ply in range(target_plys[target_index][1]):
                 move = position.sfen_to_move(record.sfen_kif[ply])
