@@ -367,6 +367,10 @@ impl MCTS {
         return (self.game_tree[node].n, q, distribution);
     }
 
+    pub fn get_playouts(&self, node: usize) -> u32 {
+        return self.game_tree[node].n;
+    }
+
     /// nodeの子に関する情報を出力する
     pub fn debug(&self, node: usize) {
         for child in &self.game_tree[node].children {
