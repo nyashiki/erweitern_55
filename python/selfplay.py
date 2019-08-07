@@ -64,13 +64,20 @@ def run(nn, search, config, verbose=False):
 
         position.do_move(best_move)
 
-        game_record.ply += 1
         game_record.sfen_kif.append(best_move.sfen())
         if checkmate:
             game_record.mcts_result.append(
                 (1, 1.0, [(checkmate_move.sfen(), 1)]))
+
+            game_record.learning_target_plys.append(game_record.ply)
+
         else:
             game_record.mcts_result.append(search.dump(root))
+
+            if search.config.simulation_num == config.N:
+                game_record.learning_target_plys.append(game_record.ply)
+
+        game_record.ply += 1
 
         if verbose:
             print('--------------------')
