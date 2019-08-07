@@ -296,7 +296,7 @@ impl MCTS {
                 )
                 .to_string(),
             );
-            if self.game_tree[n_max_node].parent != 0 {
+            if n_max_node != node {
                 dot.push_str(
                     &format!(
                         "  {} -> {} [label=\"{}\"];\n",
