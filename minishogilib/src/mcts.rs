@@ -321,8 +321,38 @@ impl MCTS {
     }
 
     /// プレイアウト回数，Q値, それぞれの手の訪問回数を出力する
-    pub fn dump(&self, node: usize) -> (u32, f32, std::vec::Vec<(String, u32)>) {
+    pub fn dump(&mut self, node: usize, target_pruning: bool) -> (u32, f32, std::vec::Vec<(String, u32)>) {
         let mut distribution: std::vec::Vec<(String, u32)> = std::vec::Vec::new();
+
+        if target_pruning {
+            let n_max_child = self.select_n_max_child(node);
+            let children = self.game_tree[node].children.clone();
+
+            let n_max_puct = self.game_tree[n_max_child].get_puct(self.game_tree[node].n as f32, false);
+
+            for child in &children {
+                if *child == n_max_child {
+                    continue;
+                }
+
+                let n_forced: f32 = (2.0 * self.game_tree[*child].p * self.game_tree[node].n as f32).sqrt();
+
+                for _ in 1..n_forced as usize {
+                    if self.game_tree[*child].n == 0 {
+                        break;
+                    }
+
+                    let puct = self.game_tree[*child].get_puct(self.game_tree[node].n as f32, false);
+
+                    if puct < n_max_puct {
+                        break;
+                    }
+
+                    self.game_tree[*child].n -= 1;
+                }
+            }
+        }
+
 
         let q: f32 = if self.game_tree[node].n == 0 {
             0.0

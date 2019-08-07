@@ -13,6 +13,7 @@ class Config:
         self.exploration_fraction = 0.25
         self.forced_playouts = False
         self.reuse_tree = True
+        self.target_pruning = False
 
 
 class MCTS():
@@ -69,7 +70,7 @@ class MCTS():
         return self.mcts.best_move(node)
 
     def dump(self, node):
-        return self.mcts.dump(node)
+        return self.mcts.dump(node, self.config.target_pruning)
 
     def print(self, node):
         self.mcts.print(node)
