@@ -12,6 +12,7 @@ class Config:
         self.dirichlet_alpha = 0.34
         self.exploration_fraction = 0.25
         self.forced_playouts = False
+        self.reuse_tree = True
 
 
 class MCTS():
@@ -20,7 +21,7 @@ class MCTS():
         self.mcts = minishogilib.MCTS()
 
     def run(self, position, nn):
-        root = self.mcts.set_root()
+        root = self.mcts.set_root(position, self.config.reuse_tree)
         nninput = position.to_nninput().reshape((1, network.INPUT_CHANNEL, 5, 5))
         policy, value = nn.predict(nninput)
         value = (value + 1) / 2

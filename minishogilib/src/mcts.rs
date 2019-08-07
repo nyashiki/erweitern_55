@@ -16,10 +16,11 @@ pub struct Node {
     pub children: std::vec::Vec<usize>,
     pub is_terminal: bool,
     pub virtual_loss: f32,
+    pub is_used: bool,
 }
 
 impl Node {
-    pub fn new(parent: usize, m: Move, policy: f32) -> Node {
+    pub fn new(parent: usize, m: Move, policy: f32, is_used: bool) -> Node {
         Node {
             n: 0,
             v: 0.0,
@@ -30,7 +31,22 @@ impl Node {
             children: Vec::new(),
             is_terminal: false,
             virtual_loss: 0.0,
+            is_used: is_used,
         }
+    }
+
+    pub fn clear(&mut self) {
+        self.n = 0;
+        self.v = 0.0;
+        self.p = 0.0;
+        self.w = 0.0;
+        self.m = NULL_MOVE;
+        self.parent = 0;
+        self.children.clear();
+        self.children.shrink_to_fit();
+        self.is_terminal = false;
+        self.virtual_loss = 0.0;
+        self.is_used = false;
     }
 
     pub fn get_puct(&self, parent_n: f32, forced_playouts: bool) -> f32 {
@@ -66,25 +82,53 @@ impl Node {
     }
 }
 
+const NODE_MAX: usize = 1000000;
+
 #[pyclass]
 pub struct MCTS {
     pub game_tree: std::vec::Vec<Node>,
-    pub node_count: usize,
+    pub node_index: usize,
+
+    prev_root: usize,
 }
 
 #[pymethods]
 impl MCTS {
     #[new]
     pub fn new(obj: &PyRawObject) {
-        obj.init(MCTS { game_tree: vec![Node::new(0, NULL_MOVE, 0.0); 1000000], node_count: 0 });
+        obj.init(MCTS { game_tree: vec![Node::new(0, NULL_MOVE, 0.0, false); NODE_MAX], node_index: 0, prev_root: 0 });
     }
 
-    pub fn set_root(&mut self) -> usize {
-        for node in &mut self.game_tree {
-            *node = Node::new(0, NULL_MOVE, 0.0);
+    pub fn set_root(&mut self, position: &Position, reuse: bool) -> usize {
+        if reuse && self.game_tree[self.prev_root].is_used {
+            let last_move = position.kif[position.ply as usize - 1];
+
+            let mut next_root: usize = 0;
+
+            for child in &self.game_tree[self.prev_root].children {
+                if self.game_tree[*child].m == last_move {
+                    next_root = *child;
+                    break;
+                }
+            }
+
+            if next_root != 0 {
+                assert!(self.game_tree[next_root].is_used);
+                self.eliminate_except(self.prev_root, next_root);
+                self.prev_root = next_root;
+
+                return next_root;
+            }
         }
 
-        self.node_count = 2;
+        for node in &mut self.game_tree {
+            node.clear();
+        }
+
+        self.game_tree[1].is_used = true;
+        self.node_index = 2;
+
+        self.prev_root = 1;
         return 1;
     }
 
@@ -179,11 +223,19 @@ impl MCTS {
 
         // set policy and vaue
         for m in &moves {
-            let index = m.to_policy_index();
+            let policy_index = m.to_policy_index();
 
-            self.game_tree[self.node_count] = Node::new(node, *m, policy[index] / legal_policy_sum);
-            self.game_tree[node].children.push(self.node_count);
-            self.node_count += 1;
+            let mut index = self.node_index;
+            loop {
+                if !self.game_tree[index].is_used {
+                    self.game_tree[index] = Node::new(node, *m, policy[policy_index] / legal_policy_sum, true);
+                    self.game_tree[node].children.push(index);
+                    self.node_index = (index + 1) % NODE_MAX;
+
+                    break;
+                }
+                index = (index + 1) % NODE_MAX;
+            }
         }
         self.game_tree[node].v = value;
 
@@ -304,7 +356,31 @@ impl MCTS {
 }
 
 impl MCTS {
-    pub fn select_puct_max_child(&self, node: usize, forced_playouts: bool) -> usize {
+    fn eliminate_except(&mut self, root: usize, except_node: usize) {
+        let mut nodes: std::vec::Vec<usize> = std::vec::Vec::new();
+
+        nodes.push(root);
+
+        while nodes.len() > 0 {
+            let n = nodes.pop().unwrap();
+
+            if !self.game_tree[n].is_used {
+                continue;
+            }
+
+            if n == except_node {
+                continue;
+            }
+
+            for child in &self.game_tree[n].children {
+                nodes.push(*child);
+            }
+
+            self.game_tree[n].clear();
+        }
+    }
+
+    fn select_puct_max_child(&self, node: usize, forced_playouts: bool) -> usize {
         let mut puct_max: f32 = -1.0;
         let mut puct_max_child: usize = 0;
 
@@ -321,7 +397,7 @@ impl MCTS {
         return puct_max_child;
     }
 
-    pub fn select_n_max_child(&self, node: usize) -> usize {
+    fn select_n_max_child(&self, node: usize) -> usize {
         let mut n_max: u32 = 0;
         let mut n_max_child: usize = 0;
 
