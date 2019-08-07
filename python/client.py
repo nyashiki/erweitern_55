@@ -22,6 +22,9 @@ class Client:
 
         search = mcts.MCTS(mcts_config)
 
+        selfplay_config = selfplay.SelfplayConfig()
+        selfplay_config.playout_cap_oscillation = True
+
         while True:
             # load neural network parameters from server
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sc:
@@ -39,7 +42,7 @@ class Client:
 
             # selfplay
             game_record = selfplay.run(
-                self.nn, search, selfplay.SelfplayConfig(), True)
+                self.nn, search, selfplay_config, True)
 
             # send result
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sc:
