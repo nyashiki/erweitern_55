@@ -66,30 +66,36 @@ class Reservoir(object):
 
             record = recent_records[target_plys[target_index][0]]
 
-            for ply in range(target_plys[target_index][1]):
+            ply = 0
+            while True:
+                if ply == target_plys[target_index][1]:
+                    # input
+                    nninputs[target_index] = np.reshape(
+                        position.to_nninput(), (network.INPUT_CHANNEL, 5, 5))
+
+                    # policy
+                    sum_N, q, playouts = record.mcts_result[target_plys[target_index][1]]
+                    for playout in playouts:
+                        move = position.sfen_to_move(playout[0])
+                        policies[target_index][move.to_policy_index()
+                                            ] = playout[1] / sum_N
+
+                    # value
+                    if record.winner == 2:
+                        values[target_index] = 0
+                    elif record.winner == position.get_side_to_move():
+                        values[target_index] = 1
+                    else:
+                        values[target_index] = -1
+
+                    target_index += 1
+
+                    if target_index == mini_batch_size or target_plys[target_index - 1][0] != target_plys[target_index][0]:
+                        break
+
                 move = position.sfen_to_move(record.sfen_kif[ply])
                 position.do_move(move)
-
-            # input
-            nninputs[target_index] = np.reshape(
-                position.to_nninput(), (network.INPUT_CHANNEL, 5, 5))
-
-            # policy
-            sum_N, q, playouts = record.mcts_result[target_plys[target_index][1]]
-            for playout in playouts:
-                move = position.sfen_to_move(playout[0])
-                policies[target_index][move.to_policy_index()
-                                       ] = playout[1] / sum_N
-
-            # value
-            if record.winner == 2:
-                values[target_index] = 0
-            elif record.winner == position.get_side_to_move():
-                values[target_index] = 1
-            else:
-                values[target_index] = -1
-
-            target_index += 1
+                ply += 1
 
         return nninputs, policies, values
 
