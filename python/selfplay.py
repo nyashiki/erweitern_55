@@ -12,7 +12,7 @@ class SelfplayConfig:
 
         # playout cap oscillation
         self.playout_cap_oscillation = False
-        self.N = 1600
+        self.N = 800
         self.n = 128
         self.oscillation_frac = 0.25
 
@@ -40,16 +40,16 @@ def run(nn, search, config, verbose=False):
                 if np.random.rand() < config.oscillation_frac:
                     search.config.simulation_num = config.N
                     search.config.forced_playouts = True
-                    search.config.reuse_tree = True
+                    search.config.reuse_tree = False
                     search.config.target_pruning = True
-                    search.config.immediate = True
+                    search.config.immediate = False
 
                 else:
                     search.config.simulation_num = config.n
                     search.config.forced_playouts = True
-                    search.config.reuse_tree = False
-                    search.config.target_pruning = True
-                    search.config.immediate = False
+                    search.config.reuse_tree = True
+                    search.config.target_pruning = False
+                    search.config.immediate = True
 
             root = search.run(position, nn)
             best_move = search.best_move(root)
