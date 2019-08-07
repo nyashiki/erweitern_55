@@ -10,10 +10,11 @@ import utils
 
 
 class Client:
-    def __init__(self, ip, port):
+    def __init__(self, ip, port, update=True):
         self.host = ip
         self.port = port
-        self.nn = network.Network()
+        self.nn = None
+        self.update = update
 
     def run(self):
         mcts_config = mcts.Config()
@@ -27,18 +28,22 @@ class Client:
 
         while True:
             # load neural network parameters from server
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sc:
-                sc.connect((self.host, self.port))
-                sc.send(b'parameter')
-                data = sc.recv(16)
-                data_size = int.from_bytes(data, 'little')
+            if self.nn is None or self.update:
+                if self.nn is None:
+                    self.nn = network.Network()
 
-                data = utils.recvall(sc, data_size)
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sc:
+                    sc.connect((self.host, self.port))
+                    sc.send(b'parameter')
+                    data = sc.recv(16)
+                    data_size = int.from_bytes(data, 'little')
 
-                sc.send(b'parameter_ok')
+                    data = utils.recvall(sc, data_size)
 
-                weights = pickle.loads(data)
-                self.nn.model.set_weights(weights)
+                    sc.send(b'parameter_ok')
+
+                    weights = pickle.loads(data)
+                    self.nn.model.set_weights(weights)
 
             # selfplay
             game_record = selfplay.run(
@@ -66,8 +71,10 @@ if __name__ == '__main__':
                       help='connection target ip', default='localhost')
     parser.add_option('-p', '--port', dest='port', type='int', default=10055,
                       help='connection target port')
+    parser.add_option('-s', '--no-update', action='store_true', dest='no_update', default=False,
+                      help='If true, neural network parameters will not be updated.',)
 
     (options, args) = parser.parse_args()
 
-    client = Client(options.ip, options.port)
+    client = Client(options.ip, options.port, not options.no_update)
     client.run()
