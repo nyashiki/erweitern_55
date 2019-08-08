@@ -45,10 +45,10 @@ class Reservoir(object):
         recent_records = self.records[-recent:]
         recent_targets = self.learning_targets[-recent:]
         target_plys = [[(i, t) for t in x]
-                          for (i, x) in enumerate(recent_targets)]
+                       for (i, x) in enumerate(recent_targets)]
 
         # flatten targets
-        target_plys = sum(target_plys, [])
+        target_plys = [j for i in target_plys for j in i]
 
         target_plys = random.sample(target_plys, mini_batch_size)
         target_plys.sort()
@@ -78,7 +78,7 @@ class Reservoir(object):
                     for playout in playouts:
                         move = position.sfen_to_move(playout[0])
                         policies[target_index][move.to_policy_index()
-                                            ] = playout[1] / sum_N
+                                               ] = playout[1] / sum_N
 
                     # value
                     if record.winner == 2:
@@ -105,4 +105,3 @@ class Reservoir(object):
     def len_learning_targets(self):
         flatten = [j for i in self.learning_targets for j in i]
         return len(flatten)
-
