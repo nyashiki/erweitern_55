@@ -72,7 +72,7 @@ class Network:
         self.model = keras.Model(inputs=input_image, outputs=[policy, value])
 
         # optimizerを定義
-        self.model.compile(optimizer=tf.keras.optimizers.SGD(lr=1e-4, decay=1e-6, momentum=0.9),
+        self.model.compile(optimizer=tf.keras.optimizers.SGD(lr=1e-4, decay=1e-6, momentum=0.9, clipnorm=1),
                            loss={'policy': keras.losses.categorical_crossentropy,
                                  'value': keras.losses.mean_squared_error},
                            loss_weights={'policy': 1, 'value': 1})
