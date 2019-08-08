@@ -103,4 +103,6 @@ class Reservoir(object):
         return len(self.records)
 
     def len_learning_targets(self):
-        return len(sum(self.learning_targets, []))
+        flatten = [j for i in self.learning_targets for j in i]
+        return len(flatten)
+
