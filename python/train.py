@@ -133,7 +133,7 @@ class Trainer():
                         loss_sum, policy_loss, value_loss = self.nn.step(
                             nninputs, policies, values, learning_rate)
 
-                        if self.steps % 5000 == 0:
+                        if self.steps % 10000 == 0:
                             self.nn.model.save(
                                 './weights/iter_{}.h5'.format(self.steps), include_optimizer=True)
 
