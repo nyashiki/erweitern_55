@@ -8,7 +8,7 @@ import numpy as np
 
 
 INPUT_CHANNEL = 134
-
+REGULARIZER_c = 1e-4
 
 def move_to_policy_index(color, move):
     """
@@ -46,7 +46,7 @@ class Network:
 
         # Convolution layer
         x = keras.layers.Conv2D(
-            256, [3, 3], padding='same', activation=tf.nn.relu)(input_image)
+            256, [3, 3], padding='same', activation=tf.nn.relu, kernel_regularizer=keras.regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(input_image)
 
         # Residual blocks
         for i in range(5):
@@ -54,25 +54,25 @@ class Network:
 
         # Policy head
         policy = keras.layers.Conv2D(
-            256, [3, 3], padding='same', activation=tf.nn.relu)(x)
+            256, [3, 3], padding='same', activation=tf.nn.relu, kernel_regularizer=keras.regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
         policy = keras.layers.Conv2D(
-            69, [3, 3], padding='same', activation=tf.nn.relu)(policy)
+            69, [3, 3], padding='same', activation=tf.nn.relu, kernel_regularizer=keras.regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(policy)
         policy = keras.layers.Flatten()(policy)
         policy = keras.layers.Softmax(name='policy')(policy)
 
         # Value head
         value = keras.layers.Conv2D(
-            1, [3, 3], padding='same', activation=tf.nn.relu)(x)
+            1, [3, 3], padding='same', activation=tf.nn.relu, kernel_regularizer=keras.regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
         value = keras.layers.Flatten()(value)
-        value = keras.layers.Dense(256, activation=tf.nn.relu)(value)
+        value = keras.layers.Dense(256, activation=tf.nn.relu, kernel_regularizer=keras.regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
         value = keras.layers.Dense(
-            1, activation=tf.nn.tanh, name='value')(value)
+            1, activation=tf.nn.tanh, name='value', kernel_regularizer=keras.regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
 
         # define the model
         self.model = keras.Model(inputs=input_image, outputs=[policy, value])
 
         # optimizerを定義
-        self.model.compile(optimizer=tf.keras.optimizers.SGD(lr=1e-1, decay=1e-6, momentum=0.9),
+        self.model.compile(optimizer=tf.keras.optimizers.SGD(lr=1e-1, momentum=0.9),
                            loss={'policy': keras.losses.categorical_crossentropy,
                                  'value': keras.losses.mean_squared_error},
                            loss_weights={'policy': 1, 'value': 1})
@@ -81,11 +81,11 @@ class Network:
         conv_filters = int(input_image.shape[3])
 
         x = keras.layers.Conv2D(
-            conv_filters, conv_kernel_shape, padding='same')(input_image)
+            conv_filters, conv_kernel_shape, padding='same', kernel_regularizer=keras.regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(input_image)
         x = keras.layers.BatchNormalization()(x)
         x = keras.layers.Activation('relu')(x)
         x = keras.layers.Conv2D(
-            conv_filters, conv_kernel_shape, padding='same')(x)
+            conv_filters, conv_kernel_shape, padding='same', kernel_regularizer=keras.regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
         x = keras.layers.BatchNormalization()(x)
         x = keras.layers.Add()([x, input_image])
         x = keras.layers.Activation('relu')(x)
