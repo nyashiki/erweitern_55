@@ -10,11 +10,12 @@ import utils
 
 
 class Client:
-    def __init__(self, ip, port, update=True):
+    def __init__(self, ip, port, update=True, update_iter=10):
         self.host = ip
         self.port = port
         self.nn = None
         self.update = update
+        self.update_iter = update_iter
 
     def run(self):
         mcts_config = mcts.Config()
@@ -26,9 +27,11 @@ class Client:
         selfplay_config = selfplay.SelfplayConfig()
         selfplay_config.playout_cap_oscillation = True
 
+        iter = 0
+
         while True:
             # load neural network parameters from server
-            if self.nn is None or self.update:
+            if self.nn is None or (self.update and iter % self.update_iter == 0):
                 if self.nn is None:
                     self.nn = network.Network()
 
@@ -64,6 +67,8 @@ class Client:
 
                 sc.send(b'record_ok')
 
+        iter += 1
+
 
 if __name__ == '__main__':
     parser = OptionParser()
@@ -73,8 +78,9 @@ if __name__ == '__main__':
                       help='connection target port')
     parser.add_option('-s', '--no-update', action='store_true', dest='no_update', default=False,
                       help='If true, neural network parameters will not be updated.',)
+    parser.add_option('-u', '--update-iter', dest='update_iter', type='int', default=10, help='The iteration to update neural network parameters.')
 
     (options, args) = parser.parse_args()
 
-    client = Client(options.ip, options.port, not options.no_update)
+    client = Client(options.ip, options.port, not options.no_update, options.update_iter)
     client.run()
