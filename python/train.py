@@ -54,19 +54,19 @@ class Trainer():
 
             if message == b'parameter':
                 with self.nn_lock:
-                    with self.session.as_default():
-                        with self.graph.as_default():
-                            if not self.nn_pickle_data is None:
-                                data = self.nn_pickle_data
-                            else:
+                    if not self.nn_pickle_data is None:
+                        data = self.nn_pickle_data
+                    else:
+                        with self.session.as_default():
+                            with self.graph.as_default():
                                 data = pickle.dumps(
                                     self.nn.model.get_weights(), protocol=2)
 
-                            conn.send(len(data).to_bytes(16, 'little'))
-                            conn.sendall(data)
+                    conn.send(len(data).to_bytes(16, 'little'))
+                    conn.sendall(data)
 
-                            data = conn.recv(16)
-                            assert data == b'parameter_ok', 'Protocol violation!'
+                    data = conn.recv(16)
+                    assert data == b'parameter_ok', 'Protocol violation!'
 
                 log_file.write('[{}] sent the parameters to {}\n'.format(
                     datetime.datetime.now(datetime.timezone.utc), str(addr)))
