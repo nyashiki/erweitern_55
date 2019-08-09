@@ -104,7 +104,7 @@ class Trainer():
 
     def update_parameters(self):
         BATCH_SIZE = 1024
-        RECENT_GAMES = 50000
+        RECENT_GAMES = 100000
 
         log_file = open('training_log.txt', 'w')
 
