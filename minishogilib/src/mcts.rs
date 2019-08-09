@@ -422,7 +422,7 @@ impl MCTS {
             let puct = self.game_tree[*child]
                 .get_puct(self.game_tree[node].n as f32 + self.game_tree[node].virtual_loss, forced_playouts);
 
-            if puct > puct_max {
+            if puct_max_child == 0 || puct > puct_max {
                 puct_max = puct;
                 puct_max_child = *child;
             }
