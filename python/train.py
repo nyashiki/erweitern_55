@@ -37,6 +37,8 @@ class Trainer():
         if not weight_file is None:
             self.nn.load(weight_file)
 
+        self.nn_pickle_data = None
+
     def collect_records(self):
         sc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sc.bind(('localhost', self.port))
@@ -54,8 +56,12 @@ class Trainer():
                 with self.nn_lock:
                     with self.session.as_default():
                         with self.graph.as_default():
-                            data = pickle.dumps(
-                                self.nn.model.get_weights(), protocol=2)
+                            if not self.nn_pickle_data is None:
+                                data = self.nn_pickle_data
+                            else:
+                                data = pickle.dumps(
+                                    self.nn.model.get_weights(), protocol=2)
+
                             conn.send(len(data).to_bytes(16, 'little'))
                             conn.sendall(data)
 
@@ -139,6 +145,11 @@ class Trainer():
             log_file.write('{}, {}, {}, {}, {}\n'.format(datetime.datetime.now(
                 datetime.timezone.utc), self.steps, loss_sum, policy_loss, value_loss))
             log_file.flush()
+
+            if self.steps % 100 == 0:
+                with self.nn_lock:
+                    self.nn_pickle_data = pickle.dumps(self.nn.model.get_weights(), protocol=2)
+
             self.steps += 1
 
     def run(self):
