@@ -1,6 +1,7 @@
 import datetime
 import minishogilib
 import socket
+import numpy as np
 from optparse import OptionParser
 import pickle
 import sys
@@ -105,7 +106,7 @@ class Trainer():
             conn.close()
 
     def update_parameters(self):
-        BATCH_SIZE = 2048
+        BATCH_SIZE = 4096
         RECENT_GAMES = 100000
 
         log_file = open('training_log.txt', 'w')
@@ -127,13 +128,13 @@ class Trainer():
                 with self.session.as_default():
                     with self.graph.as_default():
                         if self.steps < 100000:
-                            learning_rate = 2e-2
-                        elif self.steps < 300000:
                             learning_rate = 2e-3
-                        elif self.steps < 500000:
+                        elif self.steps < 300000:
                             learning_rate = 2e-4
-                        else:
+                        elif self.steps < 500000:
                             learning_rate = 2e-5
+                        else:
+                            learning_rate = 2e-6
 
                         loss_sum, policy_loss, value_loss = self.nn.step(
                             nninputs, policies, values, learning_rate)
@@ -145,7 +146,7 @@ class Trainer():
                                 './weights/iter_{}.h5'.format(self.steps), include_optimizer=True)
 
             log_file.write('{}, {}, {}, {}, {}, {}\n'.format(datetime.datetime.now(
-                datetime.timezone.utc), self.steps, loss_sum, policy_loss, value_loss, init_value))
+                datetime.timezone.utc), self.steps, loss_sum, policy_loss, value_loss, init_value[0][0]))
             log_file.flush()
 
             self.steps += 1
