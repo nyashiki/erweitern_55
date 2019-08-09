@@ -15,7 +15,7 @@ import utils
 
 
 class Trainer():
-    def __init__(self, port, store_only=False):
+    def __init__(self, port, store_only=False, record_file=None, weight_file=None):
         self.port = port
 
         self.reservoir = Reservoir()
@@ -31,8 +31,11 @@ class Trainer():
 
         self.store_only = store_only
 
-        # self.nn.load('./weights/iter_75000.h5')
-        # self.reservoir.load('records.pkl')
+        if not record_file is None:
+            self.reservoir.load(record_file)
+
+        if not weight_file is None:
+            self.nn.load(weight_file)
 
     def collect_records(self):
         sc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -156,8 +159,10 @@ if __name__ == '__main__':
                       default=10055, help='port')
     parser.add_option('-s', '--store', action='store_true', dest='store', default=False,
                       help='Only store game records. Training will not be conducted.',)
+    parser.add_option('-r', '--record_file', dest='record_file', default=None, help='Game records already played')
+    parser.add_option('-w', '--weight_file', dest='weight_file', default=None, help='Weights of neural network parameters')
 
     (options, args) = parser.parse_args()
 
-    trainer = Trainer(options.port, options.store)
+    trainer = Trainer(options.port, options.store, options.record_file, options.weight_file)
     trainer.run()
