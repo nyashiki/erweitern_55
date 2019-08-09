@@ -47,7 +47,7 @@ class Client:
 
             # selfplay
             game_record = selfplay.run(
-                self.nn, search, selfplay_config, True)
+                self.nn, search, selfplay_config)
 
             # send result
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sc:
