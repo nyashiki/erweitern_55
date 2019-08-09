@@ -38,6 +38,7 @@ class Trainer():
             self.nn.load(weight_file)
 
         self.nn_pickle_data = None
+        self.nn_pickle_data_lock = threading.Lock()
 
     def collect_records(self):
         sc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -53,14 +54,15 @@ class Trainer():
             message = conn.recv(1024)
 
             if message == b'parameter':
-                with self.nn_lock:
+                with self.nn_pickle_data_lock:
                     if not self.nn_pickle_data is None:
                         data = self.nn_pickle_data
                     else:
                         with self.session.as_default():
                             with self.graph.as_default():
-                                data = pickle.dumps(
-                                    self.nn.model.get_weights(), protocol=2)
+                                with self.nn_lock:
+                                    data = pickle.dumps(
+                                        self.nn.model.get_weights(), protocol=2)
 
                     conn.send(len(data).to_bytes(16, 'little'))
                     conn.sendall(data)
@@ -147,10 +149,11 @@ class Trainer():
             log_file.flush()
 
             if self.steps % 100 == 0:
-                with self.nn_lock:
                     with self.session.as_default():
                         with self.graph.as_default():
-                            self.nn_pickle_data = pickle.dumps(self.nn.model.get_weights(), protocol=2)
+                            with self.nn_lock:
+                                with self.nn_pickle_data_lock:
+                                    self.nn_pickle_data = pickle.dumps(self.nn.model.get_weights(), protocol=2)
 
             self.steps += 1
 
