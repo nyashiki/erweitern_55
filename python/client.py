@@ -67,7 +67,7 @@ class Client:
 
                 sc.send(b'record_ok')
 
-        iter += 1
+            iter += 1
 
 
 if __name__ == '__main__':
