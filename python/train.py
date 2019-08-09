@@ -148,7 +148,9 @@ class Trainer():
 
             if self.steps % 100 == 0:
                 with self.nn_lock:
-                    self.nn_pickle_data = pickle.dumps(self.nn.model.get_weights(), protocol=2)
+                    with self.session.as_default():
+                        with self.graph.as_default():
+                            self.nn_pickle_data = pickle.dumps(self.nn.model.get_weights(), protocol=2)
 
             self.steps += 1
 
