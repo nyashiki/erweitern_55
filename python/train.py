@@ -1,16 +1,17 @@
 import datetime
+import minishogilib
 import socket
 from optparse import OptionParser
 import pickle
 import sys
+import tensorflow as tf
+import tensorflow.keras.backend as K
 import threading
 import time
 
 import mcts
 import network
 from reservoir import Reservoir
-import tensorflow as tf
-import tensorflow.keras.backend as K
 import utils
 
 
@@ -109,6 +110,10 @@ class Trainer():
 
         log_file = open('training_log.txt', 'w')
 
+        position = minishogilib.Position()
+        position.set_start_position()
+        init_position_nn_input = np.reshape(position.to_nninput(), (1, network.INPUT_CHANNEL, 5, 5))
+
         while True:
             with self.reservoir_lock:
                 if self.reservoir.len_learning_targets() < BATCH_SIZE:
@@ -133,12 +138,14 @@ class Trainer():
                         loss_sum, policy_loss, value_loss = self.nn.step(
                             nninputs, policies, values, learning_rate)
 
+                        init_policy, init_value = self.nn.predict(init_position_nn_input)
+
                         if self.steps % 10000 == 0:
                             self.nn.model.save(
                                 './weights/iter_{}.h5'.format(self.steps), include_optimizer=True)
 
-            log_file.write('{}, {}, {}, {}, {}\n'.format(datetime.datetime.now(
-                datetime.timezone.utc), self.steps, loss_sum, policy_loss, value_loss))
+            log_file.write('{}, {}, {}, {}, {}, {}\n'.format(datetime.datetime.now(
+                datetime.timezone.utc), self.steps, loss_sum, policy_loss, value_loss, init_value))
             log_file.flush()
 
             self.steps += 1
