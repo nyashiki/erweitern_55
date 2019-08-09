@@ -10,7 +10,7 @@ import utils
 
 
 class Client:
-    def __init__(self, ip, port, update=True, update_iter=10):
+    def __init__(self, ip, port, update=True, update_iter=100):
         self.host = ip
         self.port = port
         self.nn = None
@@ -78,7 +78,7 @@ if __name__ == '__main__':
                       help='connection target port')
     parser.add_option('-s', '--no-update', action='store_true', dest='no_update', default=False,
                       help='If true, neural network parameters will not be updated.',)
-    parser.add_option('-u', '--update-iter', dest='update_iter', type='int', default=10, help='The iteration to update neural network parameters.')
+    parser.add_option('-u', '--update-iter', dest='update_iter', type='int', default=100, help='The iteration to update neural network parameters.')
 
     (options, args) = parser.parse_args()
 
