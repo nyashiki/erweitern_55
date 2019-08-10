@@ -82,12 +82,13 @@ impl Node {
     }
 }
 
-const NODE_MAX: usize = 1000000;
+const NODE_MAX: usize = 2000000;
 
 #[pyclass]
 pub struct MCTS {
     pub game_tree: std::vec::Vec<Node>,
     pub node_index: usize,
+    pub node_used_count: usize,
 
     prev_root: usize,
 }
@@ -96,7 +97,7 @@ pub struct MCTS {
 impl MCTS {
     #[new]
     pub fn new(obj: &PyRawObject) {
-        obj.init(MCTS { game_tree: vec![Node::new(0, NULL_MOVE, 0.0, false); NODE_MAX], node_index: 0, prev_root: 0 });
+        obj.init(MCTS { game_tree: vec![Node::new(0, NULL_MOVE, 0.0, false); NODE_MAX], node_index: 0, node_used_count: 0, prev_root: 0 });
     }
 
     pub fn set_root(&mut self, position: &Position, reuse: bool) -> usize {
@@ -128,6 +129,7 @@ impl MCTS {
 
         self.game_tree[1].is_used = true;
         self.node_index = 2;
+        self.node_used_count = 2;
 
         self.prev_root = 1;
         return 1;
@@ -155,6 +157,10 @@ impl MCTS {
                 self.game_tree[best_child].w / self.game_tree[best_child].n as f32
             }
         );
+    }
+
+    pub fn get_usage(&self) -> f32 {
+        return self.node_used_count as f32 / NODE_MAX as f32;
     }
 
     pub fn select_leaf(&mut self, root_node: usize, position: &mut Position, forced_playouts: bool) -> usize {
@@ -232,6 +238,7 @@ impl MCTS {
                     self.game_tree[index] = Node::new(node, *m, policy[policy_index] / legal_policy_sum, true);
                     self.game_tree[node].children.push(index);
                     self.node_index = (index + 1) % NODE_MAX;
+                    self.node_used_count += 1;
 
                     break;
                 }
@@ -412,6 +419,7 @@ impl MCTS {
             }
 
             self.game_tree[n].clear();
+            self.node_used_count -= 1;
         }
     }
 

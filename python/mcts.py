@@ -50,6 +50,9 @@ class MCTS():
         leaf_positions = [None for _ in range(self.config.batch_size)]
 
         for _ in range(self.config.simulation_num // self.config.batch_size):
+            if self.mcts.get_usage() > 0.9:
+                break
+
             for b in range(self.config.batch_size):
                 leaf_positions[b] = position.copy(True)
                 leaf_nodes[b] = self.mcts.select_leaf(
