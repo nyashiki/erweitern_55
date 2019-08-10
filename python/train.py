@@ -95,7 +95,7 @@ class Trainer():
                     datetime.datetime.now(datetime.timezone.utc), str(addr)))
 
                 with self.reservoir_lock:
-                    if self.reservoir.len() % 5000 == 0:
+                    if self.reservoir.len() % 10000 == 0:
                         print('[{}] save lockok'.format(
                             datetime.datetime.now(datetime.timezone.utc)))
                         self.reservoir.save('records.pkl')
