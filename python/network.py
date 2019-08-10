@@ -48,16 +48,17 @@ class Network:
         # Convolution layer
         x = keras.layers.Conv2D(
             256, [3, 3], padding='same', activation=tf.nn.relu, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(input_image)
+        x = keras.layers.BatchNormalization()(x)
 
         # Residual blocks
-        for i in range(5):
+        for i in range(11):
             x = self._residual_block(x)
 
         # Policy head
         policy = keras.layers.Conv2D(
             256, [3, 3], padding='same', activation=tf.nn.relu, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
-            policy = keras.layers.BatchNormalization()(policy)
-            policy = keras.layers.Conv2D(
+        policy = keras.layers.BatchNormalization()(policy)
+        policy = keras.layers.Conv2D(
             69, [3, 3], padding='same', activation=tf.nn.relu, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(policy)
         policy = keras.layers.Flatten()(policy)
         policy = keras.layers.Softmax(name='policy')(policy)
