@@ -69,7 +69,7 @@ class MCTS():
                     leaf_nodes[b], leaf_positions[b], policy[b], value[b][0])
 
             for b in range(self.config.batch_size):
-                self.mcts.backpropagate(leaf_nodes[b], values[b][0])
+                self.mcts.backpropagate(leaf_nodes[b], value[b][0])
 
         return root
 
