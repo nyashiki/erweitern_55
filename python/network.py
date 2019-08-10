@@ -2,6 +2,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.callbacks import LearningRateScheduler
 from tensorflow.keras.callbacks import ModelCheckpoint
+from tensorflow.keras import regularizers
 import tensorflow.keras.backend as K
 
 import numpy as np
@@ -46,7 +47,7 @@ class Network:
 
         # Convolution layer
         x = keras.layers.Conv2D(
-            256, [3, 3], padding='same', activation=tf.nn.relu, kernel_regularizer=keras.regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(input_image)
+            256, [3, 3], padding='same', activation=tf.nn.relu, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(input_image)
 
         # Residual blocks
         for i in range(5):
@@ -54,19 +55,19 @@ class Network:
 
         # Policy head
         policy = keras.layers.Conv2D(
-            256, [3, 3], padding='same', activation=tf.nn.relu, kernel_regularizer=keras.regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
+            256, [3, 3], padding='same', activation=tf.nn.relu, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
         policy = keras.layers.Conv2D(
-            69, [3, 3], padding='same', activation=tf.nn.relu, kernel_regularizer=keras.regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(policy)
+            69, [3, 3], padding='same', activation=tf.nn.relu, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(policy)
         policy = keras.layers.Flatten()(policy)
         policy = keras.layers.Softmax(name='policy')(policy)
 
         # Value head
         value = keras.layers.Conv2D(
-            1, [3, 3], padding='same', activation=tf.nn.relu, kernel_regularizer=keras.regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
+            1, [3, 3], padding='same', activation=tf.nn.relu, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
         value = keras.layers.Flatten()(value)
-        value = keras.layers.Dense(256, activation=tf.nn.relu, kernel_regularizer=keras.regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
+        # value = keras.layers.Dense(256, activation=tf.nn.relu, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
         value = keras.layers.Dense(
-            1, activation=tf.nn.tanh, name='value', kernel_regularizer=keras.regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
+            1, activation=tf.nn.tanh, name='value', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
 
         # define the model
         self.model = keras.Model(inputs=input_image, outputs=[policy, value])
@@ -81,11 +82,11 @@ class Network:
         conv_filters = int(input_image.shape[3])
 
         x = keras.layers.Conv2D(
-            conv_filters, conv_kernel_shape, padding='same', kernel_regularizer=keras.regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(input_image)
+            conv_filters, conv_kernel_shape, padding='same', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(input_image)
         x = keras.layers.BatchNormalization()(x)
         x = keras.layers.Activation('relu')(x)
         x = keras.layers.Conv2D(
-            conv_filters, conv_kernel_shape, padding='same', kernel_regularizer=keras.regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
+            conv_filters, conv_kernel_shape, padding='same', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
         x = keras.layers.BatchNormalization()(x)
         x = keras.layers.Add()([x, input_image])
         x = keras.layers.Activation('relu')(x)
