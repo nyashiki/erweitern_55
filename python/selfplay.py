@@ -48,7 +48,7 @@ def run(nn, search, config, verbose=False):
                     search.config.simulation_num = config.n
                     search.config.forced_playouts = True
                     search.config.reuse_tree = True
-                    search.config.target_pruning = False
+                    search.config.target_pruning = True
                     search.config.immediate = True
 
             root = search.run(position, nn)
