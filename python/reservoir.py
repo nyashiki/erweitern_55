@@ -44,11 +44,7 @@ class Reservoir(object):
         # add index
         recent_records = self.records[-recent:]
         recent_targets = self.learning_targets[-recent:]
-        target_plys = [[(i, t) for t in x]
-                       for (i, x) in enumerate(recent_targets)]
-
-        # flatten targets
-        target_plys = [j for i in target_plys for j in i]
+        target_plys = [(i, t) for (i, x) in enumerate(recent_targets) for t in x]
 
         target_plys = random.sample(target_plys, mini_batch_size)
         target_plys.sort()
