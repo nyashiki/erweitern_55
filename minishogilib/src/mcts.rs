@@ -116,6 +116,7 @@ impl MCTS {
                 assert!(self.game_tree[next_root].is_used);
                 self.eliminate_except(self.prev_root, next_root);
                 self.prev_root = next_root;
+                self.game_tree[next_root].parent = 0;
 
                 return next_root;
             }
