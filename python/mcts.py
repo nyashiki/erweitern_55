@@ -85,5 +85,8 @@ class MCTS():
     def print(self, node):
         self.mcts.print(node)
 
+    def debug(self, node):
+        self.mcts.debug(node)
+
     def visualize(self, node, node_num=20):
         return self.mcts.visualize(node, node_num)
