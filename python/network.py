@@ -56,7 +56,8 @@ class Network:
         # Policy head
         policy = keras.layers.Conv2D(
             256, [3, 3], padding='same', activation=tf.nn.relu, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
-        policy = keras.layers.Conv2D(
+            policy = keras.layers.BatchNormalization()(policy)
+            policy = keras.layers.Conv2D(
             69, [3, 3], padding='same', activation=tf.nn.relu, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(policy)
         policy = keras.layers.Flatten()(policy)
         policy = keras.layers.Softmax(name='policy')(policy)
@@ -64,8 +65,9 @@ class Network:
         # Value head
         value = keras.layers.Conv2D(
             1, [3, 3], padding='same', activation=tf.nn.relu, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
+        value = keras.layers.BatchNormalization()(value)
         value = keras.layers.Flatten()(value)
-        # value = keras.layers.Dense(256, activation=tf.nn.relu, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
+        value = keras.layers.Dense(256, activation=tf.nn.relu, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
         value = keras.layers.Dense(
             1, activation=tf.nn.tanh, name='value', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
 
