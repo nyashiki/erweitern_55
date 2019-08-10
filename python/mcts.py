@@ -46,7 +46,6 @@ class MCTS():
 
         self.mcts.evaluate(root, position, policy[0], value[0][0])
 
-        values = [None for _ in range(self.config.batch_size)]
         leaf_nodes = [None for _ in range(self.config.batch_size)]
         leaf_positions = [None for _ in range(self.config.batch_size)]
 
@@ -66,11 +65,11 @@ class MCTS():
             value = (value + 1) / 2
 
             for b in range(self.config.batch_size):
-                values[b] = self.mcts.evaluate(
+                value[b][0] = self.mcts.evaluate(
                     leaf_nodes[b], leaf_positions[b], policy[b], value[b][0])
 
             for b in range(self.config.batch_size):
-                self.mcts.backpropagate(leaf_nodes[b], values[b])
+                self.mcts.backpropagate(leaf_nodes[b], values[b][0])
 
         return root
 
