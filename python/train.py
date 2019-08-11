@@ -141,7 +141,7 @@ class Trainer():
 
                         init_policy, init_value = self.nn.predict(init_position_nn_input)
 
-                        if self.steps % 10000 == 0:
+                        if self.steps % 5000 == 0:
                             self.nn.model.save(
                                 './weights/iter_{}.h5'.format(self.steps), include_optimizer=True)
 
