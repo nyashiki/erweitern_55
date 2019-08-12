@@ -82,10 +82,9 @@ impl Node {
     }
 }
 
-const NODE_MAX: usize = 2000000;
-
 #[pyclass]
 pub struct MCTS {
+    pub size: usize,
     pub game_tree: std::vec::Vec<Node>,
     pub node_index: usize,
     pub node_used_count: usize,
@@ -96,8 +95,16 @@ pub struct MCTS {
 #[pymethods]
 impl MCTS {
     #[new]
-    pub fn new(obj: &PyRawObject) {
-        obj.init(MCTS { game_tree: vec![Node::new(0, NULL_MOVE, 0.0, false); NODE_MAX], node_index: 0, node_used_count: 0, prev_root: 0 });
+    pub fn new(obj: &PyRawObject, memory: f32) {
+        let num_node: usize = (memory * 1024.0 * 1024.0 * 1024.0 / std::mem::size_of::<MCTS>() as f32) as usize;
+
+        obj.init(MCTS {
+            size: num_node,
+            game_tree: vec![Node::new(0, NULL_MOVE, 0.0, false); num_node],
+            node_index: 0,
+            node_used_count: 0,
+            prev_root: 0
+        });
     }
 
     pub fn set_root(&mut self, position: &Position, reuse: bool) -> usize {
@@ -142,6 +149,7 @@ impl MCTS {
     }
 
     pub fn print(&self, root: usize) {
+        println!("usage: {:.3}% ({}/{})", self.node_used_count as f32 / self.size as f32 * 100.0, self.node_used_count, self.size);
         println!("playout: {}", self.game_tree[root].n);
 
         let best_child: usize = self.select_n_max_child(root);
@@ -160,7 +168,7 @@ impl MCTS {
     }
 
     pub fn get_usage(&self) -> f32 {
-        return self.node_used_count as f32 / NODE_MAX as f32;
+        return self.node_used_count as f32 / self.size as f32;
     }
 
     pub fn select_leaf(&mut self, root_node: usize, position: &mut Position, forced_playouts: bool) -> usize {
@@ -237,12 +245,12 @@ impl MCTS {
                 if !self.game_tree[index].is_used {
                     self.game_tree[index] = Node::new(node, *m, policy[policy_index] / legal_policy_sum, true);
                     self.game_tree[node].children.push(index);
-                    self.node_index = (index + 1) % NODE_MAX;
+                    self.node_index = (index + 1) % self.size;
                     self.node_used_count += 1;
 
                     break;
                 }
-                index = (index + 1) % NODE_MAX;
+                index = (index + 1) % self.size;
             }
         }
         self.game_tree[node].v = value;

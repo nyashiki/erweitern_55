@@ -6,6 +6,8 @@ import network
 
 class Config:
     def __init__(self):
+        self.memory_size = 0.1  # GB
+
         self.batch_size = 32
         self.simulation_num = 800
 
@@ -22,7 +24,7 @@ class Config:
 class MCTS():
     def __init__(self, config):
         self.config = config
-        self.mcts = minishogilib.MCTS()
+        self.mcts = minishogilib.MCTS(config.memory_size)
 
     def run(self, position, nn):
         root = self.mcts.set_root(position, self.config.reuse_tree)
