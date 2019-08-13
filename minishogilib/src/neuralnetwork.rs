@@ -63,7 +63,7 @@ impl Position {
                             + h * CHANNEL_NUM_PER_HISTORY
                             + piece_to_sequential_index(position.board[i].get_op_piece()))
                             * SQUARE_NB
-                            + (SQUARE_NB - i)] = 1f32;
+                            + (SQUARE_NB - i - 1)] = 1f32;
                     }
                 }
 
@@ -115,29 +115,20 @@ impl Move {
             if c == Color::White {
                 (64 + self.get_hand_index(), self.to)
             } else {
-                (64 + self.get_hand_index(), 24 - self.to)
+                (64 + self.get_hand_index(), SQUARE_NB - 1 - self.to)
             }
         } else {
             if self.get_promotion() {
                 if c == Color::White {
-                    (
-                        32 + 4 * self.direction as usize + self.amount - 1,
-                        self.from,
-                    )
+                    (32 + 4 * self.direction as usize + self.amount - 1, self.from)
                 } else {
-                    (
-                        32 + 4 * ((self.direction as usize + 4) % 8) + self.amount - 1,
-                        24 - self.from,
-                    )
+                    (32 + 4 * ((self.direction as usize + 4) % 8) + self.amount - 1, SQUARE_NB - 1 - self.from)
                 }
             } else {
                 if c == Color::White {
                     (4 * self.direction as usize + self.amount - 1, self.from)
                 } else {
-                    (
-                        4 * ((self.direction as usize + 4) % 8) + self.amount - 1,
-                        24 - self.from,
-                    )
+                    (4 * ((self.direction as usize + 4) % 8) + self.amount - 1, SQUARE_NB - 1 - self.from)
                 }
             }
         };

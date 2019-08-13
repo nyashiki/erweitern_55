@@ -1,0 +1,6 @@
+indent_style = "Block"
+use_small_heuristics = "Max"
+hard_tabs = false
+normalize_comments = true
+reorder_imports = true
+space_before_colon = false

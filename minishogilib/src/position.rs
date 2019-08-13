@@ -24,7 +24,7 @@ pub struct Position {
     pub hash: [u64; MAX_PLY + 1],
 
     pub adjacent_check_bb: [Bitboard; MAX_PLY + 1], // 近接駒による王手を表すbitboard
-    pub long_check_bb: [Bitboard; MAX_PLY + 1],     // 長い利きを持つ駒による王手を表すbitboard
+    pub long_check_bb: [Bitboard; MAX_PLY + 1],     /* 長い利きを持つ駒による王手を表すbitboard */
 
     pub sequent_check_count: [[i8; 2]; MAX_PLY + 1],
 }
@@ -81,21 +81,13 @@ impl Position {
 
         print!("WHITE HAND: ");
         for i in 0..5 {
-            print!(
-                "{}: {}, ",
-                hand_str[i],
-                self.hand[(Color::White as usize)][i]
-            );
+            print!("{}: {}, ", hand_str[i], self.hand[(Color::White as usize)][i]);
         }
         println!("");
 
         print!("BLACK HAND: ");
         for i in 0..5 {
-            print!(
-                "{}: {}, ",
-                hand_str[i],
-                self.hand[(Color::Black as usize)][i]
-            );
+            print!("{}: {}, ", hand_str[i], self.hand[(Color::Black as usize)][i]);
         }
         println!("");
 
@@ -554,6 +546,18 @@ impl Position {
 
     fn get_hash(&self) -> u64 {
         return self.hash[self.ply as usize];
+    }
+
+    pub fn get_adjacent_check_bb(&self) -> Bitboard {
+        return self.adjacent_check_bb[self.ply as usize];
+    }
+
+    pub fn get_long_check_bb(&self) -> Bitboard {
+        return self.long_check_bb[self.ply as usize];
+    }
+
+    pub fn get_check_bb(&self) -> Bitboard {
+        return self.get_adjacent_check_bb() | self.get_long_check_bb();
     }
 
     pub fn generate_moves_with_option(
@@ -1092,10 +1096,7 @@ fn move_do_undo_test() {
                 assert_eq!(position.get_hash(), temp_position.get_hash());
 
                 for i in 0..position.ply as usize {
-                    assert_eq!(
-                        position.adjacent_check_bb[i],
-                        temp_position.adjacent_check_bb[i]
-                    );
+                    assert_eq!(position.adjacent_check_bb[i], temp_position.adjacent_check_bb[i]);
                     assert_eq!(position.long_check_bb[i], temp_position.long_check_bb[i]);
                 }
 
@@ -1317,10 +1318,7 @@ fn hash_test() {
             assert_eq!(position.get_hash(), position.calculate_hash());
 
             // 手番bitと手番が一致することを確認する
-            assert_eq!(
-                position.side_to_move == Color::Black,
-                position.get_hash() & 1 != 0
-            );
+            assert_eq!(position.side_to_move == Color::Black, position.get_hash() & 1 != 0);
 
             let random_move = moves.choose(&mut rng).unwrap();
             position.do_move(random_move);

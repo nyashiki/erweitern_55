@@ -209,13 +209,9 @@ impl Piece {
                 Direction::W,
                 Direction::NW,
             ],
-            Piece::WSilver => vec![
-                Direction::N,
-                Direction::NE,
-                Direction::SE,
-                Direction::SW,
-                Direction::NW,
-            ],
+            Piece::WSilver => {
+                vec![Direction::N, Direction::NE, Direction::SE, Direction::SW, Direction::NW]
+            }
             Piece::WPawn => vec![Direction::N],
             Piece::WSilverX => vec![
                 Direction::N,
@@ -254,13 +250,9 @@ impl Piece {
                 Direction::SW,
                 Direction::W,
             ],
-            Piece::BSilver => vec![
-                Direction::NE,
-                Direction::SE,
-                Direction::S,
-                Direction::SW,
-                Direction::NW,
-            ],
+            Piece::BSilver => {
+                vec![Direction::NE, Direction::SE, Direction::S, Direction::SW, Direction::NW]
+            }
             Piece::BPawn => vec![Direction::S],
             Piece::BSilverX => vec![
                 Direction::N,
@@ -667,13 +659,8 @@ pub const PIECE_TYPE_ALL: [PieceType; 10] = [
     PieceType::RookX,
     PieceType::PawnX,
 ];
-pub const HAND_PIECE_TYPE_ALL: [PieceType; 5] = [
-    PieceType::Gold,
-    PieceType::Silver,
-    PieceType::Bishop,
-    PieceType::Rook,
-    PieceType::Pawn,
-];
+pub const HAND_PIECE_TYPE_ALL: [PieceType; 5] =
+    [PieceType::Gold, PieceType::Silver, PieceType::Bishop, PieceType::Rook, PieceType::Pawn];
 pub const DIRECTION_ALL: [Direction; 8] = [
     Direction::N,
     Direction::NE,
