@@ -49,6 +49,7 @@ class Client:
                     self.nn.model.set_weights(weights)
 
             # selfplay
+            search.clear()
             game_record = selfplay.run(
                 self.nn, search, selfplay_config)
 

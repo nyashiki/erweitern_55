@@ -107,6 +107,16 @@ impl MCTS {
         });
     }
 
+    pub fn clear(&mut self) {
+        for node in &mut self.game_tree {
+            node.clear();
+        }
+
+        self.node_index = 1;
+        self.node_used_count = 1;
+        self.prev_root = 0;
+    }
+
     pub fn set_root(&mut self, position: &Position, reuse: bool) -> usize {
         if reuse && self.game_tree[self.prev_root].is_used && position.ply > 0 {
             let last_move = position.kif[position.ply as usize - 1];

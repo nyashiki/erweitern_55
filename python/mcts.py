@@ -26,6 +26,9 @@ class MCTS():
         self.config = config
         self.mcts = minishogilib.MCTS(config.memory_size)
 
+    def clear(self):
+        self.mcts.clear()
+
     def run(self, position, nn):
         root = self.mcts.set_root(position, self.config.reuse_tree)
 
