@@ -84,8 +84,8 @@ class MCTS():
     def best_move(self, node):
         return self.mcts.best_move(node)
 
-    def dump(self, node):
-        return self.mcts.dump(node, self.config.target_pruning)
+    def dump(self, node, remove_zeros=True):
+        return self.mcts.dump(node, self.config.target_pruning, remove_zeros)
 
     def print(self, node):
         self.mcts.print(node)
