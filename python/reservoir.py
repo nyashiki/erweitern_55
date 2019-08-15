@@ -1,34 +1,49 @@
-import pickle
-
 import minishogilib
 import numpy as np
 import random
+import simplejson
 
+import gamerecord
 import network
 
 
 class Reservoir(object):
-    def __init__(self):
+    def __init__(self, json_dump='records.json'):
         self.records = []
         self.learning_targets = []
+        self.json_dump = json_dump
 
     def push(self, record):
-        index = len(self.records)
         self.records.append(record)
         self.learning_targets.append(record.learning_target_plys)
 
-    def save(self, path):
-        with open(path, 'wb') as f:
-            pickle.dump(self.__dict__, f, protocol=2)
+        with open(self.json_dump, 'a') as f:
+            simplejson.dump(record.to_dict(), f)
 
-    def load(self, path):
-        with open(path, 'rb') as f:
-            data = pickle.load(f)
+    def load(self):
+        with open(self.json_dump, 'r') as f:
+            line = f.readline()
 
-        self.__dict__.clear()
-        self.__dict__.update(data)
+            while line:
+                data = simplejson.loads(line)
 
-    def sample(self, mini_batch_size, recent):
+                record = gamerecord.GameRecord()
+                record.ply = data['ply']
+                record.sfen_kif = data['sfen_kif']
+                record.mcts_result = data['mcts_result']
+                record.learning_target_plys = data['learning_target_plys']
+                record.winner = data['winner']
+                record.timestamp = data['timestamp']
+
+                self.records.append(record)
+
+                line = f.readline()
+
+        self.learning_targets = []
+        for record in self.records:
+            self.learning_targets.append(record.learning_target_plys)
+
+    def sample(self, mini_batch_size, recent, discard=True):
         """Sample positions from game records
 
         # Arguments:
@@ -40,6 +55,10 @@ class Reservoir(object):
             policies: the representation of distributions of MCTS outputs
             values: the winners of games
         """
+
+        if discard:
+            self.records = self.records[-recent:]
+            self.learning_targets = self.learning_targets[-recent:]
 
         # add index
         recent_records = self.records[-recent:]
