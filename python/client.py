@@ -1,6 +1,6 @@
 import socket
 from optparse import OptionParser
-import pickle
+import _pickle
 import sys
 
 import mcts
@@ -45,7 +45,7 @@ class Client:
 
                     sc.send(b'parameter_ok')
 
-                    weights = pickle.loads(data)
+                    weights = _pickle.loads(data)
                     self.nn.model.set_weights(weights)
 
             # selfplay
@@ -62,7 +62,7 @@ class Client:
 
                 assert data == b'ready', 'Protocol violation!'
 
-                data = pickle.dumps(game_record, protocol=2)
+                data = _pickle.dumps(game_record, protocol=2)
                 sc.send(len(data).to_bytes(16, 'little'))
                 sc.sendall(data)
 

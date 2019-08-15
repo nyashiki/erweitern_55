@@ -3,7 +3,7 @@ import minishogilib
 import socket
 import numpy as np
 from optparse import OptionParser
-import pickle
+import _pickle
 import sys
 import tensorflow as tf
 import tensorflow.keras.backend as K
@@ -56,7 +56,7 @@ class Trainer():
                 with self.session.as_default():
                     with self.graph.as_default():
                         with self.nn_lock:
-                            data = pickle.dumps(
+                            data = _pickle.dumps(
                                 self.nn.model.get_weights(), protocol=2)
 
                 conn.send(len(data).to_bytes(16, 'little'))
@@ -74,7 +74,7 @@ class Trainer():
                 data = conn.recv(16)
                 data_size = int.from_bytes(data, 'little')
                 data = utils.recvall(conn, data_size)
-                game_record = pickle.loads(data)
+                game_record = _pickle.loads(data)
 
                 data = conn.recv(16)
                 assert data == b'record_ok', 'Protocol violation!'
