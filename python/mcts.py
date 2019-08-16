@@ -6,7 +6,7 @@ import network
 
 class Config:
     def __init__(self):
-        self.memory_size = 0.1  # GB
+        self.memory_size = 0.2  # GB
 
         self.batch_size = 32
         self.simulation_num = 800
