@@ -1,11 +1,11 @@
 import minishogilib
 import numpy as np
+import os
 import random
 import simplejson
 
 import gamerecord
 import network
-
 
 class Reservoir(object):
     def __init__(self, json_dump='records.json'):
@@ -13,14 +13,10 @@ class Reservoir(object):
         self.learning_targets = []
         self.json_dump = json_dump
 
-    def push(self, record):
-        self.records.append(record)
-        self.learning_targets.append(record.learning_target_plys)
+        if os.path.isfile(json_dump):
+            self._load()
 
-        with open(self.json_dump, 'a') as f:
-            simplejson.dump(record.to_dict(), f)
-
-    def load(self):
+    def _load(self):
         with open(self.json_dump, 'r') as f:
             line = f.readline()
 
@@ -42,6 +38,15 @@ class Reservoir(object):
         self.learning_targets = []
         for record in self.records:
             self.learning_targets.append(record.learning_target_plys)
+
+    def push(self, record):
+        self.records.append(record)
+        self.learning_targets.append(record.learning_target_plys)
+
+        with open(self.json_dump, 'a') as f:
+            simplejson.dump(record.to_dict(), f)
+            f.write('\n')
+
 
     def sample(self, mini_batch_size, recent, discard=True):
         """Sample positions from game records
