@@ -79,29 +79,12 @@ class Trainer():
                 data = conn.recv(16)
                 assert data == b'record_ok', 'Protocol violation!'
 
-                print('-------------')
-                print('[{}] readyok'.format(
-                    datetime.datetime.now(datetime.timezone.utc)))
-
                 with self.reservoir_lock:
-                    print('[{}] lockok'.format(
-                        datetime.datetime.now(datetime.timezone.utc)))
                     self.reservoir.push(game_record)
-                    print('[{}] pushok'.format(
-                        datetime.datetime.now(datetime.timezone.utc)))
-                    print('reservoir_len', self.reservoir.len(),
-                          self.reservoir.len_learning_targets())
+
                 log_file.write('[{}] received a game record from {}\n'.format(
                     datetime.datetime.now(datetime.timezone.utc), str(addr)))
 
-                with self.reservoir_lock:
-                    if self.reservoir.len() % 100000 == 0:
-                        print('[{}] save lockok'.format(
-                            datetime.datetime.now(datetime.timezone.utc)))
-                        self.reservoir.save('records.pkl')
-                        print('[{}] save ok'.format(
-                            datetime.datetime.now(datetime.timezone.utc)))
-                print('-----------------------')
             log_file.flush()
             conn.close()
 
