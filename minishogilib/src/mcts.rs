@@ -428,10 +428,6 @@ impl MCTS {
         while nodes.len() > 0 {
             let n = nodes.pop().unwrap();
 
-            if !self.game_tree[n].is_used {
-                continue;
-            }
-
             if n == except_node {
                 continue;
             }
