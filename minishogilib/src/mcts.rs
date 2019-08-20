@@ -252,6 +252,10 @@ impl MCTS {
 
             let mut index = self.node_index;
             loop {
+                if index == 0 {
+                    index = 1;
+                }
+
                 if !self.game_tree[index].is_used {
                     self.game_tree[index] = Node::new(node, *m, policy[policy_index] / legal_policy_sum, true);
                     self.game_tree[node].children.push(index);
@@ -463,7 +467,7 @@ impl MCTS {
         let mut n_max_child: usize = 0;
 
         for child in &self.game_tree[node].children {
-            if self.game_tree[*child].n > n_max {
+            if n_max_child == 0 || self.game_tree[*child].n > n_max {
                 n_max = self.game_tree[*child].n;
                 n_max_child = *child;
             }
