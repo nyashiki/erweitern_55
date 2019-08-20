@@ -7,7 +7,7 @@ h5py==2.9.0
 Keras-Applications==1.0.8
 Keras-Preprocessing==1.1.0
 Markdown==3.1.1
-../minishogilib/target/wheels/minishogilib-0.2.4-cp36-cp36m-manylinux1_x86_64.whl
+../minishogilib/target/wheels/minishogilib-0.2.5-cp36-cp36m-manylinux1_x86_64.whl
 numpy==1.17.0
 protobuf==3.9.1
 six==1.12.0

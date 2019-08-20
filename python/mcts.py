@@ -33,7 +33,7 @@ class MCTS():
         root = self.mcts.set_root(position, self.config.reuse_tree)
 
         if self.config.immediate:
-            if self.mcts.get_playouts(root) >= self.config.simulation_num:
+            if self.mcts.get_playouts(root, True) >= self.config.simulation_num:
                 return root
 
         nninput = position.to_nninput().reshape((1, network.INPUT_CHANNEL, 5, 5))

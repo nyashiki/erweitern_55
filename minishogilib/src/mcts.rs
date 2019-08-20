@@ -401,8 +401,18 @@ impl MCTS {
         return (self.game_tree[node].n, q, distribution);
     }
 
-    pub fn get_playouts(&self, node: usize) -> u32 {
-        return self.game_tree[node].n;
+    pub fn get_playouts(&self, node: usize, child_sum: bool) -> u32 {
+        if child_sum {
+            let mut sum: u32 = 0;
+
+            for child in &self.game_tree[node].children {
+                sum += self.game_tree[*child].n;
+            }
+
+            return sum;
+        } else {
+            return self.game_tree[node].n;
+        }
     }
 
     /// nodeの子に関する情報を出力する
