@@ -372,17 +372,16 @@ impl MCTS {
                         break;
                     }
 
+                    self.game_tree[*child].n -= 1;
                     let puct = self.game_tree[*child].get_puct(self.game_tree[node].n as f32, false);
 
-                    if puct < n_max_puct {
+                    if puct >= n_max_puct {
+                        self.game_tree[*child].n += 1;
                         break;
                     }
-
-                    self.game_tree[*child].n -= 1;
                 }
             }
         }
-
 
         let q: f32 = if self.game_tree[node].n == 0 {
             0.0
