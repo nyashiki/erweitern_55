@@ -40,15 +40,17 @@ def run(nn, search, config, verbose=False):
                 if np.random.rand() < config.oscillation_frac:
                     search.config.simulation_num = config.N
                     search.config.forced_playouts = True
+                    search.config.use_dirichlet = True
                     search.config.reuse_tree = False
                     search.config.target_pruning = True
                     search.config.immediate = False
 
                 else:
                     search.config.simulation_num = config.n
-                    search.config.forced_playouts = True
+                    search.config.forced_playouts = False
+                    search.config.use_dirichlet = False
                     search.config.reuse_tree = True
-                    search.config.target_pruning = True
+                    search.config.target_pruning = False
                     search.config.immediate = True
 
             root = search.run(position, nn)
