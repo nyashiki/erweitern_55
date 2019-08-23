@@ -53,9 +53,8 @@ impl Node {
         const C_BASE: f32 = 19652.0;
         const C_INIT: f32 = 1.25;
 
-        // leaf nodes that are already selected do not have to be selected once more.
-        if !self.expanded() && self.virtual_loss > 0.0 {
-            return 0.0;
+        if self.is_terminal && self.v == 0.0 {
+            return std::f32::MAX;
         }
 
         // KataGo approach (https://arxiv.org/abs/1902.10565)
@@ -78,7 +77,7 @@ impl Node {
     }
 
     pub fn expanded(&self) -> bool {
-        return self.children.len() > 0 && !self.is_terminal;
+        return self.children.len() > 0;
     }
 }
 
@@ -187,7 +186,7 @@ impl MCTS {
         loop {
             self.game_tree[node].virtual_loss += 1.0;
 
-            if !self.game_tree[node].expanded() {
+            if self.game_tree[node].is_terminal || !self.game_tree[node].expanded() {
                 break;
             }
 
@@ -247,24 +246,26 @@ impl MCTS {
         }
 
         // set policy and vaue
-        for m in &moves {
-            let policy_index = m.to_policy_index();
+        if self.game_tree[node].children.len() == 0 {
+            for m in &moves {
+                let policy_index = m.to_policy_index();
 
-            let mut index = self.node_index;
-            loop {
-                if index == 0 {
-                    index = 1;
+                let mut index = self.node_index;
+                loop {
+                    if index == 0 {
+                        index = 1;
+                    }
+
+                    if !self.game_tree[index].is_used {
+                        self.game_tree[index] = Node::new(node, *m, policy[policy_index] / legal_policy_sum, true);
+                        self.game_tree[node].children.push(index);
+                        self.node_index = (index + 1) % self.size;
+                        self.node_used_count += 1;
+
+                        break;
+                    }
+                    index = (index + 1) % self.size;
                 }
-
-                if !self.game_tree[index].is_used {
-                    self.game_tree[index] = Node::new(node, *m, policy[policy_index] / legal_policy_sum, true);
-                    self.game_tree[node].children.push(index);
-                    self.node_index = (index + 1) % self.size;
-                    self.node_used_count += 1;
-
-                    break;
-                }
-                index = (index + 1) % self.size;
             }
         }
         self.game_tree[node].v = value;
