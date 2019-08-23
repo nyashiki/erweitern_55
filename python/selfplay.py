@@ -24,10 +24,17 @@ def run(nn, search, config, verbose=False):
     game_record = gamerecord.GameRecord()
 
     for _ in range(config.max_moves):
+        is_repetition, is_check_repetition = position.is_repetition()
+        if is_check_repetition:
+            game_record.winner = 1 - position.get_side_to_move()
+            break
+        elif is_repetition:
+            game_record.winner = 1
+            break
+
         moves = position.generate_moves()
         if len(moves) == 0:
             game_record.winner = 1 - position.get_side_to_move()
-
             break
 
         start_time = time.time()
