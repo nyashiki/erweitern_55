@@ -40,8 +40,11 @@ def run(nn, search, config, verbose=False):
         start_time = time.time()
 
         checkmate, checkmate_move = position.solve_checkmate_dfs(7)
+
         if checkmate:
             best_move = checkmate_move
+            search.clear()
+
         else:
             if config.playout_cap_oscillation:
                 if np.random.rand() < config.oscillation_frac:
