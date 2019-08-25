@@ -205,6 +205,7 @@ impl MCTS {
         position: &Position,
         np_policy: &PyArray1<f32>,
         mut value: f32,
+        force: bool
     ) -> f32 {
         if self.game_tree[node].n > 0 {
             return self.game_tree[node].v;
@@ -267,7 +268,16 @@ impl MCTS {
                     index = (index + 1) % self.size;
                 }
             }
+        } else if force {
+            let children = self.game_tree[node].children.clone();
+
+            for child in &children {
+                let policy_index = self.game_tree[*child].m.to_policy_index();
+
+                self.game_tree[*child].p = policy[policy_index] / legal_policy_sum;
+            }
         }
+
         self.game_tree[node].v = value;
 
         return value;

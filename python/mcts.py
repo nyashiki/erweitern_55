@@ -49,7 +49,7 @@ class MCTS():
                 policy[0][m.to_policy_index()] = (
                     1 - frac) * policy[0][m.to_policy_index()] + frac * noise[i]
 
-        self.mcts.evaluate(root, position, policy[0], value[0][0])
+        self.mcts.evaluate(root, position, policy[0], value[0][0], True)
 
         leaf_nodes = [None for _ in range(self.config.batch_size)]
         leaf_positions = [None for _ in range(self.config.batch_size)]
@@ -74,7 +74,7 @@ class MCTS():
 
             for b in range(self.config.batch_size):
                 value[b][0] = self.mcts.evaluate(
-                    leaf_nodes[b], leaf_positions[b], policy[b], value[b][0])
+                    leaf_nodes[b], leaf_positions[b], policy[b], value[b][0], False)
 
             for b in range(self.config.batch_size):
                 self.mcts.backpropagate(leaf_nodes[b], value[b][0])
