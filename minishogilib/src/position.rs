@@ -631,6 +631,11 @@ impl Position {
                sfen_position.push_str(&piece_to_string(piece_type.get_piece(Color::White)));
                capture_flag = true;
             }
+            if self.hand[Color::Black as usize][*piece_type as usize - 2] > 0 {
+               sfen_position.push_str(&self.hand[Color::Black as usize][*piece_type as usize - 2].to_string());
+               sfen_position.push_str(&piece_to_string(piece_type.get_piece(Color::Black)));
+               capture_flag = true;
+            }
         }
 
         if !capture_flag {
@@ -1218,6 +1223,107 @@ fn move_do_undo_test() {
                             temp_position.sequent_check_count[i][j]
                         );
                     }
+                }
+            }
+
+            if moves.len() == 0 {
+                break;
+            }
+
+            // ランダムに局面を進める
+            let random_move = moves.choose(&mut rng).unwrap();
+            position.do_move(random_move);
+        }
+    }
+}
+
+#[test]
+fn sfen_test() {
+    ::bitboard::init();
+
+    const LOOP_NUM: i32 = 1000;
+
+    let mut position = Position::empty_board();
+
+    let mut rng = rand::thread_rng();
+
+    for _ in 0..LOOP_NUM {
+        position.set_start_position();
+
+        while position.ply < MAX_PLY as u16 {
+            let moves = position.generate_moves();
+
+            {
+                let mut temp_position = Position::empty_board();
+                temp_position.set_sfen(&position.sfen(true));
+
+                assert_eq!(position.side_to_move, temp_position.side_to_move);
+                for i in 0..SQUARE_NB {
+                    assert_eq!(position.board[i], temp_position.board[i]);
+                }
+                for i in 0..2 {
+                    for j in 0..5 {
+                        assert_eq!(position.hand[i][j], temp_position.hand[i][j]);
+                    }
+                }
+
+                for i in 0..Piece::BPawnX as usize + 1 {
+                    assert_eq!(position.piece_bb[i], temp_position.piece_bb[i]);
+                }
+                for i in 0..2 {
+                    assert_eq!(position.player_bb[i], temp_position.player_bb[i]);
+                }
+
+                for i in 0..2 {
+                    assert_eq!(position.pawn_flags[i], temp_position.pawn_flags[i]);
+                }
+
+                assert_eq!(position.ply, temp_position.ply);
+
+                for i in 0..position.ply as usize {
+                    assert!(position.kif[i] == temp_position.kif[i]);
+                }
+
+                assert_eq!(position.get_hash(), temp_position.get_hash());
+
+                for i in 0..position.ply as usize {
+                    assert_eq!(position.adjacent_check_bb[i], temp_position.adjacent_check_bb[i]);
+                    assert_eq!(position.long_check_bb[i], temp_position.long_check_bb[i]);
+                }
+
+                for i in 0..position.ply as usize {
+                    for j in 0..2 {
+                        assert_eq!(
+                            position.sequent_check_count[i][j],
+                            temp_position.sequent_check_count[i][j]
+                        );
+                    }
+                }
+            }
+
+            {
+                let mut temp_position = Position::empty_board();
+                temp_position.set_sfen(&position.sfen(false));
+
+                assert_eq!(position.side_to_move, temp_position.side_to_move);
+                for i in 0..SQUARE_NB {
+                    assert_eq!(position.board[i], temp_position.board[i]);
+                }
+                for i in 0..2 {
+                    for j in 0..5 {
+                        assert_eq!(position.hand[i][j], temp_position.hand[i][j]);
+                    }
+                }
+
+                for i in 0..Piece::BPawnX as usize + 1 {
+                    assert_eq!(position.piece_bb[i], temp_position.piece_bb[i]);
+                }
+                for i in 0..2 {
+                    assert_eq!(position.player_bb[i], temp_position.player_bb[i]);
+                }
+
+                for i in 0..2 {
+                    assert_eq!(position.pawn_flags[i], temp_position.pawn_flags[i]);
                 }
             }
 
