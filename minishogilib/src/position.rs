@@ -96,6 +96,30 @@ impl Position {
         println!("hash: {:x}", self.get_hash());
     }
 
+    pub fn sfen(&self, history: bool) -> String {
+        if history {
+            let mut position = *self;
+
+            for _ in 0..self.ply {
+                position.undo_move();
+            }
+
+            let mut sfen_position = position.get_sfen_position();
+
+            if self.ply > 0 {
+                sfen_position.push_str(" moves");
+            }
+
+            for i in 0..self.ply {
+                sfen_position.push_str(&format!(" {}", self.kif[i as usize].sfen()));
+            }
+
+            return sfen_position;
+        } else {
+            return self.get_sfen_position();
+        }
+    }
+
     pub fn set_sfen(&mut self, sfen: &str) {
         // 初期化
         for i in 0..SQUARE_NB {
@@ -560,6 +584,65 @@ impl Position {
         return self.get_adjacent_check_bb() | self.get_long_check_bb();
     }
 
+    pub fn get_sfen_position(&self) -> String {
+        let mut sfen_position = String::new();
+
+        let mut empty: u8 = 0;
+
+        for i in 0..SQUARE_NB {
+            if self.board[i] == Piece::NoPiece {
+                empty += 1;
+            } else {
+                if empty > 0 {
+                    sfen_position.push_str(&empty.to_string());
+                }
+                empty = 0;
+
+                sfen_position.push_str(&piece_to_string(self.board[i]));
+            }
+
+            if i % 5 == 4 {
+                if empty > 0 {
+                    sfen_position.push_str(&empty.to_string());
+                }
+                empty = 0;
+
+                if i != SQUARE_NB - 1 {
+                    sfen_position.push('/');
+                }
+            }
+        }
+
+        sfen_position.push(' ');
+
+        if self.side_to_move == Color::White {
+            sfen_position.push('b');
+        } else {
+            sfen_position.push('w');
+        }
+
+        sfen_position.push(' ');
+
+        let mut capture_flag = false;
+
+        for piece_type in &HAND_PIECE_TYPE_ALL {
+            if self.hand[Color::White as usize][*piece_type as usize - 2] > 0 {
+               sfen_position.push_str(&self.hand[Color::White as usize][*piece_type as usize - 2].to_string());
+               sfen_position.push_str(&piece_to_string(piece_type.get_piece(Color::White)));
+               capture_flag = true;
+            }
+        }
+
+        if !capture_flag {
+            sfen_position.push('-');
+        }
+
+        sfen_position.push(' ');
+        sfen_position.push('1');
+
+        return sfen_position;
+    }
+
     pub fn generate_moves_with_option(
         &self,
         is_board: bool,
@@ -989,6 +1072,34 @@ fn char_to_piece(c: char) -> Piece {
         'p' => Piece::BPawn,
 
         _ => Piece::NoPiece,
+    }
+}
+
+fn piece_to_string(piece: Piece) -> String {
+    match piece {
+        Piece::WKing => "K".to_string(),
+        Piece::WGold => "G".to_string(),
+        Piece::WSilver => "S".to_string(),
+        Piece::WBishop => "B".to_string(),
+        Piece::WRook => "R".to_string(),
+        Piece::WPawn => "P".to_string(),
+        Piece::WSilverX => "+S".to_string(),
+        Piece::WBishopX => "+B".to_string(),
+        Piece::WRookX => "+R".to_string(),
+        Piece::WPawnX => "+P".to_string(),
+
+        Piece::BKing => "k".to_string(),
+        Piece::BGold => "g".to_string(),
+        Piece::BSilver => "s".to_string(),
+        Piece::BBishop => "b".to_string(),
+        Piece::BRook => "r".to_string(),
+        Piece::BPawn => "p".to_string(),
+        Piece::BSilverX => "+s".to_string(),
+        Piece::BBishopX => "+b".to_string(),
+        Piece::BRookX => "+r".to_string(),
+        Piece::BPawnX => "+p".to_string(),
+
+        _ => "ERROR".to_string(),
     }
 }
 
