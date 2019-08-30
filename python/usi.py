@@ -22,17 +22,22 @@ def main():
     position = minishogilib.Position()
 
     while True:
-        command = input().split()
+        line = input()
+
+        if not line:
+          continue
+
+        command = line.split()
 
         if command[0] == 'usi':
             print('id name erweitern_55')
             print('id author nyashiki')
+            print('usiok')
 
         elif command[0] == 'position':
             if command[1] == 'sfen':
                 sfen_kif = ' '.join(command[2:])
                 position.set_sfen(sfen_kif)
-                position.print()
 
             else:
                 print('ERROR: Unknown protocol.')
