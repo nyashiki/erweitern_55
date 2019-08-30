@@ -477,6 +477,89 @@ impl Position {
 
         return count;
     }
+
+    pub fn to_svg(&self) -> String {
+        // ToDo:
+        //   color_last_move: bool
+        //   color_promoted_piece: bool
+        //   p1_name: String
+        //   p2_name: String
+
+        let mut svg_text: String = String::new();
+
+        svg_text.push_str("<svg width=\"448px\" height=\"384px\"\n     xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">\n");
+
+        svg_text.push_str("  <rect x=\"64\" y=\"32\" width=\"320\" height=\"320\" fill=\"white\" stroke=\"black\" stroke-width=\"3\" />\n");
+
+        for y in 0..5 {
+            for x in 0..5 {
+                svg_text.push_str(&format!("  <rect x=\"{}\" y=\"{}\" width=\"64\" height=\"64\" fill=\"white\" stroke=\"black\" stroke-width=\"1\" />\n",
+                                    64 + 64 * x, 32 + 64 * y));
+            }
+        }
+
+        for i in 0..SQUARE_NB {
+            if self.board[i] != Piece::NoPiece {
+                let kanji = piece_type_to_kanji(self.board[i].get_piece_type());
+
+                let y = i / 5;
+                let x = i % 5;
+
+                if self.board[i].get_color() == Color::White {
+                    svg_text.push_str(&format!("  <text x=\"{}\" y=\"{}\" font-family=\"serif\" font-size=\"42\" text-anchor=\"middle\" dominant-baseline=\"central\">{}</text>\n",
+                            96 + 64 * x, 64 + 64 * y, kanji));
+                } else {
+                    svg_text.push_str(&format!("  <text x=\"{}\" y=\"{}\" font-family=\"serif\" font-size=\"42\" text-anchor=\"middle\" dominant-baseline=\"central\" transform=\"rotate(180, {}, {})\">{}</text>\n",
+                            96 + 64 * x, 64 + 64 * y, 96 + 64 * x, 64 + 64 * y, kanji));
+                }
+            }
+        }
+
+        {
+            svg_text.push_str(&format!("  <text x=\"{}\" y=\"{}\" font-family=\"serif\" font-size=\"36\" writing-mode=\"tb\">&#9751;</text>\n", 420, 48));
+            let mut hand_string = String::new();
+            for piece_type in &HAND_PIECE_TYPE_ALL {
+                if self.hand[Color::White as usize][*piece_type as usize - 2] != 0 {
+                    hand_string.push_str(&piece_type_to_kanji(*piece_type));
+                    if self.hand[Color::White as usize][*piece_type as usize - 2] == 2 {
+                        hand_string.push_str(&"二".to_string());
+                    }
+                }
+            }
+
+            if !hand_string.is_empty() {
+                svg_text.push_str(&format!("  <text x=\"{}\" y=\"{}\" font-family=\"serif\" font-size=\"28\" writing-mode=\"tb\">{}</text>\n", 418, 90, hand_string));
+            }
+        }
+
+        {
+            svg_text.push_str(&format!("  <text x=\"{}\" y=\"{}\" font-family=\"serif\" font-size=\"36\" writing-mode=\"tb\" transform=\"rotate(180, {}, {})\">&#9750;</text>\n", 32, 300, 32, 320));
+            let mut hand_string = String::new();
+            for piece_type in &HAND_PIECE_TYPE_ALL {
+                if self.hand[Color::Black as usize][*piece_type as usize - 2] != 0 {
+                    hand_string.push_str(&piece_type_to_kanji(*piece_type));
+                    if self.hand[Color::Black as usize][*piece_type as usize - 2] == 2 {
+                        hand_string.push_str(&"二".to_string());
+                    }
+                }
+            }
+
+            if !hand_string.is_empty() {
+                svg_text.push_str(&format!("  <text x=\"{}\" y=\"{}\" font-family=\"serif\" font-size=\"28\" writing-mode=\"tb\" transform=\"rotate(180, {}, {})\">{}</text>\n", 34, 290, 34, 290, hand_string));
+            }
+        }
+
+        svg_text.push_str("</svg>\n");
+
+        return svg_text;
+    }
+}
+
+#[test]
+fn to_svg_test() {
+    let mut position = Position::empty_board();
+    position.set_start_position();
+    println!("{}", position.to_svg());
 }
 
 impl Position {
@@ -1105,6 +1188,23 @@ fn piece_to_string(piece: Piece) -> String {
         Piece::BPawnX => "+p".to_string(),
 
         _ => "ERROR".to_string(),
+    }
+}
+
+fn piece_type_to_kanji(piece_type: PieceType) -> String {
+    match piece_type {
+        PieceType::King => "玉".to_string(),
+        PieceType::Gold => "金".to_string(),
+        PieceType::Silver => "銀".to_string(),
+        PieceType::Bishop => "角".to_string(),
+        PieceType::Rook => "飛".to_string(),
+        PieceType::Pawn => "歩".to_string(),
+        PieceType::SilverX => "全".to_string(),
+        PieceType::BishopX => "馬".to_string(),
+        PieceType::RookX => "龍".to_string(),
+        PieceType::PawnX => "と".to_string(),
+
+        _ => "".to_string(),
     }
 }
 

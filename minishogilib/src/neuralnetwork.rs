@@ -122,13 +122,19 @@ impl Move {
                 if c == Color::White {
                     (32 + 4 * self.direction as usize + self.amount - 1, self.from)
                 } else {
-                    (32 + 4 * ((self.direction as usize + 4) % 8) + self.amount - 1, SQUARE_NB - 1 - self.from)
+                    (
+                        32 + 4 * ((self.direction as usize + 4) % 8) + self.amount - 1,
+                        SQUARE_NB - 1 - self.from,
+                    )
                 }
             } else {
                 if c == Color::White {
                     (4 * self.direction as usize + self.amount - 1, self.from)
                 } else {
-                    (4 * ((self.direction as usize + 4) % 8) + self.amount - 1, SQUARE_NB - 1 - self.from)
+                    (
+                        4 * ((self.direction as usize + 4) % 8) + self.amount - 1,
+                        SQUARE_NB - 1 - self.from,
+                    )
                 }
             }
         };
