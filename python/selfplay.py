@@ -24,31 +24,43 @@ def run(nn, search, config, verbose=False):
     game_record = gamerecord.GameRecord()
 
     for _ in range(config.max_moves):
+        is_repetition, is_check_repetition = position.is_repetition()
+        if is_check_repetition:
+            game_record.winner = 1 - position.get_side_to_move()
+            break
+        elif is_repetition:
+            game_record.winner = 1
+            break
+
         moves = position.generate_moves()
         if len(moves) == 0:
             game_record.winner = 1 - position.get_side_to_move()
-
             break
 
         start_time = time.time()
 
         checkmate, checkmate_move = position.solve_checkmate_dfs(7)
+
         if checkmate:
             best_move = checkmate_move
+            search.clear()
+
         else:
             if config.playout_cap_oscillation:
                 if np.random.rand() < config.oscillation_frac:
                     search.config.simulation_num = config.N
                     search.config.forced_playouts = True
+                    search.config.use_dirichlet = True
                     search.config.reuse_tree = False
                     search.config.target_pruning = True
                     search.config.immediate = False
 
                 else:
                     search.config.simulation_num = config.n
-                    search.config.forced_playouts = True
+                    search.config.forced_playouts = False
+                    search.config.use_dirichlet = False
                     search.config.reuse_tree = True
-                    search.config.target_pruning = True
+                    search.config.target_pruning = False
                     search.config.immediate = True
 
             root = search.run(position, nn)

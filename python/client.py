@@ -20,12 +20,16 @@ class Client:
     def run(self):
         mcts_config = mcts.Config()
         mcts_config.simulation_num = 800
+        mcts_config.forced_playouts = True
         mcts_config.use_dirichlet = True
+        mcts_config.reuse_tree = True
+        mcts_config.target_pruning = True
+        mcts_config.immediate = False
 
         search = mcts.MCTS(mcts_config)
 
         selfplay_config = selfplay.SelfplayConfig()
-        selfplay_config.playout_cap_oscillation = True
+        selfplay_config.playout_cap_oscillation = False
 
         iter = 0
 

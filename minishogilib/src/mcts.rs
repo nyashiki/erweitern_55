@@ -53,9 +53,8 @@ impl Node {
         const C_BASE: f32 = 19652.0;
         const C_INIT: f32 = 1.25;
 
-        // leaf nodes that are already selected do not have to be selected once more.
-        if !self.expanded() && self.virtual_loss > 0.0 {
-            return 0.0;
+        if self.is_terminal && self.v == 0.0 {
+            return std::f32::MAX;
         }
 
         // KataGo approach (https://arxiv.org/abs/1902.10565)
@@ -78,7 +77,7 @@ impl Node {
     }
 
     pub fn expanded(&self) -> bool {
-        return self.children.len() > 0 && !self.is_terminal;
+        return self.children.len() > 0;
     }
 }
 
@@ -187,7 +186,7 @@ impl MCTS {
         loop {
             self.game_tree[node].virtual_loss += 1.0;
 
-            if !self.game_tree[node].expanded() {
+            if self.game_tree[node].is_terminal || !self.game_tree[node].expanded() {
                 break;
             }
 
@@ -206,6 +205,7 @@ impl MCTS {
         position: &Position,
         np_policy: &PyArray1<f32>,
         mut value: f32,
+        force: bool
     ) -> f32 {
         if self.game_tree[node].n > 0 {
             return self.game_tree[node].v;
@@ -247,22 +247,37 @@ impl MCTS {
         }
 
         // set policy and vaue
-        for m in &moves {
-            let policy_index = m.to_policy_index();
+        if self.game_tree[node].children.len() == 0 {
+            for m in &moves {
+                let policy_index = m.to_policy_index();
 
-            let mut index = self.node_index;
-            loop {
-                if !self.game_tree[index].is_used {
-                    self.game_tree[index] = Node::new(node, *m, policy[policy_index] / legal_policy_sum, true);
-                    self.game_tree[node].children.push(index);
-                    self.node_index = (index + 1) % self.size;
-                    self.node_used_count += 1;
+                let mut index = self.node_index;
+                loop {
+                    if index == 0 {
+                        index = 1;
+                    }
 
-                    break;
+                    if !self.game_tree[index].is_used {
+                        self.game_tree[index] = Node::new(node, *m, policy[policy_index] / legal_policy_sum, true);
+                        self.game_tree[node].children.push(index);
+                        self.node_index = (index + 1) % self.size;
+                        self.node_used_count += 1;
+
+                        break;
+                    }
+                    index = (index + 1) % self.size;
                 }
-                index = (index + 1) % self.size;
+            }
+        } else if force {
+            let children = self.game_tree[node].children.clone();
+
+            for child in &children {
+                let policy_index = self.game_tree[*child].m.to_policy_index();
+
+                self.game_tree[*child].p = policy[policy_index] / legal_policy_sum;
             }
         }
+
         self.game_tree[node].v = value;
 
         return value;
@@ -368,17 +383,16 @@ impl MCTS {
                         break;
                     }
 
+                    self.game_tree[*child].n -= 1;
                     let puct = self.game_tree[*child].get_puct(self.game_tree[node].n as f32, false);
 
-                    if puct < n_max_puct {
+                    if puct >= n_max_puct {
+                        self.game_tree[*child].n += 1;
                         break;
                     }
-
-                    self.game_tree[*child].n -= 1;
                 }
             }
         }
-
 
         let q: f32 = if self.game_tree[node].n == 0 {
             0.0
@@ -397,8 +411,18 @@ impl MCTS {
         return (self.game_tree[node].n, q, distribution);
     }
 
-    pub fn get_playouts(&self, node: usize) -> u32 {
-        return self.game_tree[node].n;
+    pub fn get_playouts(&self, node: usize, child_sum: bool) -> u32 {
+        if child_sum {
+            let mut sum: u32 = 0;
+
+            for child in &self.game_tree[node].children {
+                sum += self.game_tree[*child].n;
+            }
+
+            return sum;
+        } else {
+            return self.game_tree[node].n;
+        }
     }
 
     /// nodeの子に関する情報を出力する
@@ -427,10 +451,6 @@ impl MCTS {
 
         while nodes.len() > 0 {
             let n = nodes.pop().unwrap();
-
-            if !self.game_tree[n].is_used {
-                continue;
-            }
 
             if n == except_node {
                 continue;
@@ -467,7 +487,7 @@ impl MCTS {
         let mut n_max_child: usize = 0;
 
         for child in &self.game_tree[node].children {
-            if self.game_tree[*child].n > n_max {
+            if n_max_child == 0 || self.game_tree[*child].n > n_max {
                 n_max = self.game_tree[*child].n;
                 n_max_child = *child;
             }
