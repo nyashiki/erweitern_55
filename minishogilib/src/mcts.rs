@@ -95,14 +95,15 @@ pub struct MCTS {
 impl MCTS {
     #[new]
     pub fn new(obj: &PyRawObject, memory: f32) {
-        let num_node: usize = (memory * 1024.0 * 1024.0 * 1024.0 / std::mem::size_of::<MCTS>() as f32) as usize;
+        let num_node: usize =
+            (memory * 1024.0 * 1024.0 * 1024.0 / std::mem::size_of::<MCTS>() as f32) as usize;
 
         obj.init(MCTS {
             size: num_node,
             game_tree: vec![Node::new(0, NULL_MOVE, 0.0, false); num_node],
             node_index: 0,
             node_used_count: 0,
-            prev_root: 0
+            prev_root: 0,
         });
     }
 
@@ -158,7 +159,12 @@ impl MCTS {
     }
 
     pub fn print(&self, root: usize) {
-        println!("usage: {:.3}% ({}/{})", self.node_used_count as f32 / self.size as f32 * 100.0, self.node_used_count, self.size);
+        println!(
+            "usage: {:.3}% ({}/{})",
+            self.node_used_count as f32 / self.size as f32 * 100.0,
+            self.node_used_count,
+            self.size
+        );
         println!("playout: {}", self.game_tree[root].n);
 
         let best_child: usize = self.select_n_max_child(root);
@@ -180,7 +186,12 @@ impl MCTS {
         return self.node_used_count as f32 / self.size as f32;
     }
 
-    pub fn select_leaf(&mut self, root_node: usize, position: &mut Position, forced_playouts: bool) -> usize {
+    pub fn select_leaf(
+        &mut self,
+        root_node: usize,
+        position: &mut Position,
+        forced_playouts: bool,
+    ) -> usize {
         let mut node = root_node;
 
         loop {
@@ -205,7 +216,7 @@ impl MCTS {
         position: &Position,
         np_policy: &PyArray1<f32>,
         mut value: f32,
-        force: bool
+        force: bool,
     ) -> f32 {
         if self.game_tree[node].n > 0 {
             return self.game_tree[node].v;
@@ -258,7 +269,8 @@ impl MCTS {
                     }
 
                     if !self.game_tree[index].is_used {
-                        self.game_tree[index] = Node::new(node, *m, policy[policy_index] / legal_policy_sum, true);
+                        self.game_tree[index] =
+                            Node::new(node, *m, policy[policy_index] / legal_policy_sum, true);
                         self.game_tree[node].children.push(index);
                         self.node_index = (index + 1) % self.size;
                         self.node_used_count += 1;
@@ -362,21 +374,28 @@ impl MCTS {
     }
 
     /// プレイアウト回数，Q値, それぞれの手の訪問回数を出力する
-    pub fn dump(&mut self, node: usize, target_pruning: bool, remove_zeros: bool) -> (u32, f32, std::vec::Vec<(String, u32)>) {
+    pub fn dump(
+        &mut self,
+        node: usize,
+        target_pruning: bool,
+        remove_zeros: bool,
+    ) -> (u32, f32, std::vec::Vec<(String, u32)>) {
         let mut distribution: std::vec::Vec<(String, u32)> = std::vec::Vec::new();
 
         if target_pruning {
             let n_max_child = self.select_n_max_child(node);
             let children = self.game_tree[node].children.clone();
 
-            let n_max_puct = self.game_tree[n_max_child].get_puct(self.game_tree[node].n as f32, false);
+            let n_max_puct =
+                self.game_tree[n_max_child].get_puct(self.game_tree[node].n as f32, false);
 
             for child in &children {
                 if *child == n_max_child {
                     continue;
                 }
 
-                let n_forced: f32 = (2.0 * self.game_tree[*child].p * self.game_tree[node].n as f32).sqrt();
+                let n_forced: f32 =
+                    (2.0 * self.game_tree[*child].p * self.game_tree[node].n as f32).sqrt();
 
                 for _ in 1..n_forced as usize {
                     if self.game_tree[*child].n == 0 {
@@ -384,7 +403,8 @@ impl MCTS {
                     }
 
                     self.game_tree[*child].n -= 1;
-                    let puct = self.game_tree[*child].get_puct(self.game_tree[node].n as f32, false);
+                    let puct =
+                        self.game_tree[*child].get_puct(self.game_tree[node].n as f32, false);
 
                     if puct >= n_max_puct {
                         self.game_tree[*child].n += 1;
@@ -470,8 +490,10 @@ impl MCTS {
         let mut puct_max_child: usize = 0;
 
         for child in &self.game_tree[node].children {
-            let puct = self.game_tree[*child]
-                .get_puct(self.game_tree[node].n as f32 + self.game_tree[node].virtual_loss, forced_playouts);
+            let puct = self.game_tree[*child].get_puct(
+                self.game_tree[node].n as f32 + self.game_tree[node].virtual_loss,
+                forced_playouts,
+            );
 
             if puct_max_child == 0 || puct > puct_max {
                 puct_max = puct;
