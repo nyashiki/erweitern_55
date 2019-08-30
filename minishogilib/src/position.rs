@@ -491,6 +491,42 @@ impl Position {
             }
         }
 
+
+        {
+            svg_text.push_str(&format!("  <text x=\"{}\" y=\"{}\" font-family=\"serif\" font-size=\"36\" writing-mode=\"tb\">&#9751;</text>\n", 420, 48));
+            let mut hand_string = String::new();
+            for piece_type in &HAND_PIECE_TYPE_ALL {
+                if self.hand[Color::White as usize][*piece_type as usize - 2] != 0 {
+                    hand_string.push_str(&piece_type_to_kanji(*piece_type));
+                    if self.hand[Color::White as usize][*piece_type as usize - 2] == 2 {
+                        hand_string.push_str(&"二".to_string());
+                    }
+                }
+            }
+
+            if !hand_string.is_empty() {
+                svg_text.push_str(&format!("  <text x=\"{}\" y=\"{}\" font-family=\"serif\" font-size=\"28\" writing-mode=\"tb\">{}</text>\n", 418, 90, hand_string));
+            }
+        }
+
+        {
+            svg_text.push_str(&format!("  <text x=\"{}\" y=\"{}\" font-family=\"serif\" font-size=\"36\" writing-mode=\"tb\" transform=\"rotate(180, {}, {})\">&#9750;</text>\n", 32, 300, 32, 320));
+            let mut hand_string = String::new();
+            for piece_type in &HAND_PIECE_TYPE_ALL {
+                if self.hand[Color::Black as usize][*piece_type as usize - 2] != 0 {
+                    hand_string.push_str(&piece_type_to_kanji(*piece_type));
+                    if self.hand[Color::Black as usize][*piece_type as usize - 2] == 2 {
+                        hand_string.push_str(&"二".to_string());
+                    }
+                }
+            }
+
+            if !hand_string.is_empty() {
+                svg_text.push_str(&format!("  <text x=\"{}\" y=\"{}\" font-family=\"serif\" font-size=\"28\" writing-mode=\"tb\" transform=\"rotate(180, {}, {})\">{}</text>\n", 34, 290, 34, 290, hand_string));
+            }
+        }
+
+
         svg_text.push_str("</svg>\n");
 
         return svg_text;
