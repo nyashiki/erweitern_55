@@ -3,6 +3,7 @@ import numpy as np
 
 import mcts
 import network
+import os
 
 def main():
     neural_network = network.Network()
@@ -53,6 +54,9 @@ def main():
 
             root = search.run(position, neural_network)
             print('bestmove {}'.format(search.best_move(root)))
+
+        elif command[0] == 'quit':
+            os._exit(0)
 
         else:
             print('ERROR: Unknown command.')
