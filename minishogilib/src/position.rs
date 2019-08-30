@@ -468,7 +468,7 @@ impl Position {
         svg_text.push_str("  <rect x=\"64\" y=\"32\" width=\"320\" height=\"320\" fill=\"white\" stroke=\"black\" stroke-width=\"3\" />\n");
 
         for y in 0..5 {
-            for x in 0..5{
+            for x in 0..5 {
                 svg_text.push_str(&format!("  <rect x=\"{}\" y=\"{}\" width=\"64\" height=\"64\" fill=\"white\" stroke=\"black\" stroke-width=\"1\" />\n",
                                     64 + 64 * x, 32 + 64 * y));
             }
@@ -490,7 +490,6 @@ impl Position {
                 }
             }
         }
-
 
         {
             svg_text.push_str(&format!("  <text x=\"{}\" y=\"{}\" font-family=\"serif\" font-size=\"36\" writing-mode=\"tb\">&#9751;</text>\n", 420, 48));
@@ -525,7 +524,6 @@ impl Position {
                 svg_text.push_str(&format!("  <text x=\"{}\" y=\"{}\" font-family=\"serif\" font-size=\"28\" writing-mode=\"tb\" transform=\"rotate(180, {}, {})\">{}</text>\n", 34, 290, 34, 290, hand_string));
             }
         }
-
 
         svg_text.push_str("</svg>\n");
 
