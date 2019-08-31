@@ -420,15 +420,18 @@ impl MCTS {
             self.game_tree[node].w / self.game_tree[node].n as f32
         };
 
+        let mut sum_n: u32 = 0;
+
         for child in &self.game_tree[node].children {
             if remove_zeros && self.game_tree[*child].n == 0 {
                 continue;
             }
 
             distribution.push((self.game_tree[*child].m.sfen(), self.game_tree[*child].n));
+            sum_n += self.game_tree[*child].n;
         }
 
-        return (self.game_tree[node].n, q, distribution);
+        return (sum_n, q, distribution);
     }
 
     pub fn get_playouts(&self, node: usize, child_sum: bool) -> u32 {
