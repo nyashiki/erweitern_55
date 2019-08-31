@@ -516,7 +516,7 @@ impl Position {
         }
 
         {
-            svg_text.push_str(&format!("  <text x=\"{}\" y=\"{}\" font-family=\"serif\" font-size=\"36\" writing-mode=\"tb\">&#9751;</text>\n", 420, 48));
+            svg_text.push_str(&format!("  <text x=\"{}\" y=\"{}\" font-family=\"serif\" font-size=\"36\" writing-mode=\"tb\">&#9751;</text>\n", 420, 32));
             let mut hand_string = String::new();
             for piece_type in &HAND_PIECE_TYPE_ALL {
                 if self.hand[Color::White as usize][*piece_type as usize - 2] != 0 {
@@ -528,12 +528,12 @@ impl Position {
             }
 
             if !hand_string.is_empty() {
-                svg_text.push_str(&format!("  <text x=\"{}\" y=\"{}\" font-family=\"serif\" font-size=\"28\" writing-mode=\"tb\">{}</text>\n", 418, 90, hand_string));
+                svg_text.push_str(&format!("  <text x=\"{}\" y=\"{}\" font-family=\"serif\" font-size=\"36\" writing-mode=\"tb\" letter-spacing=\"1\">{}</text>\n", 420, 74, hand_string));
             }
         }
 
         {
-            svg_text.push_str(&format!("  <text x=\"{}\" y=\"{}\" font-family=\"serif\" font-size=\"36\" writing-mode=\"tb\" transform=\"rotate(180, {}, {})\">&#9750;</text>\n", 32, 300, 32, 320));
+            svg_text.push_str(&format!("  <text x=\"{}\" y=\"{}\" font-family=\"serif\" font-size=\"36\" writing-mode=\"tb\" transform=\"rotate(180, {}, {})\">&#9750;</text>\n", 32, 352, 32, 352));
             let mut hand_string = String::new();
             for piece_type in &HAND_PIECE_TYPE_ALL {
                 if self.hand[Color::Black as usize][*piece_type as usize - 2] != 0 {
@@ -545,7 +545,7 @@ impl Position {
             }
 
             if !hand_string.is_empty() {
-                svg_text.push_str(&format!("  <text x=\"{}\" y=\"{}\" font-family=\"serif\" font-size=\"28\" writing-mode=\"tb\" transform=\"rotate(180, {}, {})\">{}</text>\n", 34, 290, 34, 290, hand_string));
+                svg_text.push_str(&format!("  <text x=\"{}\" y=\"{}\" font-family=\"serif\" font-size=\"36\" writing-mode=\"tb\" letter-spacing=\"1\" transform=\"rotate(180, {}, {})\">{}</text>\n", 32, 310, 32, 310, hand_string));
             }
         }
 
