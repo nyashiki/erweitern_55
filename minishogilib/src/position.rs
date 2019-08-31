@@ -120,6 +120,10 @@ impl Position {
         }
     }
 
+    pub fn get_kif(&self) -> std::vec::Vec<String> {
+        self.kif[0..self.ply as usize].to_vec().into_iter().map(|x| x.sfen()).collect()
+    }
+
     pub fn set_sfen(&mut self, sfen: &str) {
         // 初期化
         for i in 0..SQUARE_NB {
