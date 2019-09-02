@@ -89,7 +89,7 @@ class Trainer():
             conn.close()
 
     def update_parameters(self):
-        BATCH_SIZE = 2048
+        BATCH_SIZE = 4096
         RECENT_GAMES = 100000
 
         log_file = open('training_log.txt', 'w')
