@@ -57,7 +57,7 @@ class Trainer():
                     with self.graph.as_default():
                         with self.nn_lock:
                             data = _pickle.dumps(
-                                self.nn.model.get_weights(), protocol=2)
+                                self.nn.model.get_weights(), protocol=4)
 
                 conn.send(len(data).to_bytes(16, 'little'))
                 conn.sendall(data)
@@ -89,7 +89,7 @@ class Trainer():
             conn.close()
 
     def update_parameters(self):
-        BATCH_SIZE = 2048
+        BATCH_SIZE = 4096
         RECENT_GAMES = 100000
 
         log_file = open('training_log.txt', 'w')
