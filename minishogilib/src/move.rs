@@ -37,6 +37,38 @@ impl Move {
             }
         }
     }
+
+    pub fn csa_sfen(&self) -> String {
+        if self.piece == Piece::NoPiece {
+            return "%TORYO".to_string();
+        }
+
+        let csa_piece = [
+            "--", "OU", "KI", "GI", "KA", "HI", "FU", "--", "--", "--", "--", "NG", "UM", "RY",
+            "TO",
+        ];
+
+        if self.amount == 0 {
+            format!(
+                "00{}{}",
+                square_to_csa_sfen(self.to),
+                csa_piece[self.piece.get_piece_type() as usize]
+            )
+        } else {
+            let piece = if self.promotion {
+                self.piece.get_piece_type().get_promoted()
+            } else {
+                self.piece.get_piece_type()
+            };
+
+            format!(
+                "{}{}{}",
+                square_to_csa_sfen(self.from),
+                square_to_csa_sfen(self.to),
+                csa_piece[piece as usize]
+            )
+        }
+    }
 }
 
 #[pyproto]
@@ -126,6 +158,14 @@ pub fn square_to_sfen(square: usize) -> String {
         "{}{}",
         "54321".as_bytes()[square % 5 as usize] as char,
         "abcde".as_bytes()[square / 5 as usize] as char
+    )
+}
+
+pub fn square_to_csa_sfen(square: usize) -> String {
+    format!(
+        "{}{}",
+        "54321".as_bytes()[square % 5 as usize] as char,
+        "12345".as_bytes()[square / 5 as usize] as char
     )
 }
 
