@@ -57,7 +57,7 @@ class Trainer():
                     with self.graph.as_default():
                         with self.nn_lock:
                             data = _pickle.dumps(
-                                self.nn.model.get_weights(), protocol=2)
+                                self.nn.model.get_weights(), protocol=4)
 
                 conn.send(len(data).to_bytes(16, 'little'))
                 conn.sendall(data)
