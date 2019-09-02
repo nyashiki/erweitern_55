@@ -718,14 +718,18 @@ impl Position {
 
         for piece_type in &HAND_PIECE_TYPE_ALL {
             if self.hand[Color::White as usize][*piece_type as usize - 2] > 0 {
-               sfen_position.push_str(&self.hand[Color::White as usize][*piece_type as usize - 2].to_string());
-               sfen_position.push_str(&piece_to_string(piece_type.get_piece(Color::White)));
-               capture_flag = true;
+                sfen_position.push_str(
+                    &self.hand[Color::White as usize][*piece_type as usize - 2].to_string(),
+                );
+                sfen_position.push_str(&piece_to_string(piece_type.get_piece(Color::White)));
+                capture_flag = true;
             }
             if self.hand[Color::Black as usize][*piece_type as usize - 2] > 0 {
-               sfen_position.push_str(&self.hand[Color::Black as usize][*piece_type as usize - 2].to_string());
-               sfen_position.push_str(&piece_to_string(piece_type.get_piece(Color::Black)));
-               capture_flag = true;
+                sfen_position.push_str(
+                    &self.hand[Color::Black as usize][*piece_type as usize - 2].to_string(),
+                );
+                sfen_position.push_str(&piece_to_string(piece_type.get_piece(Color::Black)));
+                capture_flag = true;
             }
         }
 

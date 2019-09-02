@@ -43,7 +43,10 @@ impl Move {
             return "%TORYO".to_string();
         }
 
-        let csa_piece = ["--", "OU", "KI", "GI", "KA", "HI", "FU", "--", "--", "--", "--", "NG", "UM", "RY", "TO"];
+        let csa_piece = [
+            "--", "OU", "KI", "GI", "KA", "HI", "FU", "--", "--", "--", "--", "NG", "UM", "RY",
+            "TO",
+        ];
 
         if self.amount == 0 {
             format!(
@@ -58,7 +61,12 @@ impl Move {
                 self.piece.get_piece_type()
             };
 
-            format!("{}{}{}", square_to_csa_sfen(self.from), square_to_csa_sfen(self.to), csa_piece[piece as usize])
+            format!(
+                "{}{}{}",
+                square_to_csa_sfen(self.from),
+                square_to_csa_sfen(self.to),
+                csa_piece[piece as usize]
+            )
         }
     }
 }
@@ -154,7 +162,7 @@ pub fn square_to_sfen(square: usize) -> String {
 }
 
 pub fn square_to_csa_sfen(square: usize) -> String {
-        format!(
+    format!(
         "{}{}",
         "54321".as_bytes()[square % 5 as usize] as char,
         "12345".as_bytes()[square / 5 as usize] as char
