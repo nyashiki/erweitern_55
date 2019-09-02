@@ -397,14 +397,14 @@ impl MCTS {
                 let n_forced: f32 =
                     (2.0 * self.game_tree[*child].p * self.game_tree[node].n as f32).sqrt();
 
-                for _ in 1..n_forced as usize {
+                for remove in 1..n_forced as usize {
                     if self.game_tree[*child].n == 0 {
                         break;
                     }
 
                     self.game_tree[*child].n -= 1;
                     let puct =
-                        self.game_tree[*child].get_puct(self.game_tree[node].n as f32, false);
+                        self.game_tree[*child].get_puct((self.game_tree[node].n - remove as u32) as f32, false);
 
                     if puct >= n_max_puct {
                         self.game_tree[*child].n += 1;
