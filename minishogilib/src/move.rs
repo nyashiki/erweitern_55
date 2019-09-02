@@ -43,21 +43,22 @@ impl Move {
             return "%TORYO".to_string();
         }
 
-        let piece = ["--", "OU", "KI", "GI", "KA", "HI", "FU", "--", "--", "--", "--", "NG", "UM", "RY", "TO"];
+        let csa_piece = ["--", "OU", "KI", "GI", "KA", "HI", "FU", "--", "--", "--", "--", "NG", "UM", "RY", "TO"];
 
         if self.amount == 0 {
             format!(
                 "00{}{}",
                 square_to_csa_sfen(self.to),
-                piece[self.piece.get_piece_type() as usize]
+                csa_piece[self.piece.get_piece_type() as usize]
             )
         } else {
-            let index = self.piece.get_piece_type() as usize;
-            if self.promotion  {
-                format!("{}{}{}", square_to_csa_sfen(self.from), square_to_csa_sfen(self.to), piece[index + 8])
+            let piece = if self.promotion {
+                self.piece.get_piece_type().get_promoted()
             } else {
-                format!("{}{}{}", square_to_csa_sfen(self.from), square_to_csa_sfen(self.to), piece[index])
-            }
+                self.piece.get_piece_type()
+            };
+
+            format!("{}{}{}", square_to_csa_sfen(self.from), square_to_csa_sfen(self.to), csa_piece[piece as usize])
         }
     }
 }
