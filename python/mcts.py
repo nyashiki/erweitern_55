@@ -1,5 +1,6 @@
 import minishogilib
 import numpy as np
+import threading
 
 import network
 
@@ -25,11 +26,15 @@ class MCTS():
     def __init__(self, config):
         self.config = config
         self.mcts = minishogilib.MCTS(config.memory_size)
+        self.searching = False
+        self.lock = threading.Lock()
 
     def clear(self):
         self.mcts.clear()
 
     def run(self, position, nn):
+        self.searching = True
+
         root = self.mcts.set_root(position, self.config.reuse_tree)
 
         if self.config.immediate:
@@ -58,6 +63,10 @@ class MCTS():
             if self.mcts.get_usage() > 0.9:
                 break
 
+            with self.lock:
+                if not self.searching:
+                    break
+
             for b in range(self.config.batch_size):
                 leaf_positions[b] = position.copy(True)
                 leaf_nodes[b] = self.mcts.select_leaf(
@@ -80,6 +89,10 @@ class MCTS():
                 self.mcts.backpropagate(leaf_nodes[b], value[b][0])
 
         return root
+
+    def stop(self):
+        with self.lock:
+            self.searching = False
 
     def best_move(self, node):
         return self.mcts.best_move(node)
