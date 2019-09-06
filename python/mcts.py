@@ -1,6 +1,7 @@
 import minishogilib
 import numpy as np
 import threading
+import time
 
 import network
 
@@ -32,8 +33,9 @@ class MCTS():
     def clear(self):
         self.mcts.clear()
 
-    def run(self, position, nn):
+    def run(self, position, nn, timelimit=0):
         self.searching = True
+        start_time = time.time()
 
         root = self.mcts.set_root(position, self.config.reuse_tree)
 
@@ -66,6 +68,10 @@ class MCTS():
             with self.lock:
                 if not self.searching:
                     break
+
+            current_time = time.time()
+            if timelimit > 0 and (current_time - start_time) * 1000 >= timelimit:
+                break
 
             for b in range(self.config.batch_size):
                 leaf_positions[b] = position.copy(True)
