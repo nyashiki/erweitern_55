@@ -53,8 +53,12 @@ impl Node {
         const C_BASE: f32 = 19652.0;
         const C_INIT: f32 = 1.25;
 
-        if self.is_terminal && self.v == 0.0 {
-            return std::f32::MAX;
+        if self.is_terminal {
+            if self.v == 0.0 {
+                return std::f32::MAX;
+            } else if self.v == 1.0 {
+                return -1.0;
+            }
         }
 
         // KataGo approach (https://arxiv.org/abs/1902.10565)
