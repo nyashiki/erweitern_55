@@ -94,6 +94,7 @@ impl Position {
         println!("ply: {}", self.ply);
 
         println!("hash: {:x}", self.get_hash());
+        println!("repetition: {}", self.get_repetition());
     }
 
     pub fn sfen(&self, history: bool) -> String {
