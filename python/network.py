@@ -115,11 +115,14 @@ class Network:
         policy_labels = np.transpose(policy_labels, axes=[0, 2, 3, 1])
         policy_labels = np.reshape(policy_labels, (-1, 5 * 5 * 69))
 
-        # set the learning rate
-        K.set_value(self.model.optimizer.lr, learning_rate)
+        with self.session.as_default():
+            with self.graph.as_default():
+            # set the learning rate
+            K.set_value(self.model.optimizer.lr, learning_rate)
 
-        loss = self.model.train_on_batch(
-            train_images, [policy_labels, value_labels])
+            loss = self.model.train_on_batch(
+                train_images, [policy_labels, value_labels])
+
         return loss
 
     def predict(self, images):
@@ -137,4 +140,6 @@ class Network:
         return policy, value
 
     def load(self, filepath):
-        self.model = keras.models.load_model(filepath, compile=True)
+        with self.session.as_default():
+            with self.graph.as_default():
+                self.model = keras.models.load_model(filepath, compile=True)
