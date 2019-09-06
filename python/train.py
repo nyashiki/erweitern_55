@@ -23,8 +23,6 @@ class Trainer():
         self.reservoir = Reservoir()
         self.nn = network.Network()
         self.nn.model._make_predict_function()
-        self.session = tf.compat.v1.keras.backend.get_session()
-        self.graph = tf.compat.v1.get_default_graph()
 
         self.steps = 0
 
@@ -53,11 +51,9 @@ class Trainer():
             message = conn.recv(1024)
 
             if message == b'parameter':
-                with self.session.as_default():
-                    with self.graph.as_default():
-                        with self.nn_lock:
-                            data = _pickle.dumps(
-                                self.nn.model.get_weights(), protocol=4)
+                with self.nn_lock:
+                    data = _pickle.dumps(
+                        self.nn.model.get_weights(), protocol=4)
 
                 conn.send(len(data).to_bytes(16, 'little'))
                 conn.sendall(data)
@@ -89,7 +85,7 @@ class Trainer():
             conn.close()
 
     def update_parameters(self):
-        BATCH_SIZE = 2048
+        BATCH_SIZE = 4096
         RECENT_GAMES = 100000
 
         log_file = open('training_log.txt', 'w')
@@ -108,25 +104,23 @@ class Trainer():
 
             # Update neural network parameters
             with self.nn_lock:
-                with self.session.as_default():
-                    with self.graph.as_default():
-                        if self.steps < 100000:
-                            learning_rate = 1e-1
-                        elif self.steps < 300000:
-                            learning_rate = 1e-2
-                        elif self.steps < 500000:
-                            learning_rate = 1e-3
-                        else:
-                            learning_rate = 1e-4
+                if self.steps < 100000:
+                    learning_rate = 1e-1
+                elif self.steps < 300000:
+                    learning_rate = 1e-2
+                elif self.steps < 500000:
+                    learning_rate = 1e-3
+                else:
+                    learning_rate = 1e-4
 
-                        loss_sum, policy_loss, value_loss = self.nn.step(
-                            nninputs, policies, values, learning_rate)
+                loss_sum, policy_loss, value_loss = self.nn.step(
+                    nninputs, policies, values, learning_rate)
 
-                        init_policy, init_value = self.nn.predict(init_position_nn_input)
+                init_policy, init_value = self.nn.predict(init_position_nn_input)
 
-                        if self.steps % 5000 == 0:
-                            self.nn.model.save(
-                                './weights/iter_{}.h5'.format(self.steps), include_optimizer=True)
+                if self.steps % 5000 == 0:
+                    self.nn.model.save(
+                        './weights/iter_{}.h5'.format(self.steps), include_optimizer=True)
 
             log_file.write('{}, {}, {}, {}, {}, {}\n'.format(datetime.datetime.now(
                 datetime.timezone.utc), self.steps, loss_sum, policy_loss, value_loss, init_value[0][0]))

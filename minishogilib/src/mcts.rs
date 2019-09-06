@@ -53,8 +53,12 @@ impl Node {
         const C_BASE: f32 = 19652.0;
         const C_INIT: f32 = 1.25;
 
-        if self.is_terminal && self.v == 0.0 {
-            return std::f32::MAX;
+        if self.is_terminal {
+            if self.v == 0.0 {
+                return std::f32::MAX;
+            } else if self.v == 1.0 {
+                return -1.0;
+            }
         }
 
         // KataGo approach (https://arxiv.org/abs/1902.10565)
@@ -241,7 +245,7 @@ impl MCTS {
         // win or lose is determined by the game rule
         if self.game_tree[node].is_terminal {
             if is_check_repetition {
-                value = 0.0;
+                value = 1.0;
             } else if is_repetition {
                 value = if position.side_to_move == Color::White { 0.0 } else { 1.0 }
             } else {

@@ -81,6 +81,11 @@ class Network:
                                  'value': keras.losses.mean_squared_error},
                            loss_weights={'policy': 1, 'value': 1})
 
+        # for multithread
+        self.model._make_predict_function()
+        self.session = tf.compat.v1.keras.backend.get_session()
+        self.graph = tf.compat.v1.get_default_graph()
+
     def _residual_block(self, input_image, conv_kernel_shape=[3, 3]):
         conv_filters = int(input_image.shape[3])
 
@@ -119,8 +124,10 @@ class Network:
 
     def predict(self, images):
         images = np.transpose(images, axes=[0, 2, 3, 1])
-        policy, value = self.model.predict(
-            images, batch_size=len(images), verbose=0, steps=None)
+        with self.session.as_default():
+            with self.graph.as_default():
+                policy, value = self.model.predict(
+                    images, batch_size=len(images), verbose=0, steps=None)
 
         # transpose [B, H, W, C] order to [B, C, H, W] order
         policy = np.reshape(policy, (-1, 5, 5, 69))
