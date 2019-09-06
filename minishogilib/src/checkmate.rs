@@ -35,6 +35,12 @@ fn attack(position: &mut Position, depth: i32) -> (bool, Move) {
             continue;
         }
 
+        let (repetition, _) = position.is_repetition();
+        if repetition {
+            position.undo_move();
+            continue;
+        }
+
         let (checkmate, _) = defense(position, depth - 1);
 
         position.undo_move();
@@ -60,6 +66,12 @@ fn defense(position: &mut Position, depth: i32) -> (bool, Move) {
 
     for m in &moves {
         position.do_move(m);
+
+        let (repetition, _) = position.is_repetition();
+        if repetition {
+            position.undo_move();
+            continue;
+        }
 
         let (checkmate, _) = attack(position, depth - 1);
 
