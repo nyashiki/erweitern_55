@@ -22,7 +22,6 @@ class Trainer():
 
         self.reservoir = Reservoir()
         self.nn = network.Network()
-        self.nn.model._make_predict_function()
 
         self.steps = 0
 
