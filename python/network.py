@@ -143,3 +143,13 @@ class Network:
         with self.session.as_default():
             with self.graph.as_default():
                 self.model = keras.models.load_model(filepath, compile=True)
+
+    def get_weights(self):
+        with self.session.as_default():
+            with self.graph.as_default():
+                return self.model.get_weights()
+
+    def save(self, filepath):
+        with self.session.as_default():
+            with self.graph.as_default():
+                self.model.save(filepath, include_optimizer=True)

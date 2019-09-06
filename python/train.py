@@ -53,7 +53,7 @@ class Trainer():
             if message == b'parameter':
                 with self.nn_lock:
                     data = _pickle.dumps(
-                        self.nn.model.get_weights(), protocol=4)
+                        self.nn.get_weights(), protocol=4)
 
                 conn.send(len(data).to_bytes(16, 'little'))
                 conn.sendall(data)
@@ -119,8 +119,7 @@ class Trainer():
                 init_policy, init_value = self.nn.predict(init_position_nn_input)
 
                 if self.steps % 5000 == 0:
-                    self.nn.model.save(
-                        './weights/iter_{}.h5'.format(self.steps), include_optimizer=True)
+                    self.nn.save('./weights/iter_{}.h5'.format(self.steps))
 
             log_file.write('{}, {}, {}, {}, {}, {}\n'.format(datetime.datetime.now(
                 datetime.timezone.utc), self.steps, loss_sum, policy_loss, value_loss, init_value[0][0]))
