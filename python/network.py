@@ -117,11 +117,11 @@ class Network:
 
         with self.session.as_default():
             with self.graph.as_default():
-            # set the learning rate
-            K.set_value(self.model.optimizer.lr, learning_rate)
+                # set the learning rate
+                K.set_value(self.model.optimizer.lr, learning_rate)
 
-            loss = self.model.train_on_batch(
-                train_images, [policy_labels, value_labels])
+                loss = self.model.train_on_batch(
+                    train_images, [policy_labels, value_labels])
 
         return loss
 
