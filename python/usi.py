@@ -10,10 +10,10 @@ import network
 class USI:
     def __init__(self):
         self.nn = network.Network()
-        self.nn.load('./weights/iter_80000.h5')
+        self.nn.load('./weights/iter_110000.h5')
 
         self.config = mcts.Config()
-        self.config.simulation_num = 6400
+        self.config.simulation_num = int(1e9)
         self.config.reuse_tree = True
 
         self.search = mcts.MCTS(self.config)
@@ -43,7 +43,7 @@ class USI:
             command = line.split()
 
             if command[0] == 'usi':
-                print('id name erweitern_55(3-days)')
+                print('id name erweitern_55(4-days)')
                 print('id author nyashiki')
                 print('usiok')
 
@@ -69,12 +69,32 @@ class USI:
             elif command[0] == 'go':
                 # ToDo: timelimit
 
+                timelimit = { }
+                for (i, val) in enumerate(command):
+                    if val == 'btime':
+                        timelimit['btime'] = int(command[i + 1])
+                    elif val == 'wtime':
+                        timelimit['wtime'] = int(command[i + 1])
+                    elif val == 'byoyomi':
+                        timelimit['byoyomi'] = int(command[i + 1])
+
                 moves = self.position.generate_moves()
                 if len(moves) == 0:
                     print('bestmove resign')
+
                 else:
-                    root = self.search.run(self.position, self.nn)
-                    best_move = self.search.best_move(root)
+                    checkmate, checkmate_move = self.position.solve_checkmate_dfs(7)
+
+                    if checkmate:
+                        best_move = checkmate_move
+                    else:
+                        remain_time = timelimit['btime'] if self.position.get_side_to_move() == 0 else timelimit['wtime']
+                        think_time = max(remain_time // 20, timelimit['byoyomi'] - 1000)
+                        print('info string think time {}'.format(think_time))
+
+                        root = self.search.run(self.position, self.nn, think_time)
+                        best_move = self.search.best_move(root)
+
                     print('bestmove {}'.format(best_move))
 
                     self.position.do_move(best_move)
