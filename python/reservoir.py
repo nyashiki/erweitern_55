@@ -1,3 +1,4 @@
+import bisect
 import minishogilib
 import numpy as np
 import os
@@ -68,10 +69,18 @@ class Reservoir(object):
         # add index
         recent_records = self.records[-recent:]
         recent_targets = self.learning_targets[-recent:]
-        target_plys = [(i, t) for (i, x) in enumerate(recent_targets) for t in x]
-
-        target_plys = random.sample(target_plys, mini_batch_size)
-        target_plys.sort()
+        cumulative_plys = [0 for _ in range(recent + 1)]
+        for i in range(recent):
+            cumulative_plys[i + 1] = cumulative_plys[i] + len(recent_targets[i])
+        indicies = random.sample(range(cumulative_plys[recent]), mini_batch_size)
+        indicies.sort()
+        target_plys = [None for _ in range(mini_batch_size)]
+        lo = 0
+        for i in range(mini_batch_size):
+            index = bisect.bisect_right(cumulative_plys, indicies[i], lo=lo) - 1
+            ply = recent_targets[index][indicies[i] - cumulative_plys[index]]
+            target_plys[i] = (index, ply)
+            lo = index
 
         nninputs = np.zeros(
             (mini_batch_size, network.INPUT_CHANNEL, 5, 5), dtype='float32')
