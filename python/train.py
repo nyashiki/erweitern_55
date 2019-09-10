@@ -37,19 +37,14 @@ class Trainer():
         if not weight_file is None:
             self.nn.load(weight_file)
 
-        self.training_data = queue.Queue(maxsize=10)
+        self.training_data = queue.Queue(maxsize=200)
 
     def _sample_datasets(self):
         BATCH_SIZE = 4096
         RECENT_GAMES = 100000
 
         while True:
-            with self.reservoir_lock:
-                if self.reservoir.len_learning_targets() < BATCH_SIZE:
-                    continue
-
-                datasets = self.reservoir.sample(BATCH_SIZE, RECENT_GAMES)
-
+            datasets = self.reservoir.sample(BATCH_SIZE, RECENT_GAMES)
             self.training_data.put(datasets)
 
     def collect_records(self):
@@ -100,8 +95,10 @@ class Trainer():
             conn.close()
 
     def update_parameters(self):
-        sample_thread = threading.Thread(target=self._sample_datasets)
-        sample_thread.start()
+        sample_threads = [None for _ in range(4)]
+        for sample_thread in sample_threads:
+            sample_thread = threading.Thread(target=self._sample_datasets)
+            sample_thread.start()
 
         log_file = open('training_log.txt', 'w')
 

@@ -4,6 +4,7 @@ import numpy as np
 import os
 import random
 import simplejson
+import threading
 
 import gamerecord
 import network
@@ -13,6 +14,8 @@ class Reservoir(object):
         self.records = []
         self.learning_targets = []
         self.json_dump = json_dump
+
+        self.lock = threading.Lock()
 
         if os.path.isfile(json_dump):
             self._load()
@@ -41,15 +44,16 @@ class Reservoir(object):
             self.learning_targets.append(record.learning_target_plys)
 
     def push(self, record):
-        self.records.append(record)
-        self.learning_targets.append(record.learning_target_plys)
+        with self.lock:
+            self.records.append(record)
+            self.learning_targets.append(record.learning_target_plys)
 
         with open(self.json_dump, 'a') as f:
             simplejson.dump(record.to_dict(), f)
             f.write('\n')
 
 
-    def sample(self, mini_batch_size, recent, discard=True):
+    def sample(self, mini_batch_size, recent, discard=True, lock=None):
         """Sample positions from game records
 
         # Arguments:
@@ -63,8 +67,9 @@ class Reservoir(object):
         """
 
         if discard:
-            self.records = self.records[-recent:]
-            self.learning_targets = self.learning_targets[-recent:]
+            with self.lock:
+                self.records = self.records[-recent:]
+                self.learning_targets = self.learning_targets[-recent:]
 
         # add index
         recent_records = self.records[-recent:]
