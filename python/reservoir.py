@@ -1,6 +1,5 @@
 import bisect
 import minishogilib
-from joblib import Parallel, delayed
 import numpy as np
 import os
 import random
@@ -8,37 +7,6 @@ import simplejson
 
 import gamerecord
 import network
-
-def _get_datasets(record, target_ply, mcts_result):
-    position = minishogilib.Position()
-    position.set_start_position()
-    ply = 0
-
-    kif = record.sfen_kif
-
-    for ply in range(target_ply):
-        move = position.sfen_to_move(kif[ply])
-        position.do_move(move)
-
-    # input
-    nn_input = np.reshape(position.to_nninput(), (network.INPUT_CHANNEL, 5, 5))
-
-    # policy
-    policy = np.zeros((69 * 5 * 5), dtype='float32')
-    sum_N, q, playouts = mcts_result
-    for playout in playouts:
-        move = position.sfen_to_move(playout[0])
-        policy[move.to_policy_index()] = playout[1] / sum_N
-
-    # value
-    if record.winner == 2:
-        value = 0
-    elif record.winner == position.get_side_to_move():
-        value = 1
-    else:
-        value = -1
-
-    return nn_input, policy, value
 
 class Reservoir(object):
     def __init__(self, json_dump='records.json'):
@@ -80,6 +48,7 @@ class Reservoir(object):
             simplejson.dump(record.to_dict(), f)
             f.write('\n')
 
+
     def sample(self, mini_batch_size, recent, discard=True):
         """Sample positions from game records
 
@@ -113,11 +82,49 @@ class Reservoir(object):
             target_plys[i] = (index, ply)
             lo = index
 
-        datasets = Parallel(n_jobs=-1)([delayed(_get_datasets)(recent_records[t[0]], t[1], recent_records[t[0]].mcts_result[t[1]]) for t in target_plys])
+        nninputs = np.zeros(
+            (mini_batch_size, network.INPUT_CHANNEL, 5, 5), dtype='float32')
+        policies = np.zeros((mini_batch_size, 69 * 5 * 5), dtype='float32')
+        values = np.zeros((mini_batch_size, 1), dtype='float32')
 
-        nninputs = np.array([x[0] for x in datasets], dtype='float')
-        policies = np.array([x[1] for x in datasets], dtype='float')
-        values = np.array([x[2] for x in datasets], dtype='float')
+        target_index = 0
+
+        while target_index < mini_batch_size:
+            position = minishogilib.Position()
+            position.set_start_position()
+
+            record = recent_records[target_plys[target_index][0]]
+
+            ply = 0
+            while True:
+                if ply == target_plys[target_index][1]:
+                    # input
+                    nninputs[target_index] = np.reshape(
+                        position.to_nninput(), (network.INPUT_CHANNEL, 5, 5))
+
+                    # policy
+                    sum_N, q, playouts = record.mcts_result[target_plys[target_index][1]]
+                    for playout in playouts:
+                        move = position.sfen_to_move(playout[0])
+                        policies[target_index][move.to_policy_index()
+                                               ] = playout[1] / sum_N
+
+                    # value
+                    if record.winner == 2:
+                        values[target_index] = 0
+                    elif record.winner == position.get_side_to_move():
+                        values[target_index] = 1
+                    else:
+                        values[target_index] = -1
+
+                    target_index += 1
+
+                    if target_index == mini_batch_size or target_plys[target_index - 1][0] != target_plys[target_index][0]:
+                        break
+
+                move = position.sfen_to_move(record.sfen_kif[ply])
+                position.do_move(move)
+                ply += 1
 
         return nninputs, policies, values
 

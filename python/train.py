@@ -131,9 +131,12 @@ class Trainer():
         collect_records_thread = threading.Thread(target=self.collect_records)
         collect_records_thread.start()
 
-        # Update the neural network parameters
+        # Continue to update the neural network parameters
+        update_parameters_thread = threading.Thread(
+            target=self.update_parameters)
         if not self.store_only:
-            self.update_parameters()
+            update_parameters_thread.start()
+
 
 if __name__ == '__main__':
     parser = OptionParser()
