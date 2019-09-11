@@ -226,18 +226,8 @@ impl Position {
                     break;
                 }
 
-                let moves = self.generate_moves();
-                let mut correctly_done = false;
-
-                for m in moves {
-                    if m.sfen() == sfen_move.unwrap() {
-                        self.do_move(&m);
-                        correctly_done = true;
-                        break;
-                    }
-                }
-
-                assert!(correctly_done);
+                let m = self.sfen_to_move(sfen_move.unwrap().to_string());
+                self.do_move(&m);
             }
         }
     }

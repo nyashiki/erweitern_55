@@ -16,6 +16,7 @@ class SelfplayConfig:
         self.n = 128
         self.oscillation_frac = 0.25
 
+        self.stop_with_checkmate = True
 
 def run(nn, search, config, verbose=False):
     position = minishogilib.Position()
@@ -43,7 +44,8 @@ def run(nn, search, config, verbose=False):
 
         if checkmate:
             best_move = checkmate_move
-            search.clear()
+            if not config.stop_with_checkmate:
+                search.mcts.clear()
 
         else:
             if config.playout_cap_oscillation:
@@ -97,6 +99,9 @@ def run(nn, search, config, verbose=False):
             print(best_move)
             print('time:', elapsed)
             print('--------------------')
+
+        if checkmate and config.stop_with_checkmate:
+            break
 
     game_record.timestamp = int(datetime.now().timestamp())
     return game_record

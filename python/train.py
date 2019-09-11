@@ -4,6 +4,7 @@ import socket
 import numpy as np
 from optparse import OptionParser
 import _pickle
+import queue
 import sys
 import tensorflow as tf
 import tensorflow.keras.backend as K
@@ -35,6 +36,21 @@ class Trainer():
 
         if not weight_file is None:
             self.nn.load(weight_file)
+
+        self.training_data = queue.Queue(maxsize=10)
+
+    def _sample_datasets(self):
+        BATCH_SIZE = 4096
+        RECENT_GAMES = 100000
+
+        while True:
+            with self.reservoir_lock:
+                if self.reservoir.len_learning_targets() < BATCH_SIZE:
+                    continue
+
+                datasets = self.reservoir.sample(BATCH_SIZE, RECENT_GAMES)
+
+            self.training_data.put(datasets)
 
     def collect_records(self):
         sc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -84,8 +100,8 @@ class Trainer():
             conn.close()
 
     def update_parameters(self):
-        BATCH_SIZE = 4096
-        RECENT_GAMES = 100000
+        sample_thread = threading.Thread(target=self._sample_datasets)
+        sample_thread.start()
 
         log_file = open('training_log.txt', 'w')
 
@@ -94,12 +110,7 @@ class Trainer():
         init_position_nn_input = np.reshape(position.to_nninput(), (1, network.INPUT_CHANNEL, 5, 5))
 
         while True:
-            with self.reservoir_lock:
-                if self.reservoir.len_learning_targets() < BATCH_SIZE:
-                    continue
-
-                nninputs, policies, values = self.reservoir.sample(
-                    BATCH_SIZE, RECENT_GAMES)
+            nninputs, policies, values = self.training_data.get()
 
             # Update neural network parameters
             with self.nn_lock:
@@ -131,12 +142,9 @@ class Trainer():
         collect_records_thread = threading.Thread(target=self.collect_records)
         collect_records_thread.start()
 
-        # Continue to update the neural network parameters
-        update_parameters_thread = threading.Thread(
-            target=self.update_parameters)
+        # Update the neural network parameters
         if not self.store_only:
-            update_parameters_thread.start()
-
+            self.update_parameters()
 
 if __name__ == '__main__':
     parser = OptionParser()
