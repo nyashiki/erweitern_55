@@ -10,7 +10,7 @@ class Config:
     def __init__(self):
         self.memory_size = 0.2  # GB
 
-        self.batch_size = 32
+        self.batch_size = 16
         self.simulation_num = 800
 
         self.use_dirichlet = False
