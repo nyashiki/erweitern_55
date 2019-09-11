@@ -101,6 +101,7 @@ def run(nn, search, config, verbose=False):
             print('--------------------')
 
         if checkmate and config.stop_with_checkmate:
+            game_record.winner = 1 - position.get_side_to_move()
             break
 
     game_record.timestamp = int(datetime.now().timestamp())
