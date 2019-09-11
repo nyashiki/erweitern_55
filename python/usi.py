@@ -1,6 +1,7 @@
 import minishogilib
 import numpy as np
 import os
+import sys
 import tensorflow as tf
 import threading
 
@@ -23,9 +24,6 @@ class USI:
 
         # ponder
         self.ponder_thread = None
-
-        self.ponder_config = mcts.Config()
-        self.ponder_config.simulation_num = int(1e9)
 
     def start(self):
         # do predict once because the first prediction takes more time than latter one
@@ -89,10 +87,11 @@ class USI:
                         best_move = checkmate_move
                     else:
                         remain_time = timelimit['btime'] if self.position.get_side_to_move() == 0 else timelimit['wtime']
-                        think_time = max(remain_time // 20, timelimit['byoyomi'] - 1000)
-                        print('info string think time {}'.format(think_time))
+                        think_time = remain_time // 20 + timelimit['byoyomi'] - 900
 
-                        root = self.search.run(self.position, self.nn, think_time)
+                        print('info string think time {}'.format(think_time), flush=True)
+
+                        root = self.search.run(self.position, self.nn, think_time, True)
                         best_move = self.search.best_move(root)
 
                     print('bestmove {}'.format(best_move))
@@ -110,8 +109,7 @@ class USI:
         """
             position: This position turn should be the other player's.
         """
-        self.search.config = self.ponder_config
-        self.ponder_thread = threading.Thread(target=self.search.run, args=(self.position, self.nn))
+        self.ponder_thread = threading.Thread(target=self.search.run, args=(self.position, self.nn, 0, True))
         self.ponder_thread.start()
 
     def ponder_stop(self):
@@ -119,8 +117,6 @@ class USI:
             self.search.stop()
             self.ponder_thread.join()
             self.ponder_thread = None
-
-        self.search.config = self.config
 
 if __name__ == '__main__':
     # fix the seed

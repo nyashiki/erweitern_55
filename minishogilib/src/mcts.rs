@@ -468,6 +468,24 @@ impl MCTS {
             );
         }
     }
+
+    pub fn info(&self, node: usize) -> (std::vec::Vec<Move>, f32) {
+        let mut pv_moves: std::vec::Vec<Move> = std::vec::Vec::new();
+        let q = if self.game_tree[node].n == 0 {
+            0.0
+        } else {
+            self.game_tree[node].w / self.game_tree[node].n as f32
+        };
+
+        let mut pn: usize = node;
+
+        while self.game_tree[pn].expanded() {
+            pn = self.select_n_max_child(pn);
+            pv_moves.push(self.game_tree[pn].m);
+        }
+
+        (pv_moves, q)
+    }
 }
 
 impl MCTS {

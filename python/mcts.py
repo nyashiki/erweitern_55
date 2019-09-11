@@ -33,7 +33,7 @@ class MCTS():
     def clear(self):
         self.mcts.clear()
 
-    def run(self, position, nn, timelimit=0):
+    def run(self, position, nn, timelimit=0, verbose=False):
         self.searching = True
         start_time = time.time()
 
@@ -61,6 +61,7 @@ class MCTS():
         leaf_nodes = [None for _ in range(self.config.batch_size)]
         leaf_positions = [None for _ in range(self.config.batch_size)]
 
+        loop_count = 0
         for _ in range(self.config.simulation_num // self.config.batch_size):
             if self.mcts.get_usage() > 0.9:
                 break
@@ -93,6 +94,20 @@ class MCTS():
 
             for b in range(self.config.batch_size):
                 self.mcts.backpropagate(leaf_nodes[b], value[b][0])
+
+            if verbose and loop_count % 50 == 0:
+                pv_moves, q = self.mcts.info(root)
+                print('info depth {} score winrate {:.3f} pv {}'.format(len(pv_moves),
+                                                                    q,
+                                                                    ' '.join([m.sfen() for m in pv_moves])), flush=True)
+
+            loop_count += 1
+
+        if verbose:
+                pv_moves, q = self.mcts.info(root)
+                print('info depth {} score winrate {:.3f} pv {}'.format(len(pv_moves),
+                                                                    q,
+                                                                    ' '.join([m.sfen() for m in pv_moves])), flush=True)
 
         return root
 
