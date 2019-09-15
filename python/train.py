@@ -123,8 +123,9 @@ class Trainer():
                 else:
                     learning_rate = 1e-4
 
-                loss_sum, policy_loss, value_loss = self.nn.step(
+                _, policy_loss, value_loss = self.nn.step(
                     nninputs, policies, values, learning_rate)
+                loss_sum = policy_loss + value_loss
 
                 init_policy, init_value = self.nn.predict(init_position_nn_input)
 
