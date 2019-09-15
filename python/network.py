@@ -60,8 +60,7 @@ class Network:
         policy = keras.layers.BatchNormalization()(policy)
         policy = keras.layers.Conv2D(
             69, [3, 3], padding='same', activation=tf.nn.relu, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(policy)
-        policy = keras.layers.Flatten()(policy)
-        policy = keras.layers.Softmax(name='policy')(policy)
+        policy = keras.layers.Flatten(name='policy')(policy)
 
         # Value head
         value = keras.layers.Conv2D(
@@ -77,8 +76,8 @@ class Network:
 
         # optimizerを定義
         self.model.compile(optimizer=tf.keras.optimizers.SGD(lr=1e-1, momentum=0.9),
-                           loss={'policy': keras.losses.categorical_crossentropy,
-                                 'value': keras.losses.mean_squared_error},
+                           loss={'policy': tf.nn.softmax_cross_entropy_with_logits_v2,
+                                 'value': tf.losses.mean_squared_error},
                            loss_weights={'policy': 1, 'value': 1})
 
         # for multithread
