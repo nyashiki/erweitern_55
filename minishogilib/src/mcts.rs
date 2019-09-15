@@ -4,6 +4,7 @@ use types::*;
 
 use numpy::PyArray1;
 use pyo3::prelude::*;
+use rand::distributions::Distribution;
 
 #[derive(Clone)]
 pub struct Node {
@@ -221,6 +222,7 @@ impl MCTS {
         np_policy: &PyArray1<f32>,
         mut value: f32,
         force: bool,
+        dirichlet_noise: bool
     ) -> f32 {
         if self.game_tree[node].n > 0 {
             return self.game_tree[node].v;
@@ -233,7 +235,7 @@ impl MCTS {
 
         for m in &moves {
             let index = m.to_policy_index();
-            legal_policy_sum += policy[index];
+            legal_policy_sum += policy[index].exp();
         }
 
         let (is_repetition, is_check_repetition) = position.is_repetition();
@@ -261,9 +263,31 @@ impl MCTS {
             }
         }
 
+        if force {
+            self.game_tree[node].clear();
+        }
+
         // set policy and vaue
         if self.game_tree[node].children.len() == 0 {
-            for m in &moves {
+            let mut noise: std::vec::Vec<f64> = vec![0.0; moves.len()];
+
+            if dirichlet_noise {
+                let mut noise_sum = 0.0;
+
+                for (i, _) in moves.iter().enumerate() {
+                    let gamma = rand::distributions::Gamma::new(0.34, 1.0);
+                    let v = gamma.sample(&mut rand::thread_rng());
+
+                    noise[i] = v;
+                    noise_sum += v;
+                }
+
+                for v in &mut noise {
+                    *v /= noise_sum;
+                }
+            }
+
+            for (i, m) in moves.iter().enumerate() {
                 let policy_index = m.to_policy_index();
 
                 let mut index = self.node_index;
@@ -273,8 +297,14 @@ impl MCTS {
                     }
 
                     if !self.game_tree[index].is_used {
+                        let p = if dirichlet_noise {
+                            (policy[policy_index].exp() / legal_policy_sum) * 0.75 + (noise[i] as f32) * 0.25
+                        } else {
+                            policy[policy_index].exp() / legal_policy_sum
+                        };
+
                         self.game_tree[index] =
-                            Node::new(node, *m, policy[policy_index] / legal_policy_sum, true);
+                            Node::new(node, *m, p, true);
                         self.game_tree[node].children.push(index);
                         self.node_index = (index + 1) % self.size;
                         self.node_used_count += 1;
@@ -283,14 +313,6 @@ impl MCTS {
                     }
                     index = (index + 1) % self.size;
                 }
-            }
-        } else if force {
-            let children = self.game_tree[node].children.clone();
-
-            for child in &children {
-                let policy_index = self.game_tree[*child].m.to_policy_index();
-
-                self.game_tree[*child].p = policy[policy_index] / legal_policy_sum;
             }
         }
 

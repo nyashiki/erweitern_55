@@ -14,8 +14,6 @@ class Config:
         self.simulation_num = 800
 
         self.use_dirichlet = False
-        self.dirichlet_alpha = 0.34
-        self.exploration_fraction = 0.25
 
         self.forced_playouts = False
         self.reuse_tree = True
@@ -47,16 +45,7 @@ class MCTS():
         policy, value = nn.predict(nninput)
         value = (value + 1) / 2
 
-        if self.config.use_dirichlet:
-            moves = position.generate_moves()
-            noise = np.random.gamma(self.config.dirichlet_alpha, 1, len(moves))
-            frac = self.config.exploration_fraction
-
-            for (i, m) in enumerate(moves):
-                policy[0][m.to_policy_index()] = (
-                    1 - frac) * policy[0][m.to_policy_index()] + frac * noise[i]
-
-        self.mcts.evaluate(root, position, policy[0], value[0][0], True)
+        self.mcts.evaluate(root, position, policy[0], value[0][0], True, self.config.use_dirichlet)
 
         leaf_nodes = [None for _ in range(self.config.batch_size)]
         leaf_positions = [None for _ in range(self.config.batch_size)]
@@ -90,7 +79,7 @@ class MCTS():
 
             for b in range(self.config.batch_size):
                 value[b][0] = self.mcts.evaluate(
-                    leaf_nodes[b], leaf_positions[b], policy[b], value[b][0], False)
+                    leaf_nodes[b], leaf_positions[b], policy[b], value[b][0], False, False)
 
             for b in range(self.config.batch_size):
                 self.mcts.backpropagate(leaf_nodes[b], value[b][0])
