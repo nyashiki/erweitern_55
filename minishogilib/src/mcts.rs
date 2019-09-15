@@ -263,30 +263,26 @@ impl MCTS {
             }
         }
 
-        if force {
-            self.game_tree[node].clear();
+        let mut noise: std::vec::Vec<f64> = vec![0.0; moves.len()];
+
+        if dirichlet_noise {
+            let mut noise_sum = 0.0;
+
+            for (i, _) in moves.iter().enumerate() {
+                let gamma = rand::distributions::Gamma::new(0.34, 1.0);
+                let v = gamma.sample(&mut rand::thread_rng());
+
+                noise[i] = v;
+                noise_sum += v;
+            }
+
+            for v in &mut noise {
+                *v /= noise_sum;
+            }
         }
 
         // set policy and vaue
         if self.game_tree[node].children.len() == 0 {
-            let mut noise: std::vec::Vec<f64> = vec![0.0; moves.len()];
-
-            if dirichlet_noise {
-                let mut noise_sum = 0.0;
-
-                for (i, _) in moves.iter().enumerate() {
-                    let gamma = rand::distributions::Gamma::new(0.34, 1.0);
-                    let v = gamma.sample(&mut rand::thread_rng());
-
-                    noise[i] = v;
-                    noise_sum += v;
-                }
-
-                for v in &mut noise {
-                    *v /= noise_sum;
-                }
-            }
-
             for (i, m) in moves.iter().enumerate() {
                 let policy_index = m.to_policy_index();
 
@@ -314,6 +310,19 @@ impl MCTS {
                     index = (index + 1) % self.size;
                 }
             }
+        } else if force {
+            let children = self.game_tree[node].children.clone();
+
+            for (i, child) in children.iter().enumerate() {
+                let policy_index = self.game_tree[*child].m.to_policy_index();
+
+                self.game_tree[*child].p = if dirichlet_noise {
+                    (policy[policy_index].exp() / legal_policy_sum) * 0.75 + (noise[i] as f32) * 0.25
+                } else {
+                    policy[policy_index].exp() / legal_policy_sum
+                };
+            }
+
         }
 
         self.game_tree[node].v = value;
