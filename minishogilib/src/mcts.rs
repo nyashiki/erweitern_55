@@ -493,17 +493,23 @@ impl MCTS {
 
     pub fn info(&self, node: usize) -> (std::vec::Vec<Move>, f32) {
         let mut pv_moves: std::vec::Vec<Move> = std::vec::Vec::new();
-        let q = if self.game_tree[node].n == 0 {
-            0.0
-        } else {
-            self.game_tree[node].w / self.game_tree[node].n as f32
-        };
+        let mut q: f32 = 0.0;
 
         let mut pn: usize = node;
+        let mut depth = 0;
 
         while self.game_tree[pn].expanded() {
             pn = self.select_n_max_child(pn);
             pv_moves.push(self.game_tree[pn].m);
+
+            depth += 1;
+            if depth == 1 {
+                q = if self.game_tree[pn].n == 0 {
+                    0.0
+                } else {
+                    1.0 - (self.game_tree[pn].w / self.game_tree[pn].n as f32)
+                };
+            }
         }
 
         (pv_moves, q)
