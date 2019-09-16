@@ -65,9 +65,7 @@ class USI:
                 pass
 
             elif command[0] == 'go':
-                # ToDo: timelimit
-
-                timelimit = { }
+                timelimit = {}
                 for (i, val) in enumerate(command):
                     if val == 'btime':
                         timelimit['btime'] = int(command[i + 1])
@@ -81,20 +79,26 @@ class USI:
                     print('bestmove resign')
 
                 else:
-                    checkmate, checkmate_move = self.position.solve_checkmate_dfs(7)
+                    checkmate, checkmate_move = self.position.solve_checkmate_dfs(
+                        7)
 
                     if checkmate:
                         best_move = checkmate_move
                     else:
-                        remain_time = timelimit['btime'] if self.position.get_side_to_move() == 0 else timelimit['wtime']
-                        think_time = remain_time // 20 + timelimit['byoyomi'] - 900
+                        remain_time = timelimit['btime'] if self.position.get_side_to_move(
+                        ) == 0 else timelimit['wtime']
+                        think_time = remain_time // 30
+                        if think_time < timelimit['byoyomi']:
+                            think_time += timelimit['byoyomi'] - 900
+                        think_time = max(think_time, 900)
 
-                        print('info string think time {}'.format(think_time), flush=True)
-
-                        root = self.search.run(self.position, self.nn, think_time, True)
+                        print('info string think time {}'.format(
+                            think_time), flush=True)
+                        root = self.search.run(
+                            self.position, self.nn, think_time, True)
                         best_move = self.search.best_move(root)
 
-                    print('bestmove {}'.format(best_move))
+                    print('bestmove {}'.format(best_move), flush=True)
 
                     self.position.do_move(best_move)
                     self.ponder_start()
@@ -109,7 +113,8 @@ class USI:
         """
             position: This position turn should be the other player's.
         """
-        self.ponder_thread = threading.Thread(target=self.search.run, args=(self.position, self.nn, 0, True))
+        self.ponder_thread = threading.Thread(
+            target=self.search.run, args=(self.position, self.nn, 0, False))
         self.ponder_thread.start()
 
     def ponder_stop(self):
@@ -117,6 +122,7 @@ class USI:
             self.search.stop()
             self.ponder_thread.join()
             self.ponder_thread = None
+
 
 if __name__ == '__main__':
     # fix the seed

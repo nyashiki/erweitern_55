@@ -11,6 +11,7 @@ import numpy as np
 INPUT_CHANNEL = 134
 REGULARIZER_c = 1e-4
 
+
 def move_to_policy_index(color, move):
     """
     Convert a move (type: minishogilib.Move) into policy index.
@@ -67,7 +68,8 @@ class Network:
             1, [3, 3], padding='same', activation=tf.nn.relu, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
         value = keras.layers.BatchNormalization()(value)
         value = keras.layers.Flatten()(value)
-        value = keras.layers.Dense(256, activation=tf.nn.relu, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
+        value = keras.layers.Dense(256, activation=tf.nn.relu, kernel_regularizer=regularizers.l2(
+            REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
         value = keras.layers.Dense(
             1, activation=tf.nn.tanh, name='value', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
 

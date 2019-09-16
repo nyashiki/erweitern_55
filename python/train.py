@@ -107,7 +107,8 @@ class Trainer():
 
         position = minishogilib.Position()
         position.set_start_position()
-        init_position_nn_input = np.reshape(position.to_nninput(), (1, network.INPUT_CHANNEL, 5, 5))
+        init_position_nn_input = np.reshape(
+            position.to_nninput(), (1, network.INPUT_CHANNEL, 5, 5))
 
         while True:
             nninputs, policies, values = self.training_data.get()
@@ -127,7 +128,8 @@ class Trainer():
                     nninputs, policies, values, learning_rate)
                 loss_sum = policy_loss + value_loss
 
-                init_policy, init_value = self.nn.predict(init_position_nn_input)
+                init_policy, init_value = self.nn.predict(
+                    init_position_nn_input)
 
                 if self.steps % 5000 == 0:
                     self.nn.save('./weights/iter_{}.h5'.format(self.steps))
@@ -147,16 +149,20 @@ class Trainer():
         if not self.store_only:
             self.update_parameters()
 
+
 if __name__ == '__main__':
     parser = OptionParser()
     parser.add_option('-p', '--port', dest='port', type='int',
                       default=10055, help='port')
     parser.add_option('-s', '--store', action='store_true', dest='store', default=False,
                       help='Only store game records. Training will not be conducted.',)
-    parser.add_option('-r', '--record_file', dest='record_file', default=None, help='Game records already played')
-    parser.add_option('-w', '--weight_file', dest='weight_file', default=None, help='Weights of neural network parameters')
+    parser.add_option('-r', '--record_file', dest='record_file',
+                      default=None, help='Game records already played')
+    parser.add_option('-w', '--weight_file', dest='weight_file',
+                      default=None, help='Weights of neural network parameters')
 
     (options, args) = parser.parse_args()
 
-    trainer = Trainer(options.port, options.store, options.record_file, options.weight_file)
+    trainer = Trainer(options.port, options.store,
+                      options.record_file, options.weight_file)
     trainer.run()

@@ -45,7 +45,8 @@ class MCTS():
         policy, value = nn.predict(nninput)
         value = (value + 1) / 2
 
-        self.mcts.evaluate(root, position, policy[0], value[0][0], True, self.config.use_dirichlet)
+        self.mcts.evaluate(
+            root, position, policy[0], value[0][0], True, self.config.use_dirichlet)
 
         leaf_nodes = [None for _ in range(self.config.batch_size)]
         leaf_positions = [None for _ in range(self.config.batch_size)]
@@ -87,14 +88,14 @@ class MCTS():
             if verbose and loop_count % 50 == 0:
                 pv_moves, q = self.mcts.info(root)
                 print('info depth {} score winrate {:.3f} pv {}'.format(len(pv_moves),
-                                                                    q,
-                                                                    ' '.join([m.sfen() for m in pv_moves])), flush=True)
+                                                                        q,
+                                                                        ' '.join([m.sfen() for m in pv_moves])), flush=True)
 
             loop_count += 1
 
         if verbose:
-                pv_moves, q = self.mcts.info(root)
-                print('info depth {} score winrate {:.3f} pv {}'.format(len(pv_moves),
+            pv_moves, q = self.mcts.info(root)
+            print('info depth {} score winrate {:.3f} pv {}'.format(len(pv_moves),
                                                                     q,
                                                                     ' '.join([m.sfen() for m in pv_moves])), flush=True)
 

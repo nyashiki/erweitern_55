@@ -8,6 +8,7 @@ import simplejson
 import gamerecord
 import network
 
+
 class Reservoir(object):
     def __init__(self, json_dump='records.json'):
         self.records = []
@@ -48,7 +49,6 @@ class Reservoir(object):
             simplejson.dump(record.to_dict(), f)
             f.write('\n')
 
-
     def sample(self, mini_batch_size, recent, discard=True):
         """Sample positions from game records
 
@@ -71,13 +71,16 @@ class Reservoir(object):
         recent_targets = self.learning_targets[-recent:]
         cumulative_plys = [0 for _ in range(recent + 1)]
         for i in range(recent):
-            cumulative_plys[i + 1] = cumulative_plys[i] + len(recent_targets[i])
-        indicies = random.sample(range(cumulative_plys[recent]), mini_batch_size)
+            cumulative_plys[i + 1] = cumulative_plys[i] + \
+                len(recent_targets[i])
+        indicies = random.sample(
+            range(cumulative_plys[recent]), mini_batch_size)
         indicies.sort()
         target_plys = [None for _ in range(mini_batch_size)]
         lo = 0
         for i in range(mini_batch_size):
-            index = bisect.bisect_right(cumulative_plys, indicies[i], lo=lo) - 1
+            index = bisect.bisect_right(
+                cumulative_plys, indicies[i], lo=lo) - 1
             ply = recent_targets[index][indicies[i] - cumulative_plys[index]]
             target_plys[i] = (index, ply)
             lo = index

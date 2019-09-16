@@ -18,6 +18,7 @@ class SelfplayConfig:
 
         self.stop_with_checkmate = True
 
+
 def run(nn, search, config, verbose=False):
     position = minishogilib.Position()
     position.set_start_position()

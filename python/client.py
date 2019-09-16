@@ -83,9 +83,11 @@ if __name__ == '__main__':
                       help='connection target port')
     parser.add_option('-s', '--no-update', action='store_true', dest='no_update', default=False,
                       help='If true, neural network parameters will not be updated.',)
-    parser.add_option('-u', '--update-iter', dest='update_iter', type='int', default=10, help='The iteration to update neural network parameters.')
+    parser.add_option('-u', '--update-iter', dest='update_iter', type='int',
+                      default=10, help='The iteration to update neural network parameters.')
 
     (options, args) = parser.parse_args()
 
-    client = Client(options.ip, options.port, not options.no_update, options.update_iter)
+    client = Client(options.ip, options.port,
+                    not options.no_update, options.update_iter)
     client.run()
