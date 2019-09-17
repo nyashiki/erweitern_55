@@ -267,9 +267,9 @@ impl MCTS {
 
         if dirichlet_noise {
             let mut noise_sum = 0.0;
+            let gamma = rand::distributions::Gamma::new(0.34, 1.0);
 
             for (i, _) in moves.iter().enumerate() {
-                let gamma = rand::distributions::Gamma::new(0.34, 1.0);
                 let v = gamma.sample(&mut rand::thread_rng());
 
                 noise[i] = v;
