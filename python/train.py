@@ -124,10 +124,8 @@ class Trainer():
                 else:
                     learning_rate = 1e-4
 
-                _, policy_loss, value_loss = self.nn.step(
+                loss = self.nn.step(
                     nninputs, policies, values, learning_rate)
-                loss_sum = policy_loss + value_loss
-
                 init_policy, init_value = self.nn.predict(
                     init_position_nn_input)
 
@@ -135,7 +133,7 @@ class Trainer():
                     self.nn.save('./weights/iter_{}.h5'.format(self.steps))
 
             log_file.write('{}, {}, {}, {}, {}, {}\n'.format(datetime.datetime.now(
-                datetime.timezone.utc), self.steps, loss_sum, policy_loss, value_loss, init_value[0][0]))
+                datetime.timezone.utc), self.steps, loss['loss'], loss['policy_loss'], loss['value_loss'], init_value[0][0]))
             log_file.flush()
 
             self.steps += 1

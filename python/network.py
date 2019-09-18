@@ -78,9 +78,8 @@ class Network:
 
         # optimizerを定義
         self.model.compile(optimizer=tf.keras.optimizers.SGD(lr=1e-1, momentum=0.9),
-                           loss={'policy': tf.nn.softmax_cross_entropy_with_logits_v2,
-                                 'value': tf.losses.mean_squared_error},
-                           loss_weights={'policy': 1, 'value': 1})
+                           loss={'policy': keras.losses.CategoricalCrossentropy(from_logits=True),
+                                 'value': keras.losses.mean_squared_error})
 
         # for multithread
         self.model._make_predict_function()
@@ -122,9 +121,11 @@ class Network:
                 K.set_value(self.model.optimizer.lr, learning_rate)
 
                 loss = self.model.train_on_batch(
-                    train_images, [policy_labels, value_labels])
+                    x=train_images,
+                    y={'policy': policy_labels,
+                       'value': value_labels})
 
-        return loss
+        return dict(zip(self.model.metrics_names, loss))
 
     def predict(self, images):
         images = np.transpose(images, axes=[0, 2, 3, 1])
