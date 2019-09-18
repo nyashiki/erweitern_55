@@ -743,14 +743,11 @@ impl Position {
         let mut moves: Vec<Move> = Vec::new();
 
         if is_board {
-            let mut piece_bb: Bitboard = 0;
-            for piece_type in &PIECE_TYPE_ALL {
-                piece_bb |= self.piece_bb[piece_type.get_piece(self.side_to_move) as usize];
-            }
+            let mut player_bb: Bitboard = self.player_bb[self.side_to_move as usize];
 
-            while piece_bb != 0 {
-                let i = get_square(piece_bb);
-                piece_bb ^= 1 << i;
+            while player_bb != 0 {
+                let i = get_square(player_bb);
+                player_bb ^= 1 << i;
 
                 // 両王手がかかっているときは，玉を逃げる以外は非合法手
                 if !allow_illegal
