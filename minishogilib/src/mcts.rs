@@ -230,12 +230,17 @@ impl MCTS {
 
         let policy = np_policy.as_array();
         let mut legal_policy_sum: f32 = 0.0;
-
+        let mut policy_max: f32 = 0.0;
         let moves = position.generate_moves();
 
         for m in &moves {
-            let index = m.to_policy_index();
-            legal_policy_sum += policy[index].exp();
+            if policy[m.to_policy_index()] > policy_max {
+                policy_max = policy[m.to_policy_index()];
+            }
+        }
+
+        for m in &moves {
+            legal_policy_sum += (policy[m.to_policy_index()] - policy_max).exp();
         }
 
         let (is_repetition, is_check_repetition) = position.is_repetition();
@@ -294,9 +299,9 @@ impl MCTS {
 
                     if !self.game_tree[index].is_used {
                         let p = if dirichlet_noise {
-                            (policy[policy_index].exp() / legal_policy_sum) * 0.75 + (noise[i] as f32) * 0.25
+                            ((policy[policy_index] - policy_max).exp() / legal_policy_sum) * 0.75 + (noise[i] as f32) * 0.25
                         } else {
-                            policy[policy_index].exp() / legal_policy_sum
+                            (policy[policy_index] - policy_max).exp() / legal_policy_sum
                         };
 
                         self.game_tree[index] =
@@ -317,12 +322,11 @@ impl MCTS {
                 let policy_index = self.game_tree[*child].m.to_policy_index();
 
                 self.game_tree[*child].p = if dirichlet_noise {
-                    (policy[policy_index].exp() / legal_policy_sum) * 0.75 + (noise[i] as f32) * 0.25
+                    ((policy[policy_index] - policy_max).exp() / legal_policy_sum) * 0.75 + (noise[i] as f32) * 0.25
                 } else {
-                    policy[policy_index].exp() / legal_policy_sum
+                    (policy[policy_index] - policy_max).exp() / legal_policy_sum
                 };
             }
-
         }
 
         self.game_tree[node].v = value;
