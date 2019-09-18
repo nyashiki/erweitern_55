@@ -16,7 +16,7 @@ class SelfplayConfig:
         self.n = 128
         self.oscillation_frac = 0.25
 
-        self.stop_with_checkmate = True
+        self.stop_with_checkmate = False
 
 
 def run(nn, search, config, verbose=False):
