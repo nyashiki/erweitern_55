@@ -48,8 +48,9 @@ class Network:
 
         # Convolution layer
         x = keras.layers.Conv2D(
-            256, [3, 3], padding='same', activation=tf.nn.relu, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(input_image)
+            256, [3, 3], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(input_image)
         x = keras.layers.BatchNormalization()(x)
+        x = keras.layers.ReLU()(x)
 
         # Residual blocks
         for i in range(11):
@@ -57,16 +58,19 @@ class Network:
 
         # Policy head
         policy = keras.layers.Conv2D(
-            256, [3, 3], padding='same', activation=tf.nn.relu, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
+            256, [3, 3], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
         policy = keras.layers.BatchNormalization()(policy)
+        policy = keras.layers.ReLU()(policy)
+
         policy = keras.layers.Conv2D(
             69, [3, 3], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(policy)
         policy = keras.layers.Flatten(name='policy')(policy)
 
         # Value head
         value = keras.layers.Conv2D(
-            1, [3, 3], padding='same', activation=tf.nn.relu, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
+            1, [3, 3], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
         value = keras.layers.BatchNormalization()(value)
+        value = keras.layers.ReLU()(x)
         value = keras.layers.Flatten()(value)
         value = keras.layers.Dense(256, activation=tf.nn.relu, kernel_regularizer=regularizers.l2(
             REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
@@ -92,12 +96,12 @@ class Network:
         x = keras.layers.Conv2D(
             conv_filters, conv_kernel_shape, padding='same', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(input_image)
         x = keras.layers.BatchNormalization()(x)
-        x = keras.layers.Activation('relu')(x)
+        x = keras.layers.ReLU()(x)
         x = keras.layers.Conv2D(
             conv_filters, conv_kernel_shape, padding='same', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
         x = keras.layers.BatchNormalization()(x)
         x = keras.layers.Add()([x, input_image])
-        x = keras.layers.Activation('relu')(x)
+        x = keras.layers.ReLU()(x)
 
         return x
 
