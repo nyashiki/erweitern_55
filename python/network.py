@@ -60,7 +60,7 @@ class Network:
             256, [3, 3], padding='same', activation=tf.nn.relu, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
         policy = keras.layers.BatchNormalization()(policy)
         policy = keras.layers.Conv2D(
-            69, [3, 3], padding='same', activation=tf.nn.relu, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(policy)
+            69, [3, 3], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(policy)
         policy = keras.layers.Flatten(name='policy')(policy)
 
         # Value head
