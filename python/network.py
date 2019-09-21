@@ -62,8 +62,7 @@ class Network:
 
         policy = keras.layers.Conv2D(
             69, [3, 3], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(policy)
-        policy = keras.layers.Flatten()(policy)
-        policy = keras.layers.Lambda(lambda x: K.clip(x, min_value=-10.0, max_value=10.0), name='policy')(policy)
+        policy = keras.layers.Flatten(name='policy')(policy)
 
         # Value head
         value = keras.layers.Conv2D(
@@ -79,8 +78,8 @@ class Network:
         self.model = keras.Model(inputs=input_image, outputs=[policy, value])
 
         # optimizerを定義
-        self.model.compile(optimizer=tf.keras.optimizers.SGD(momentum=0.9),
-                           loss={'policy': tf.losses.softmax_cross_entropy,
+        self.model.compile(optimizer=tf.keras.optimizers.SGD(lr=1e-1, momentum=0.9),
+                           loss={'policy': tf.nn.softmax_cross_entropy_with_logits_v2,
                                  'value': tf.losses.mean_squared_error})
 
         # for multithread
