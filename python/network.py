@@ -79,7 +79,7 @@ class Network:
 
         # optimizerを定義
         self.model.compile(optimizer=tf.keras.optimizers.SGD(lr=1e-1, momentum=0.9),
-                           loss={'policy': tf.nn.softmax_cross_entropy_with_logits_v2,
+                           loss={'policy': tf.losses.softmax_cross_entropy,
                                  'value': tf.losses.mean_squared_error})
 
         # for multithread
