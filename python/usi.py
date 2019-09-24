@@ -9,7 +9,7 @@ import mcts
 import network
 
 class USI:
-    def __init__(self):
+    def isready(self):
         self.nn = network.Network()
         self.nn.load('./weights/iter_110000.h5')
 
@@ -20,18 +20,16 @@ class USI:
         self.search = mcts.MCTS(self.config)
         self.search.clear()
 
-        self.position = None
+        self.position = minishogilib.Position()
 
         # ponder
         self.ponder_thread = None
 
-    def start(self):
         # do predict once because the first prediction takes more time than latter one
         random_input = np.random.rand(1, network.INPUT_CHANNEL, 5, 5)
         self.nn.predict(random_input)
 
-        self.position = minishogilib.Position()
-
+    def start(self):
         while True:
             line = input()
 
@@ -59,6 +57,7 @@ class USI:
                     print('ERROR: Unknown protocol.')
 
             elif command[0] == 'isready':
+                self.isready()
                 print('readyok')
 
             elif command[0] == 'usinewgame':
