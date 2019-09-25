@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-import network
+from erweitern_55 import network
 
 
 def main():
