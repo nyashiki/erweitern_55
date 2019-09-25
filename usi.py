@@ -11,7 +11,7 @@ import network
 class USI:
     def isready(self):
         self.nn = network.Network()
-        self.nn.load('./weights/iter_110000.h5')
+        self.nn.load('./weights/iter_145000.h5')
 
         self.config = mcts.Config()
         self.config.simulation_num = int(1e9)
@@ -39,7 +39,7 @@ class USI:
             command = line.split()
 
             if command[0] == 'usi':
-                print('id name erweitern_55(4-days)')
+                print('id name erweitern_55(3-days)')
                 print('id author nyashiki')
                 print('usiok')
 
@@ -113,7 +113,7 @@ class USI:
             position: This position turn should be the other player's.
         """
         self.ponder_thread = threading.Thread(
-            target=self.search.run, args=(self.position, self.nn, 0, False))
+            target=self.search.run, args=(self.position, self.nn, 0, True))
         self.ponder_thread.start()
 
     def ponder_stop(self):

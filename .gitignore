@@ -1,4 +1,8 @@
-Cargo.lock
-target/
-python/weights
-!.gitkeep
+# Editor
+.vscode
+
+# Python
+__pycache__
+
+# Neural network weights
+weights/

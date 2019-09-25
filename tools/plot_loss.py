@@ -40,6 +40,7 @@ def main(loss_file, output_file):
         ax[1].set_xlabel('iterations')
         ax[1].set_title('value output at the initial position')
         ax[1].grid(linestyle='-.')
+        ax[1].set_ylim([-1, 1])
 
         fig.tight_layout()
         fig.savefig(output_file)

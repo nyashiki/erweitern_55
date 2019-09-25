@@ -145,7 +145,7 @@ class Network:
     def load(self, filepath):
         with self.session.as_default():
             with self.graph.as_default():
-                self.model = keras.models.load_model(filepath, compile=True)
+                self.model = keras.models.load_model(filepath, compile=False)
 
     def get_weights(self):
         with self.session.as_default():
