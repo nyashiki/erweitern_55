@@ -33,7 +33,7 @@ def run(nn, search, verbose=False, max_moves=512, playout_cap_oscillation={'enab
         if checkmate:
             best_move = checkmate_move
             if not stop_with_checkmate:
-                search.mcts.clear()
+                search.clear()
 
         else:
             if playout_cap_oscillation['enable']:

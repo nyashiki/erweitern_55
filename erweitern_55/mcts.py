@@ -28,8 +28,8 @@ class MCTS():
         self.searching = False
         self.lock = threading.Lock()
 
-    def clear(self):
-        self.mcts.clear()
+    def clear(self, shrink=False):
+        self.mcts.clear(shrink)
 
     def run(self, position, nn, timelimit=0, verbose=False):
         self.searching = True

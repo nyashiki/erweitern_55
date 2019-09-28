@@ -18,7 +18,7 @@ class USI:
         self.config.reuse_tree = True
 
         self.search = mcts.MCTS(self.config)
-        self.search.clear()
+        self.search.clear(True)
 
         self.position = minishogilib.Position()
 
@@ -39,7 +39,7 @@ class USI:
             command = line.split()
 
             if command[0] == 'usi':
-                print('id name erweitern_55(3-days)')
+                print('id name erweitern_55(7-days)')
                 print('id author nyashiki')
                 print('usiok')
 
