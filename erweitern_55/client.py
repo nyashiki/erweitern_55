@@ -28,9 +28,6 @@ class Client:
 
         search = mcts.MCTS(mcts_config)
 
-        selfplay_config = selfplay.SelfplayConfig()
-        selfplay_config.playout_cap_oscillation = False
-
         iter = 0
 
         while True:
@@ -54,8 +51,7 @@ class Client:
 
             # selfplay
             search.clear()
-            game_record = selfplay.run(
-                self.nn, search, selfplay_config)
+            game_record = selfplay.run(self.nn, search)
 
             # send result
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sc:
