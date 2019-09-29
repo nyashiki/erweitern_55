@@ -79,7 +79,7 @@ class Network:
 
         # optimizerを定義
         self.model.compile(optimizer=tf.keras.optimizers.SGD(lr=1e-1, momentum=0.9),
-                           loss={'policy': keras.losses.categorical_crossentropy(from_logits=True),
+                           loss={'policy': keras.losses.CategoricalCrossentropy(from_logits=True),
                                  'value': keras.losses.mean_squared_error})
 
         # for multithread
@@ -145,7 +145,7 @@ class Network:
     def load(self, filepath):
         with self.session.as_default():
             with self.graph.as_default():
-                self.model = keras.models.load_model(filepath, compile=False)
+                self.model = keras.models.load_model(filepath, compile=True)
 
     def get_weights(self):
         with self.session.as_default():
