@@ -79,8 +79,8 @@ class Network:
 
         # optimizerを定義
         self.model.compile(optimizer=tf.keras.optimizers.SGD(lr=1e-1, momentum=0.9),
-                           loss={'policy': tf.losses.softmax_cross_entropy,
-                                 'value': tf.losses.mean_squared_error})
+                           loss={'policy': keras.losses.categorical_crossentropy(from_logits=True),
+                                 'value': keras.losses.mean_squared_error})
 
         # for multithread
         self.model._make_predict_function()
