@@ -36,6 +36,8 @@ class Trainer():
 
         if not weight_file is None:
             self.nn.load(weight_file)
+        else:
+            self.nn.save('./weights/iter_0.h5')
 
         self.training_data = queue.Queue(maxsize=10)
 
