@@ -66,7 +66,7 @@ class Network:
 
         # Value head
         value = keras.layers.Conv2D(
-            1, [3, 3], padding='same', activation='relu', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
+            1, [1, 1], padding='same', activation='relu', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
         value = keras.layers.BatchNormalization()(value)
         value = keras.layers.Flatten()(value)
         value = keras.layers.Dense(256, activation=tf.nn.relu, kernel_regularizer=regularizers.l2(
