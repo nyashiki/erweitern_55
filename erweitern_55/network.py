@@ -8,7 +8,7 @@ import tensorflow.keras.backend as K
 import numpy as np
 
 
-INPUT_CHANNEL = 134
+INPUT_CHANNEL = 266
 REGULARIZER_c = 1e-4
 
 
