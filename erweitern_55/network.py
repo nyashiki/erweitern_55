@@ -7,30 +7,7 @@ import tensorflow.keras.backend as K
 
 import numpy as np
 
-
 REGULARIZER_c = 1e-4
-
-
-def move_to_policy_index(color, move):
-    """
-    Convert a move (type: minishogilib.Move) into policy index.
-    """
-
-    if move.get_amount == 0:
-        # In case of drawpping a prisoner.
-        move_to = (move.get_to() // 5, move.get_to() %
-                   5) if color == 0 else (4 - move.get_to() // 5, 4 - move.get_to() % 5)
-        return (64 + move.get_hand_index(), move_to[0], move_to[1])
-    else:
-        # In case of moving a piece on the board.
-        move_from = (move.get_from() // 5, move.get_from() %
-                     5) if color == 0 else (4 - move.get_from() // 5, 4 - move.get_from() % 5)
-        if move.get_promotion():
-            # In case of promotion
-            return (32 + 4 * move.get_direction() + (move.get_amount() - 1), move_from[0], move_from[1])
-        else:
-            return (4 * move.get_direction() + (move.get_amount() - 1), move_from[0], move_from[1])
-
 
 class Network:
     def __init__(self):
@@ -115,10 +92,6 @@ class Network:
 
     def step(self, train_images, policy_labels, value_labels, learning_rate=0.01):
         """Train the neural network one step.
-
-        train_images: [B, C, H, W] order
-        policy_labels: [B, C * H * W] order
-        value_labels: [B, 1] order
         """
 
         with self.session.as_default():
