@@ -18,21 +18,24 @@ class Network:
         sess = tf.Session(config=config)
         keras.backend.set_session(sess)
 
+        self.network_type = None
         self.input_shape = None
 
         # Construct the network.
-        self._alphazero_network()
+        # self._alphazero_network()
+        self._kp_network()
 
-        # for multithread
+        # For multithreading.
         self.model._make_predict_function()
         self.session = tf.compat.v1.keras.backend.get_session()
         self.graph = tf.compat.v1.get_default_graph()
 
-        # do predict once because the first prediction takes more time than latter one
+        # Do predict once because the first prediction takes more time than latter one.
         random_input = np.random.rand(*([1] + self.input_shape))
         self.predict(random_input)
 
     def _alphazero_network(self):
+        self.network_type = 'AlphaZero'
         self.input_shape = [266, 5, 5]
 
         # Input layer
@@ -64,6 +67,41 @@ class Network:
         value = keras.layers.Flatten()(value)
         value = keras.layers.Dense(256, activation=tf.nn.relu, kernel_regularizer=regularizers.l2(
             REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
+        value = keras.layers.Dense(
+            1, activation=tf.nn.tanh, name='value', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
+
+        # define the model
+        self.model = keras.Model(inputs=input_image, outputs=[policy, value])
+
+        # optimizerを定義
+        self.model.compile(optimizer=tf.keras.optimizers.SGD(lr=1e-1, momentum=0.9),
+                           loss={'policy': keras.losses.CategoricalCrossentropy(from_logits=True),
+                                 'value': keras.losses.mean_squared_error})
+
+    def _kp_network(self):
+        self.network_type = 'KP'
+        self.input_shape = [11888]
+
+        # Input layer
+        input_image = keras.layers.Input(
+            shape=self.input_shape, dtype='float32')
+
+        x = keras.layers.Dense(256, activation=tf.nn.relu, kernel_regularizer=regularizers.l2(
+            REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(input_image)
+        x = keras.layers.BatchNormalization()(x)
+        x = keras.layers.Dense(256, activation=tf.nn.relu, kernel_regularizer=regularizers.l2(
+            REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
+        x = keras.layers.BatchNormalization()(x)
+
+        # Policy head
+        policy = keras.layers.Dense(256, activation=tf.nn.relu, kernel_regularizer=regularizers.l2(
+            REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
+        policy = keras.layers.Dense(69 * 5 * 5, activation=None, kernel_regularizer=regularizers.l2(
+            REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), name='policy')(policy)
+
+        # Value head
+        value = keras.layers.Dense(32, activation=tf.nn.relu, kernel_regularizer=regularizers.l2(
+            REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
         value = keras.layers.Dense(
             1, activation=tf.nn.tanh, name='value', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
 
@@ -138,7 +176,10 @@ class Network:
         inputs = np.zeros([len(positions)] + self.input_shape, dtype='float32')
 
         for i, position in enumerate(positions):
-            inputs[i] = position.to_alphazero_input().reshape([1] + self.input_shape)
+            if self.network_type == 'AlphaZero':
+                inputs[i] = position.to_alphazero_input().reshape([1] + self.input_shape)
+            elif self.network_type == 'KP':
+                inputs[i] = position.to_kp_input().reshape([1] + self.input_shape)
 
         return inputs
 
