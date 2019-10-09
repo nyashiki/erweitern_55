@@ -6,15 +6,26 @@ from tensorflow.keras import regularizers
 import tensorflow.keras.backend as K
 
 import numpy as np
+import os
 
 REGULARIZER_c = 1e-4
 
 class Network:
     def __init__(self):
         # Keras config
-        config = tf.ConfigProto()
+        config = tf.ConfigProto(device_count={'CPU': 56})
+
         config.gpu_options.allow_growth = True
         # config.gpu_options.per_process_gpu_memory_fraction = 0.4
+
+        # CPU settings.
+        config.intra_op_parallelism_threads = 56
+        config.inter_op_parallelism_threads = 1
+        config.allow_soft_placement = True
+        os.environ['KMP_BLOCKTIME'] = '1'
+        os.environ['KMP_HW_SUBSET'] = '1t'
+        os.environ['OMP_NUM_THREADS'] = '56'
+
         sess = tf.Session(config=config)
         keras.backend.set_session(sess)
 
