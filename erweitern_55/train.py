@@ -90,8 +90,7 @@ class Trainer():
 
         position = minishogilib.Position()
         position.set_start_position()
-        init_position_nn_input = np.reshape(
-            position.to_nninput(), (1, network.INPUT_CHANNEL, 5, 5))
+        init_position_nn_input = self.nn.get_inputs([position])
 
         while True:
             nninputs, policies, values = self.training_data.get()
