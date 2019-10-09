@@ -44,12 +44,12 @@ class Network:
 
         # Input layer
         input_image = keras.layers.Input(
-            shape=[5, 5, INPUT_CHANNEL], dtype='float32')
+            shape=[INPUT_CHANNEL, 5, 5], dtype='float32')
 
         # Convolution layer
         x = keras.layers.Conv2D(
-            256, [3, 3], padding='same', activation='relu', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(input_image)
-        x = keras.layers.BatchNormalization()(x)
+            256, [3, 3], padding='same', activation='relu', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(input_image)
+        x = keras.layers.BatchNormalization(axis=1)(x)
 
         # Residual blocks
         for i in range(11):
@@ -57,17 +57,17 @@ class Network:
 
         # Policy head
         policy = keras.layers.Conv2D(
-            256, [3, 3], padding='same', activation='relu', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
-        policy = keras.layers.BatchNormalization()(policy)
+            256, [3, 3], padding='same', activation='relu', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
+        policy = keras.layers.BatchNormalization(axis=1)(policy)
 
         policy = keras.layers.Conv2D(
-            69, [1, 1], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(policy)
+            69, [1, 1], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(policy)
         policy = keras.layers.Flatten(name='policy')(policy)
 
         # Value head
         value = keras.layers.Conv2D(
-            1, [1, 1], padding='same', activation='relu', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
-        value = keras.layers.BatchNormalization()(value)
+            1, [1, 1], padding='same', activation='relu', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
+        value = keras.layers.BatchNormalization(axis=1)(value)
         value = keras.layers.Flatten()(value)
         value = keras.layers.Dense(256, activation=tf.nn.relu, kernel_regularizer=regularizers.l2(
             REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
@@ -88,15 +88,15 @@ class Network:
         self.graph = tf.compat.v1.get_default_graph()
 
     def _residual_block(self, input_image, conv_kernel_shape=[3, 3]):
-        conv_filters = int(input_image.shape[3])
+        conv_filters = int(input_image.shape[1])
 
         x = keras.layers.Conv2D(
-            conv_filters, conv_kernel_shape, activation=None, padding='same', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(input_image)
-        x = keras.layers.BatchNormalization()(x)
+            conv_filters, conv_kernel_shape, activation=None, padding='same', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(input_image)
+        x = keras.layers.BatchNormalization(axis=1)(x)
         x = keras.layers.ReLU()(x)
         x = keras.layers.Conv2D(
-            conv_filters, conv_kernel_shape, activation=None, padding='same', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
-        x = keras.layers.BatchNormalization()(x)
+            conv_filters, conv_kernel_shape, activation=None, padding='same', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
+        x = keras.layers.BatchNormalization(axis=1)(x)
         x = keras.layers.Add()([x, input_image])
         x = keras.layers.ReLU()(x)
 
@@ -109,12 +109,6 @@ class Network:
         policy_labels: [B, C * H * W] order
         value_labels: [B, 1] order
         """
-
-        # transpose [B, C, H, W] order to [B, H, W, C] order
-        train_images = np.transpose(train_images, axes=[0, 2, 3, 1])
-        policy_labels = np.reshape(policy_labels, (-1, 69, 5, 5))
-        policy_labels = np.transpose(policy_labels, axes=[0, 2, 3, 1])
-        policy_labels = np.reshape(policy_labels, (-1, 5 * 5 * 69))
 
         with self.session.as_default():
             with self.graph.as_default():
@@ -129,16 +123,10 @@ class Network:
         return dict(zip(self.model.metrics_names, loss))
 
     def predict(self, images):
-        images = np.transpose(images, axes=[0, 2, 3, 1])
         with self.session.as_default():
             with self.graph.as_default():
                 policy, value = self.model.predict(
                     images, batch_size=len(images), verbose=0, steps=None)
-
-        # transpose [B, H, W, C] order to [B, C, H, W] order
-        policy = np.reshape(policy, (-1, 5, 5, 69))
-        policy = np.transpose(policy, axes=[0, 3, 1, 2])
-        policy = np.reshape(policy, (-1, 69 * 5 * 5))
 
         return policy, value
 
