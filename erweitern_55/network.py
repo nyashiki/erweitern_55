@@ -96,12 +96,14 @@ class Network:
         # Policy head
         policy = keras.layers.Dense(256, activation=tf.nn.relu, kernel_regularizer=regularizers.l2(
             REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
+        policy = keras.layers.BatchNormalization()(policy)
         policy = keras.layers.Dense(69 * 5 * 5, activation=None, kernel_regularizer=regularizers.l2(
             REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), name='policy')(policy)
 
         # Value head
         value = keras.layers.Dense(32, activation=tf.nn.relu, kernel_regularizer=regularizers.l2(
             REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
+        value = keras.layers.BatchNormalization()(value)
         value = keras.layers.Dense(
             1, activation=tf.nn.tanh, name='value', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
 
