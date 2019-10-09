@@ -152,6 +152,11 @@ class Network:
             with self.graph.as_default():
                 return self.model.get_weights()
 
+    def set_weights(self, weights):
+        with self.session.as_default():
+            with self.graph.as_default():
+                self.model.set_weights(weights)
+
     def save(self, filepath):
         with self.session.as_default():
             with self.graph.as_default():

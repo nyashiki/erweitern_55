@@ -65,16 +65,18 @@ class Trainer():
                 data = _pickle.dumps(
                     self.nn.get_weights(), protocol=4)
 
-            sio.emit('parameter', room=sid)
-            log_file.write('[{}] sent the parameters\n'.format(
+            log_file.write('[{}] send the parameters\n'.format(
                 datetime.datetime.now(datetime.timezone.utc)))
             log_file.flush()
 
+            sio.emit('receive_parameter', data, room=sid)
+
         @sio.on('record')
         def receive_record(sid, data):
+            game_record = _pickle.loads(data)
             self.reservoir.push(game_record)
-            log_file.write('[{}] received a game record from {}\n'.format(
-                    datetime.datetime.now(datetime.timezone.utc), str(addr)))
+            log_file.write('[{}] received a game record\n'.format(
+                    datetime.datetime.now(datetime.timezone.utc)))
             log_file.flush()
 
         app = socketio.WSGIApp(sio)

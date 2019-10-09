@@ -1,21 +1,20 @@
-import socket
+import socketio
 from optparse import OptionParser
+import os
 import _pickle
 import sys
 
 import mcts
 import network
 import selfplay
-import utils
 
 
 class Client:
-    def __init__(self, ip, port, update=True, update_iter=10):
+    def __init__(self, ip, port, update=True):
         self.host = ip
         self.port = port
         self.nn = None
         self.update = update
-        self.update_iter = update_iter
 
     def run(self):
         mcts_config = mcts.Config()
@@ -28,48 +27,42 @@ class Client:
 
         search = mcts.MCTS(mcts_config)
 
-        iter = 0
+        url = 'http://{}:{}'.format(self.host, self.port)
+        sio = socketio.Client()
 
-        while True:
-            # load neural network parameters from server
-            if self.nn is None or (self.update and iter % self.update_iter == 0):
+        @sio.event
+        def connect():
+            sio.emit('parameter')
+
+        @sio.event
+        def disconnect():
+            os._exit(0)
+
+        @sio.on('receive_parameter')
+        def receive_parameter(data):
+            if self.nn is None or self.update:
                 if self.nn is None:
                     self.nn = network.Network()
 
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sc:
-                    sc.connect((self.host, self.port))
-                    sc.send(b'parameter')
-                    data = sc.recv(16)
-                    data_size = int.from_bytes(data, 'little')
+                weights = _pickle.loads(data)
+                self.nn.set_weights(weights)
 
-                    data = utils.recvall(sc, data_size)
-
-                    sc.send(b'parameter_ok')
-
-                    weights = _pickle.loads(data)
-                    self.nn.model.set_weights(weights)
-
-            # selfplay
+            # Conduct selfplay.
             search.clear()
             game_record = selfplay.run(self.nn, search)
 
-            # send result
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sc:
-                sc.connect((self.host, self.port))
-                sc.send(b'record')
+            # Send game result.
+            data = _pickle.dumps(game_record, protocol=4)
+            sio.emit('record', data)
 
-                data = sc.recv(1024)
+            # Ask current parameters again.
+            if self.update:
+                sio.emit('parameter')
+            else:
+                receive_parameter(None)
 
-                assert data == b'ready', 'Protocol violation!'
-
-                data = _pickle.dumps(game_record, protocol=2)
-                sc.send(len(data).to_bytes(16, 'little'))
-                sc.sendall(data)
-
-                sc.send(b'record_ok')
-
-            iter += 1
-
+        sio.connect(url)
+        sio.wait()
 
 if __name__ == '__main__':
     parser = OptionParser()
@@ -79,11 +72,9 @@ if __name__ == '__main__':
                       help='connection target port')
     parser.add_option('-s', '--no-update', action='store_true', dest='no_update', default=False,
                       help='If true, neural network parameters will not be updated.',)
-    parser.add_option('-u', '--update-iter', dest='update_iter', type='int',
-                      default=10, help='The iteration to update neural network parameters.')
 
     (options, args) = parser.parse_args()
 
     client = Client(options.ip, options.port,
-                    not options.no_update, options.update_iter)
+                    not options.no_update)
     client.run()
