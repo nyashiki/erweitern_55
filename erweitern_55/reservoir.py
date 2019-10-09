@@ -49,7 +49,7 @@ class Reservoir(object):
             simplejson.dump(record.to_dict(), f)
             f.write('\n')
 
-    def sample(self, mini_batch_size, recent, discard=True):
+    def sample(self, nn, mini_batch_size, recent, discard=True):
         """Sample positions from game records
 
         # Arguments:
@@ -85,8 +85,7 @@ class Reservoir(object):
             target_plys[i] = (index, ply)
             lo = index
 
-        nninputs = np.zeros(
-            (mini_batch_size, network.INPUT_CHANNEL, 5, 5), dtype='float32')
+        nninputs = nn.zero_inputs(mini_batch_size)
         policies = np.zeros((mini_batch_size, 69 * 5 * 5), dtype='float32')
         values = np.zeros((mini_batch_size, 1), dtype='float32')
 
@@ -102,8 +101,7 @@ class Reservoir(object):
             while True:
                 if ply == target_plys[target_index][1]:
                     # input
-                    nninputs[target_index] = np.reshape(
-                        position.to_nninput(), (network.INPUT_CHANNEL, 5, 5))
+                    nninputs[target_index] = nn.get_inputs([position])[0]
 
                     # policy
                     sum_N, q, playouts = record.mcts_result[target_plys[target_index][1]]

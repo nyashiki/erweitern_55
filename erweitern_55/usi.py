@@ -25,10 +25,6 @@ class USI:
         # ponder
         self.ponder_thread = None
 
-        # do predict once because the first prediction takes more time than latter one
-        random_input = np.random.rand(1, network.INPUT_CHANNEL, 5, 5)
-        self.nn.predict(random_input)
-
     def start(self):
         while True:
             line = input()

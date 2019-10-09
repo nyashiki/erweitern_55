@@ -41,7 +41,7 @@ class MCTS():
             if self.mcts.get_playouts(root, True) >= self.config.simulation_num:
                 return root
 
-        nninput = position.to_nninput().reshape((1, network.INPUT_CHANNEL, 5, 5))
+        nninput = nn.get_inputs([position])
         policy, value = nn.predict(nninput)
         value = (value + 1) / 2
 
@@ -70,11 +70,7 @@ class MCTS():
                     root, leaf_positions[b], self.config.forced_playouts)
 
             # use neural network to evaluate the position
-            nninputs = np.zeros(
-                (self.config.batch_size, network.INPUT_CHANNEL, 5, 5))
-            for b in range(self.config.batch_size):
-                nninputs[b] = leaf_positions[b].to_nninput().reshape(
-                    (1, network.INPUT_CHANNEL, 5, 5))
+            nninputs = nn.get_inputs(leaf_positions)
             policy, value = nn.predict(nninputs)
             value = (value + 1) / 2
 

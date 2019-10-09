@@ -16,10 +16,6 @@ import train
 def main():
     neural_network = network.Network()
 
-    # do predict once because the first prediction takes more time than latter one
-    random_input = np.random.rand(1, network.INPUT_CHANNEL, 5, 5)
-    neural_network.predict(random_input)
-
     config = mcts.Config()
     config.simulation_num = 800
 

@@ -8,7 +8,6 @@ import tensorflow.keras.backend as K
 import numpy as np
 
 
-INPUT_CHANNEL = 266
 REGULARIZER_c = 1e-4
 
 
@@ -42,9 +41,26 @@ class Network:
         sess = tf.Session(config=config)
         keras.backend.set_session(sess)
 
+        self.input_shape = None
+
+        # Construct the network.
+        self._alphazero_network()
+
+        # for multithread
+        self.model._make_predict_function()
+        self.session = tf.compat.v1.keras.backend.get_session()
+        self.graph = tf.compat.v1.get_default_graph()
+
+        # do predict once because the first prediction takes more time than latter one
+        random_input = np.random.rand(*([1] + self.input_shape))
+        self.predict(random_input)
+
+    def _alphazero_network(self):
+        self.input_shape = [266, 5, 5]
+
         # Input layer
         input_image = keras.layers.Input(
-            shape=[INPUT_CHANNEL, 5, 5], dtype='float32')
+            shape=self.input_shape, dtype='float32')
 
         # Convolution layer
         x = keras.layers.Conv2D(
@@ -81,11 +97,6 @@ class Network:
         self.model.compile(optimizer=tf.keras.optimizers.SGD(lr=1e-1, momentum=0.9),
                            loss={'policy': keras.losses.CategoricalCrossentropy(from_logits=True),
                                  'value': keras.losses.mean_squared_error})
-
-        # for multithread
-        self.model._make_predict_function()
-        self.session = tf.compat.v1.keras.backend.get_session()
-        self.graph = tf.compat.v1.get_default_graph()
 
     def _residual_block(self, input_image, conv_kernel_shape=[3, 3]):
         conv_filters = int(input_image.shape[1])
@@ -149,3 +160,14 @@ class Network:
         with self.session.as_default():
             with self.graph.as_default():
                 self.model.save(filepath, include_optimizer=True)
+
+    def get_inputs(self, positions):
+        inputs = np.zeros([len(positions)] + self.input_shape, dtype='float32')
+
+        for i, position in enumerate(positions):
+            inputs[i] = position.to_alphazero_input().reshape([1] + self.input_shape)
+
+        return inputs
+
+    def zero_inputs(self, batch_size):
+        return np.zeros([batch_size] + self.input_shape, dtype='float32')

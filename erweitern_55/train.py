@@ -50,7 +50,7 @@ class Trainer():
                 if self.reservoir.len_learning_targets() < BATCH_SIZE:
                     continue
 
-                datasets = self.reservoir.sample(BATCH_SIZE, RECENT_GAMES)
+                datasets = self.reservoir.sample(self.nn, BATCH_SIZE, RECENT_GAMES)
 
             self.training_data.put(datasets)
 
