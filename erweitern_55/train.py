@@ -30,6 +30,9 @@ class Trainer():
         self.nn_lock = threading.Lock()
         self.reservoir_lock = threading.Lock()
 
+        self.nn_weights = _pickle.dumps(self.nn.get_weights(), protocol=4)
+        self.nn_weights_lock = threading.Lock()
+
         self.store_only = store_only
 
         if not record_file is None:
@@ -59,8 +62,8 @@ class Trainer():
         print('Ready')
         log_file = open('connection_log.txt', 'w')
 
-        nn = self.nn
-        nn_lock = self.nn_lock
+        nn_weights = self.nn_weights
+        nn_weights_lock = self.nn_weights_lock
         reservoir = self.reservoir
         reservoir_lock = self.reservoir_lock
 
@@ -71,10 +74,8 @@ class Trainer():
                     self.send_header('Content-type', 'text/html')
                     self.end_headers()
 
-                    with nn_lock:
-                        data = _pickle.dumps(
-                            nn.get_weights(), protocol=4)
-                    self.wfile.write(data)
+                    with nn_weights_lock:
+                        self.wfile.write(nn_weights)
 
                     log_file.write('[{}] send the parameters\n'.format(datetime.datetime.now(datetime.timezone.utc)))
                     log_file.flush()
@@ -137,11 +138,15 @@ class Trainer():
                 if self.steps % 5000 == 0:
                     self.nn.save('./weights/iter_{}.h5'.format(self.steps))
 
+                self.steps += 1
+
+                if self.steps % 10 == 0:
+                    with self.nn_weights_lock:
+                        self.nn_weights = _pickle.dumps(self.nn.get_weights(), protocol=4)
+
             log_file.write('{}, {}, {}, {}, {}, {}\n'.format(datetime.datetime.now(
                 datetime.timezone.utc), self.steps, loss['loss'], loss['policy_loss'], loss['value_loss'], init_value[0][0]))
             log_file.flush()
-
-            self.steps += 1
 
     def run(self):
         # Make the server which receives game records by selfplay from clients
