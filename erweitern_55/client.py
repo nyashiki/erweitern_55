@@ -48,19 +48,20 @@ class Client:
                 weights = _pickle.loads(data)
                 self.nn.set_weights(weights)
 
-            # Conduct selfplay.
-            search.clear()
-            game_record = selfplay.run(self.nn, search)
+            while True:
+                # Conduct selfplay.
+                search.clear()
+                game_record = selfplay.run(self.nn, search)
 
-            # Send game result.
-            data = _pickle.dumps(game_record, protocol=4)
-            sio.emit('record', data)
+                # Send game result.
+                data = _pickle.dumps(game_record, protocol=4)
+                sio.emit('record', data)
+
+                if self.update:
+                    break
 
             # Ask current parameters again.
-            if self.update:
-                sio.emit('parameter')
-            else:
-                receive_parameter(None)
+            sio.emit('parameter')
 
         sio.connect(url)
         sio.wait()
