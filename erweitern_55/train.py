@@ -22,7 +22,7 @@ class Trainer():
         self.port = port
 
         self.reservoir = Reservoir()
-        self.nn = network.Network()
+        self.nn = network.Network(False)
 
         self.steps = 0
 

@@ -11,20 +11,22 @@ import os
 REGULARIZER_c = 1e-4
 
 class Network:
-    def __init__(self):
+    def __init__(self, cpu=False):
         # Keras config
-        config = tf.ConfigProto(device_count={'CPU': 56})
-
-        config.gpu_options.allow_growth = True
-        # config.gpu_options.per_process_gpu_memory_fraction = 0.4
-
-        # CPU settings.
-        config.intra_op_parallelism_threads = 56
-        config.inter_op_parallelism_threads = 1
-        config.allow_soft_placement = True
-        os.environ['KMP_BLOCKTIME'] = '1'
-        os.environ['KMP_HW_SUBSET'] = '1t'
-        os.environ['OMP_NUM_THREADS'] = '56'
+        if cpu:
+            # CPU settings.
+            config = tf.ConfigProto(device_count={'CPU': 56})
+            config.intra_op_parallelism_threads = 56
+            config.inter_op_parallelism_threads = 1
+            config.allow_soft_placement = True
+            os.environ['KMP_BLOCKTIME'] = '1'
+            os.environ['KMP_HW_SUBSET'] = '1t'
+            os.environ['OMP_NUM_THREADS'] = '56'
+        else:
+            # GPU settings.
+            config = tf.ConfigProto()
+            config.gpu_options.allow_growth = True
+            # config.gpu_options.per_process_gpu_memory_fraction = 0.4
 
         sess = tf.Session(config=config)
         keras.backend.set_session(sess)

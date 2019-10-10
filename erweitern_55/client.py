@@ -10,11 +10,12 @@ import selfplay
 
 
 class Client:
-    def __init__(self, ip, port, update=True):
+    def __init__(self, ip, port, update=True, cpu_only=False):
         self.host = ip
         self.port = port
         self.nn = None
         self.update = update
+        self.cpu_only = cpu_only
 
     def run(self):
         mcts_config = mcts.Config()
@@ -42,7 +43,7 @@ class Client:
         def receive_parameter(data):
             if self.nn is None or self.update:
                 if self.nn is None:
-                    self.nn = network.Network()
+                    self.nn = network.Network(self.cpu_only)
 
                 weights = _pickle.loads(data)
                 self.nn.set_weights(weights)
@@ -71,10 +72,11 @@ if __name__ == '__main__':
     parser.add_option('-p', '--port', dest='port', type='int', default=10055,
                       help='connection target port')
     parser.add_option('-s', '--no-update', action='store_true', dest='no_update', default=False,
-                      help='If true, neural network parameters will not be updated.',)
-
+                      help='If true, neural network parameters will not be updated.')
+    parser.add_option('-c', '--cpu', action='store_true', dest='cpu_only', default=False,
+                      help='If true, use CPU only.')
     (options, args) = parser.parse_args()
 
     client = Client(options.ip, options.port,
-                    not options.no_update)
+                    not options.no_update, options.cpu_only)
     client.run()
