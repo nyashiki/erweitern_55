@@ -74,7 +74,7 @@ class Trainer():
         @sio.on('record')
         def receive_record(sid, data):
             game_record = _pickle.loads(data)
-            with self.reservoir_lock
+            with self.reservoir_lock:
                 self.reservoir.push(game_record)
 
             log_file.write('[{}] received a game record\n'.format(
