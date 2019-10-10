@@ -28,7 +28,6 @@ class Trainer():
         self.steps = 0
 
         self.nn_lock = threading.Lock()
-        self.reservoir_lock = threading.Lock()
 
         self.nn_weights = _pickle.dumps(self.nn.get_weights(), protocol=4)
         self.nn_weights_lock = threading.Lock()
@@ -50,12 +49,10 @@ class Trainer():
         RECENT_GAMES = 100000
 
         while True:
-            with self.reservoir_lock:
-                if self.reservoir.len_learning_targets() < BATCH_SIZE:
-                    continue
+            if self.reservoir.len_learning_targets() < BATCH_SIZE:
+                continue
 
-                datasets = self.reservoir.sample(self.nn, BATCH_SIZE, RECENT_GAMES)
-
+            datasets = self.reservoir.sample(self.nn, BATCH_SIZE, RECENT_GAMES)
             self.training_data.put(datasets)
 
     def collect_records(self):
@@ -65,7 +62,6 @@ class Trainer():
         nn_weights = self.nn_weights
         nn_weights_lock = self.nn_weights_lock
         reservoir = self.reservoir
-        reservoir_lock = self.reservoir_lock
 
         class handler(http.server.SimpleHTTPRequestHandler):
             def do_GET(self):
@@ -89,8 +85,7 @@ class Trainer():
                 if self.path == '/record':
                     content_length = int(self.headers.get('content-length'))
                     game_record = _pickle.loads(self.rfile.read(content_length))
-                    with reservoir_lock:
-                        reservoir.push(game_record)
+                    reservoir.push(game_record)
 
                     self.send_response(200)
                     self.send_header('Content-type', 'text/html')
