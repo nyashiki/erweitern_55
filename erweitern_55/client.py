@@ -3,6 +3,7 @@ from optparse import OptionParser
 import os
 import _pickle
 import sys
+import threading
 
 import mcts
 import network
@@ -31,6 +32,8 @@ class Client:
         url = 'http://{}:{}'.format(self.host, self.port)
         sio = socketio.Client()
 
+        nn_lock = threading.Lock()
+
         @sio.event
         def connect():
             sio.emit('parameter')
@@ -41,30 +44,33 @@ class Client:
 
         @sio.on('receive_parameter')
         def receive_parameter(data):
-            if self.nn is None or self.update:
-                if self.nn is None:
-                    self.nn = network.Network(self.cpu_only)
+            if self.nn is None:
+                self.nn = network.Network(self.cpu_only)
 
-                weights = _pickle.loads(data)
+            weights = _pickle.loads(data)
+
+            with nn_lock:
                 self.nn.set_weights(weights)
 
-            while True:
-                # Conduct selfplay.
-                search.clear()
-                game_record = selfplay.run(self.nn, search)
-
-                # Send game result.
-                data = _pickle.dumps(game_record, protocol=4)
-                sio.emit('record', data)
-
-                if self.update:
-                    break
-
-            # Ask current parameters again.
-            sio.emit('parameter')
-
         sio.connect(url)
-        sio.wait()
+
+        while True:
+            with nn_lock:
+                if self.nn is None:
+                    continue
+
+            # Conduct selfplay.
+            search.clear()
+            with nn_lock:
+                game_record = selfplay.run(self.nn, search, True)
+
+            # Send game result.
+            data = _pickle.dumps(game_record, protocol=4)
+            sio.emit('record', data)
+
+            if self.update:
+                # Ask current parameters again.
+                sio.emit('parameter')
 
 if __name__ == '__main__':
     parser = OptionParser()
