@@ -1,9 +1,10 @@
-import socketio
 from optparse import OptionParser
 import os
 import _pickle
+import socket
 import sys
 import threading
+import utils
 
 import mcts
 import network
@@ -29,48 +30,41 @@ class Client:
 
         search = mcts.MCTS(mcts_config)
 
-        url = 'http://{}:{}'.format(self.host, self.port)
-        sio = socketio.Client()
-
-        nn_lock = threading.Lock()
-
-        @sio.event
-        def connect():
-            sio.emit('parameter')
-
-        @sio.event
-        def disconnect():
-            os._exit(0)
-
-        @sio.on('receive_parameter')
-        def receive_parameter(data):
-            if self.nn is None:
-                self.nn = network.Network(self.cpu_only)
-
-            weights = _pickle.loads(data)
-
-            with nn_lock:
-                self.nn.set_weights(weights)
-
-        sio.connect(url)
+        self.nn = network.Network(self.cpu_only)
 
         while True:
-            with nn_lock:
-                if self.nn is None:
-                    continue
+            if self.update:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sc:
+                    # Load neural network parameters from the server.
+                    sc.connect((self.host, self.port))
+                    sc.send(b'parameter')
+                    data = sc.recv(16)
+                    data_size = int.from_bytes(data, 'little')
+                    data = utils.recvall(sc, data_size)
+                    sc.send(b'parameter_ok')
+
+                    weights = _pickle.loads(data)
+                    self.nn.model.set_weights(weights)
 
             # Conduct selfplay.
             search.clear()
-            with nn_lock:
-                game_record = selfplay.run(self.nn, search, True)
+            game_record = selfplay.run(self.nn, search)
 
-            # Send game result.
-            data = _pickle.dumps(game_record, protocol=4)
-            sio.emit('record', data)
+            # Send result.
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sc:
+                sc.connect((self.host, self.port))
+                sc.send(b'record')
 
-            if self.update:
-                # Ask current parameters again.
-                sio.emit('parameter')
+                data = sc.recv(1024)
+
+                assert data == b'ready', 'Protocol violation!'
+
+                data = _pickle.dumps(game_record, protocol=4)
+                sc.send(len(data).to_bytes(16, 'little'))
+                sc.sendall(data)
+
+                sc.send(b'record_ok')
+
 
 if __name__ == '__main__':
     parser = OptionParser()

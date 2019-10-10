@@ -1,16 +1,16 @@
 import datetime
-import eventlet
 import minishogilib
-import socketio
 import numpy as np
 from optparse import OptionParser
 import _pickle
 import queue
+import socket
 import sys
 import tensorflow as tf
 import tensorflow.keras.backend as K
 import threading
 import time
+import utils
 
 import mcts
 import network
@@ -55,34 +55,50 @@ class Trainer():
             self.training_data.put(datasets)
 
     def collect_records(self):
+        sc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sc.bind(('localhost', self.port))
+        sc.listen(128)
+
+        print('Ready')
+
         log_file = open('connection_log.txt', 'w')
 
-        sio = socketio.Server()
+        while True:
+            conn, addr = sc.accept()
+            message = conn.recv(1024)
 
-        @sio.on('parameter')
-        def send_parameter(sid):
-            with self.nn_lock:
-                data = _pickle.dumps(
-                    self.nn.get_weights(), protocol=4)
+            if message == b'parameter':
+                with self.nn_lock:
+                    data = _pickle.dumps(
+                        self.nn.get_weights(), protocol=4)
 
-            log_file.write('[{}] send the parameters\n'.format(
-                datetime.datetime.now(datetime.timezone.utc)))
-            log_file.flush()
+                conn.send(len(data).to_bytes(16, 'little'))
+                conn.sendall(data)
 
-            sio.emit('receive_parameter', data, room=sid)
+                data = conn.recv(16)
+                assert data == b'parameter_ok', 'Protocol violation!'
 
-        @sio.on('record')
-        def receive_record(sid, data):
-            game_record = _pickle.loads(data)
-            with self.reservoir_lock:
-                self.reservoir.push(game_record)
+                log_file.write('[{}] sent the parameters to {}\n'.format(
+                    datetime.datetime.now(datetime.timezone.utc), str(addr)))
+                log_file.flush()
 
-            log_file.write('[{}] received a game record\n'.format(
-                    datetime.datetime.now(datetime.timezone.utc)))
-            log_file.flush()
+            elif message == b'record':
+                conn.send(b'ready')
+                data = conn.recv(16)
+                data_size = int.from_bytes(data, 'little')
+                data = utils.recvall(conn, data_size)
+                game_record = _pickle.loads(data)
 
-        app = socketio.WSGIApp(sio)
-        eventlet.wsgi.server(eventlet.listen(('', self.port)), app)
+                data = conn.recv(16)
+                assert data == b'record_ok', 'Protocol violation!'
+
+                with self.reservoir_lock:
+                    self.reservoir.push(game_record)
+
+                log_file.write('[{}] received a game record from {}\n'.format(datetime.datetime.now(datetime.timezone.utc), str(addr)))
+                log_file.flush()
+
+            conn.close()
 
     def update_parameters(self):
         sample_thread = threading.Thread(target=self._sample_datasets)
