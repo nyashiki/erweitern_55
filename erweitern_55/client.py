@@ -1,10 +1,9 @@
 from optparse import OptionParser
 import os
 import _pickle
-import socket
 import sys
 import threading
-import utils
+import urllib.request
 
 import mcts
 import network
@@ -34,16 +33,10 @@ class Client:
 
         while True:
             if self.update:
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sc:
-                    # Load neural network parameters from the server.
-                    sc.connect((self.host, self.port))
-                    sc.send(b'parameter')
-                    data = sc.recv(16)
-                    data_size = int.from_bytes(data, 'little')
-                    data = utils.recvall(sc, data_size)
-                    sc.send(b'parameter_ok')
-
-                    weights = _pickle.loads(data)
+                url = 'http://{}:{}/weight'.format(self.host, self.port)
+                req = urllib.request.Request(url)
+                with urllib.request.urlopen(req) as res:
+                    weights = _pickle.loads(res.read())
                     self.nn.model.set_weights(weights)
 
             # Conduct selfplay.
@@ -51,20 +44,11 @@ class Client:
             game_record = selfplay.run(self.nn, search)
 
             # Send result.
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sc:
-                sc.connect((self.host, self.port))
-                sc.send(b'record')
-
-                data = sc.recv(1024)
-
-                assert data == b'ready', 'Protocol violation!'
-
-                data = _pickle.dumps(game_record, protocol=4)
-                sc.send(len(data).to_bytes(16, 'little'))
-                sc.sendall(data)
-
-                sc.send(b'record_ok')
-
+            url = 'http://{}:{}/record'.format(self.host, self.port)
+            data = _pickle.dumps(game_record, protocol=4)
+            req = urllib.request.Request(url, data)
+            with urllib.request.urlopen(req) as res:
+                pass
 
 if __name__ == '__main__':
     parser = OptionParser()

@@ -1,16 +1,17 @@
 import datetime
+import http.server
 import minishogilib
 import numpy as np
 from optparse import OptionParser
 import _pickle
 import queue
-import socket
+import simplejson
+import socketserver
 import sys
 import tensorflow as tf
 import tensorflow.keras.backend as K
 import threading
 import time
-import utils
 
 import mcts
 import network
@@ -55,50 +56,54 @@ class Trainer():
             self.training_data.put(datasets)
 
     def collect_records(self):
-        sc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sc.bind(('localhost', self.port))
-        sc.listen(128)
-
         print('Ready')
-
         log_file = open('connection_log.txt', 'w')
 
-        while True:
-            conn, addr = sc.accept()
-            message = conn.recv(1024)
+        nn = self.nn
+        nn_lock = self.nn_lock
+        reservoir = self.reservoir
+        reservoir_lock = self.reservoir_lock
 
-            if message == b'parameter':
-                with self.nn_lock:
-                    data = _pickle.dumps(
-                        self.nn.get_weights(), protocol=4)
+        class handler(http.server.SimpleHTTPRequestHandler):
+            def do_GET(self):
+                if self.path == '/weight':
+                    self.send_response(200)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
 
-                conn.send(len(data).to_bytes(16, 'little'))
-                conn.sendall(data)
+                    with nn_lock:
+                        data = _pickle.dumps(
+                            nn.get_weights(), protocol=4)
+                    self.wfile.write(data)
 
-                data = conn.recv(16)
-                assert data == b'parameter_ok', 'Protocol violation!'
+                    log_file.write('[{}] send the parameters\n'.format(datetime.datetime.now(datetime.timezone.utc)))
+                    log_file.flush()
 
-                log_file.write('[{}] sent the parameters to {}\n'.format(
-                    datetime.datetime.now(datetime.timezone.utc), str(addr)))
-                log_file.flush()
+                else:
+                    self.send_response(400)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
 
-            elif message == b'record':
-                conn.send(b'ready')
-                data = conn.recv(16)
-                data_size = int.from_bytes(data, 'little')
-                data = utils.recvall(conn, data_size)
-                game_record = _pickle.loads(data)
+            def do_POST(self):
+                if self.path == '/record':
+                    content_length = int(self.headers.get('content-length'))
+                    game_record = _pickle.loads(self.rfile.read(content_length))
+                    with reservoir_lock:
+                        reservoir.push(game_record)
 
-                data = conn.recv(16)
-                assert data == b'record_ok', 'Protocol violation!'
+                    self.send_response(200)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
 
-                with self.reservoir_lock:
-                    self.reservoir.push(game_record)
+                    log_file.write('[{}] received a game record\n'.format(datetime.datetime.now(datetime.timezone.utc)))
+                    log_file.flush()
+                else:
+                    self.send_response(400)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
 
-                log_file.write('[{}] received a game record from {}\n'.format(datetime.datetime.now(datetime.timezone.utc), str(addr)))
-                log_file.flush()
-
-            conn.close()
+        with socketserver.TCPServer(('', self.port), handler) as httpd:
+            httpd.serve_forever()
 
     def update_parameters(self):
         sample_thread = threading.Thread(target=self._sample_datasets)
