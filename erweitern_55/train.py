@@ -68,7 +68,9 @@ class Trainer():
                     self.end_headers()
 
                     with nn_lock:
-                        self.wfile.write(_pickle.dumps(nn.get_weights(), protocol=4))
+                        data = _pickle.dumps(nn.get_weights(), protocol=4)
+
+                    self.wfile.write(data)
 
                     log_file.write('[{}] send the parameters\n'.format(datetime.datetime.now(datetime.timezone.utc)))
                     log_file.flush()
