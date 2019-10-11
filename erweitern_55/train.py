@@ -97,7 +97,10 @@ class Trainer():
                     self.send_header('Content-type', 'text/html')
                     self.end_headers()
 
-        with socketserver.TCPServer(('', self.port), handler) as httpd:
+        class ThreadedHTTPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+            pass
+
+        with ThreadedHTTPServer(('', self.port), handler) as httpd:
             httpd.serve_forever()
 
     def update_parameters(self):
