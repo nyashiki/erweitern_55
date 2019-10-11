@@ -35,8 +35,8 @@ class Network:
         self.input_shape = None
 
         # Construct the network.
-        # self._alphazero_network()
-        self._kp_network()
+        self._alphazero_network()
+        # self._kp_network()
 
         # For multithreading.
         self.model._make_predict_function()
@@ -61,7 +61,7 @@ class Network:
         x = keras.layers.BatchNormalization(axis=1)(x)
 
         # Residual blocks
-        for i in range(11):
+        for i in range(5):
             x = self._residual_block(x)
 
         # Policy head
