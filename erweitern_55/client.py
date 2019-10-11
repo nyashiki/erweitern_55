@@ -11,12 +11,13 @@ import selfplay
 
 
 class Client:
-    def __init__(self, ip, port, update=True, cpu_only=False):
+    def __init__(self, ip, port, update=True, cpu_only=False, update_iter=1):
         self.host = ip
         self.port = port
         self.nn = None
         self.update = update
         self.cpu_only = cpu_only
+        self.update_iter = update_iter
 
     def run(self):
         mcts_config = mcts.Config()
@@ -31,8 +32,11 @@ class Client:
 
         self.nn = network.Network(self.cpu_only)
 
+        iter = 0
+
         while True:
-            if self.update:
+            # Ask the server the current neural network parameters.
+            if self.update and iter % self.update_iter == 0:
                 url = 'http://{}:{}/weight'.format(self.host, self.port)
                 req = urllib.request.Request(url)
                 with urllib.request.urlopen(req) as res:
@@ -50,6 +54,8 @@ class Client:
             with urllib.request.urlopen(req) as res:
                 pass
 
+            iter += 1
+
 if __name__ == '__main__':
     parser = OptionParser()
     parser.add_option('-i', '--ip', dest='ip',
@@ -60,8 +66,11 @@ if __name__ == '__main__':
                       help='If true, neural network parameters will not be updated.')
     parser.add_option('-c', '--cpu', action='store_true', dest='cpu_only', default=False,
                       help='If true, use CPU only.')
+    parser.add_option('-u', '--update-iter', dest='update_iter', type='int',
+                      default=1, help='The iteration to update neural network parameters.')
+
     (options, args) = parser.parse_args()
 
     client = Client(options.ip, options.port,
-                    not options.no_update, options.cpu_only)
+                    not options.no_update, options.cpu_only, options.update_iter)
     client.run()
