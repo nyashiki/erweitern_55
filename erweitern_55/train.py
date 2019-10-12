@@ -27,6 +27,7 @@ class Trainer():
 
         self.steps = 0
 
+        self.weights = _pickle.dumps(self.nn.get_weights(), protocol=4)
         self.nn_lock = threading.Lock()
 
         self.store_only = store_only
@@ -56,7 +57,7 @@ class Trainer():
         print('Ready')
         log_file = open('connection_log.txt', 'w')
 
-        nn = self.nn
+        weights = self.weights
         nn_lock = self.nn_lock
         reservoir = self.reservoir
 
@@ -68,9 +69,7 @@ class Trainer():
                     self.end_headers()
 
                     with nn_lock:
-                        data = _pickle.dumps(nn.get_weights(), protocol=4)
-
-                    self.wfile.write(data)
+                        self.wfile.write(weights)
 
                     log_file.write('[{}] send the parameters\n'.format(datetime.datetime.now(datetime.timezone.utc)))
                     log_file.flush()
@@ -117,24 +116,25 @@ class Trainer():
             nninputs, policies, values = self.training_data.get()
 
             # Update neural network parameters
+            if self.steps < 100000:
+                learning_rate = 1e-1
+            elif self.steps < 300000:
+                learning_rate = 1e-2
+            elif self.steps < 500000:
+                learning_rate = 1e-3
+            else:
+                learning_rate = 1e-4
+
+            loss = self.nn.step(
+                nninputs, policies, values, learning_rate)
+            init_policy, init_value = self.nn.predict(
+                init_position_nn_input)
+
+            if self.steps % 5000 == 0:
+                self.nn.save('./weights/iter_{}.h5'.format(self.steps))
+
             with self.nn_lock:
-                if self.steps < 100000:
-                    learning_rate = 1e-1
-                elif self.steps < 300000:
-                    learning_rate = 1e-2
-                elif self.steps < 500000:
-                    learning_rate = 1e-3
-                else:
-                    learning_rate = 1e-4
-
-                loss = self.nn.step(
-                    nninputs, policies, values, learning_rate)
-                init_policy, init_value = self.nn.predict(
-                    init_position_nn_input)
-
-                if self.steps % 5000 == 0:
-                    self.nn.save('./weights/iter_{}.h5'.format(self.steps))
-
+                self.weights = _pickle.dumps(self.nn.get_weights(), protocol=4)
 
             log_file.write('{}, {}, {}, {}, {}, {}\n'.format(datetime.datetime.now(
                 datetime.timezone.utc), self.steps, loss['loss'], loss['policy_loss'], loss['value_loss'], init_value[0][0]))
