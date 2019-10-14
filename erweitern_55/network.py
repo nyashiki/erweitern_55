@@ -7,6 +7,7 @@ import tensorflow.keras.backend as K
 
 import numpy as np
 import os
+import psutil
 
 REGULARIZER_c = 1e-4
 
@@ -15,13 +16,15 @@ class Network:
         # Keras config
         if cpu:
             # CPU settings.
-            config = tf.ConfigProto(device_count={'CPU': 56})
-            config.intra_op_parallelism_threads = 56
+            cpu_count = psutil.cpu_count(logical=False)
+            config = tf.ConfigProto(device_count={'CPU': cpu_count})
+            config.intra_op_parallelism_threads = cpu_count
             config.inter_op_parallelism_threads = 1
             config.allow_soft_placement = True
             os.environ['KMP_BLOCKTIME'] = '1'
             os.environ['KMP_HW_SUBSET'] = '1t'
-            os.environ['OMP_NUM_THREADS'] = '56'
+            os.environ['OMP_NUM_THREADS'] = str(cpu_count)
+
         else:
             # GPU settings.
             config = tf.ConfigProto()
