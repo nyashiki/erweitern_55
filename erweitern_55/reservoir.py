@@ -48,9 +48,9 @@ class Reservoir(object):
             self.records.append(record)
             self.learning_targets.append(record.learning_target_plys)
 
-        with open(self.json_dump, 'a') as f:
-            simplejson.dump(record.to_dict(), f)
-            f.write('\n')
+            with open(self.json_dump, 'a') as f:
+                simplejson.dump(record.to_dict(), f)
+                f.write('\n')
 
     def sample(self, nn, mini_batch_size, recent, discard=True):
         """Sample positions from game records
