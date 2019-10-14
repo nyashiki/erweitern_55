@@ -6,15 +6,31 @@ from tensorflow.keras import regularizers
 import tensorflow.keras.backend as K
 
 import numpy as np
+import os
+import psutil
 
 REGULARIZER_c = 1e-4
 
 class Network:
-    def __init__(self):
+    def __init__(self, cpu=False):
         # Keras config
-        config = tf.ConfigProto()
-        config.gpu_options.allow_growth = True
-        # config.gpu_options.per_process_gpu_memory_fraction = 0.4
+        if cpu:
+            # CPU settings.
+            cpu_count = psutil.cpu_count(logical=False)
+            config = tf.ConfigProto(device_count={'CPU': cpu_count})
+            config.intra_op_parallelism_threads = cpu_count
+            config.inter_op_parallelism_threads = 1
+            config.allow_soft_placement = True
+            os.environ['KMP_BLOCKTIME'] = '1'
+            os.environ['KMP_HW_SUBSET'] = '1t'
+            os.environ['OMP_NUM_THREADS'] = str(cpu_count)
+
+        else:
+            # GPU settings.
+            config = tf.ConfigProto()
+            config.gpu_options.allow_growth = True
+            # config.gpu_options.per_process_gpu_memory_fraction = 0.4
+
         sess = tf.Session(config=config)
         keras.backend.set_session(sess)
 
@@ -22,8 +38,8 @@ class Network:
         self.input_shape = None
 
         # Construct the network.
-        # self._alphazero_network()
-        self._kp_network()
+        self._alphazero_network()
+        # self._kp_network()
 
         # For multithreading.
         self.model._make_predict_function()
@@ -48,7 +64,7 @@ class Network:
         x = keras.layers.BatchNormalization(axis=1)(x)
 
         # Residual blocks
-        for i in range(11):
+        for i in range(5):
             x = self._residual_block(x)
 
         # Policy head

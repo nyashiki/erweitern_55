@@ -1,8 +1,9 @@
-import socketio
 from optparse import OptionParser
 import os
 import _pickle
 import sys
+import threading
+import urllib.request
 
 import mcts
 import network
@@ -10,11 +11,13 @@ import selfplay
 
 
 class Client:
-    def __init__(self, ip, port, update=True):
+    def __init__(self, ip, port, update=True, cpu_only=False, update_iter=1):
         self.host = ip
         self.port = port
         self.nn = None
         self.update = update
+        self.cpu_only = cpu_only
+        self.update_iter = update_iter
 
     def run(self):
         mcts_config = mcts.Config()
@@ -27,42 +30,31 @@ class Client:
 
         search = mcts.MCTS(mcts_config)
 
-        url = 'http://{}:{}'.format(self.host, self.port)
-        sio = socketio.Client()
+        self.nn = network.Network(self.cpu_only)
 
-        @sio.event
-        def connect():
-            sio.emit('parameter')
+        iter = 0
 
-        @sio.event
-        def disconnect():
-            os._exit(0)
-
-        @sio.on('receive_parameter')
-        def receive_parameter(data):
-            if self.nn is None or self.update:
-                if self.nn is None:
-                    self.nn = network.Network()
-
-                weights = _pickle.loads(data)
-                self.nn.set_weights(weights)
+        while True:
+            # Ask the server the current neural network parameters.
+            if self.update and iter % self.update_iter == 0:
+                url = 'http://{}:{}/weight'.format(self.host, self.port)
+                req = urllib.request.Request(url)
+                with urllib.request.urlopen(req) as res:
+                    weights = _pickle.loads(res.read())
+                    self.nn.model.set_weights(weights)
 
             # Conduct selfplay.
             search.clear()
             game_record = selfplay.run(self.nn, search)
 
-            # Send game result.
+            # Send result.
+            url = 'http://{}:{}/record'.format(self.host, self.port)
             data = _pickle.dumps(game_record, protocol=4)
-            sio.emit('record', data)
+            req = urllib.request.Request(url, data)
+            with urllib.request.urlopen(req) as res:
+                pass
 
-            # Ask current parameters again.
-            if self.update:
-                sio.emit('parameter')
-            else:
-                receive_parameter(None)
-
-        sio.connect(url)
-        sio.wait()
+            iter += 1
 
 if __name__ == '__main__':
     parser = OptionParser()
@@ -71,10 +63,14 @@ if __name__ == '__main__':
     parser.add_option('-p', '--port', dest='port', type='int', default=10055,
                       help='connection target port')
     parser.add_option('-s', '--no-update', action='store_true', dest='no_update', default=False,
-                      help='If true, neural network parameters will not be updated.',)
+                      help='If true, neural network parameters will not be updated.')
+    parser.add_option('-c', '--cpu', action='store_true', dest='cpu_only', default=False,
+                      help='If true, use CPU only.')
+    parser.add_option('-u', '--update-iter', dest='update_iter', type='int',
+                      default=1, help='The iteration to update neural network parameters.')
 
     (options, args) = parser.parse_args()
 
     client = Client(options.ip, options.port,
-                    not options.no_update)
+                    not options.no_update, options.cpu_only, options.update_iter)
     client.run()

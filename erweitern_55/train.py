@@ -1,11 +1,12 @@
 import datetime
-import eventlet
+import http.server
 import minishogilib
-import socketio
 import numpy as np
 from optparse import OptionParser
 import _pickle
 import queue
+import simplejson
+import socketserver
 import sys
 import tensorflow as tf
 import tensorflow.keras.backend as K
@@ -22,12 +23,11 @@ class Trainer():
         self.port = port
 
         self.reservoir = Reservoir()
-        self.nn = network.Network()
+        self.nn = network.Network(False)
 
         self.steps = 0
 
         self.nn_lock = threading.Lock()
-        self.reservoir_lock = threading.Lock()
 
         self.store_only = store_only
 
@@ -46,41 +46,62 @@ class Trainer():
         RECENT_GAMES = 100000
 
         while True:
-            with self.reservoir_lock:
-                if self.reservoir.len_learning_targets() < BATCH_SIZE:
-                    continue
+            if self.reservoir.len_learning_targets() < BATCH_SIZE:
+                continue
 
-                datasets = self.reservoir.sample(self.nn, BATCH_SIZE, RECENT_GAMES)
-
+            datasets = self.reservoir.sample(self.nn, BATCH_SIZE, RECENT_GAMES)
             self.training_data.put(datasets)
 
     def collect_records(self):
+        print('Ready')
         log_file = open('connection_log.txt', 'w')
 
-        sio = socketio.Server()
+        nn = self.nn
+        nn_lock = self.nn_lock
+        reservoir = self.reservoir
 
-        @sio.on('parameter')
-        def send_parameter(sid):
-            with self.nn_lock:
-                data = _pickle.dumps(
-                    self.nn.get_weights(), protocol=4)
+        class handler(http.server.SimpleHTTPRequestHandler):
+            def do_GET(self):
+                if self.path == '/weight':
+                    self.send_response(200)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
 
-            log_file.write('[{}] send the parameters\n'.format(
-                datetime.datetime.now(datetime.timezone.utc)))
-            log_file.flush()
+                    with nn_lock:
+                        data = _pickle.dumps(nn.get_weights(), protocol=4)
 
-            sio.emit('receive_parameter', data, room=sid)
+                    self.wfile.write(data)
 
-        @sio.on('record')
-        def receive_record(sid, data):
-            game_record = _pickle.loads(data)
-            self.reservoir.push(game_record)
-            log_file.write('[{}] received a game record\n'.format(
-                    datetime.datetime.now(datetime.timezone.utc)))
-            log_file.flush()
+                    log_file.write('[{}] send the parameters\n'.format(datetime.datetime.now(datetime.timezone.utc)))
+                    log_file.flush()
 
-        app = socketio.WSGIApp(sio)
-        eventlet.wsgi.server(eventlet.listen(('', self.port)), app)
+                else:
+                    self.send_response(400)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+
+            def do_POST(self):
+                if self.path == '/record':
+                    content_length = int(self.headers.get('content-length'))
+                    game_record = _pickle.loads(self.rfile.read(content_length))
+                    reservoir.push(game_record)
+
+                    self.send_response(200)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+
+                    log_file.write('[{}] received a game record\n'.format(datetime.datetime.now(datetime.timezone.utc)))
+                    log_file.flush()
+                else:
+                    self.send_response(400)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+
+        class ThreadedHTTPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+            pass
+
+        with ThreadedHTTPServer(('', self.port), handler) as httpd:
+            httpd.serve_forever()
 
     def update_parameters(self):
         sample_thread = threading.Thread(target=self._sample_datasets)
@@ -113,6 +134,7 @@ class Trainer():
 
                 if self.steps % 5000 == 0:
                     self.nn.save('./weights/iter_{}.h5'.format(self.steps))
+
 
             log_file.write('{}, {}, {}, {}, {}, {}\n'.format(datetime.datetime.now(
                 datetime.timezone.utc), self.steps, loss['loss'], loss['policy_loss'], loss['value_loss'], init_value[0][0]))

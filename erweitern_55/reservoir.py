@@ -4,6 +4,7 @@ import numpy as np
 import os
 import random
 import simplejson
+import threading
 
 import gamerecord
 import network
@@ -14,6 +15,7 @@ class Reservoir(object):
         self.records = []
         self.learning_targets = []
         self.json_dump = json_dump
+        self.lock = threading.Lock()
 
         if os.path.isfile(json_dump):
             self._load()
@@ -42,8 +44,9 @@ class Reservoir(object):
             self.learning_targets.append(record.learning_target_plys)
 
     def push(self, record):
-        self.records.append(record)
-        self.learning_targets.append(record.learning_target_plys)
+        with self.lock:
+            self.records.append(record)
+            self.learning_targets.append(record.learning_target_plys)
 
         with open(self.json_dump, 'a') as f:
             simplejson.dump(record.to_dict(), f)
@@ -62,28 +65,29 @@ class Reservoir(object):
             values: the winners of games
         """
 
-        if discard:
-            self.records = self.records[-recent:]
-            self.learning_targets = self.learning_targets[-recent:]
+        with self.lock:
+            if discard:
+                self.records = self.records[-recent:]
+                self.learning_targets = self.learning_targets[-recent:]
 
-        # add index
-        recent_records = self.records[-recent:]
-        recent_targets = self.learning_targets[-recent:]
-        cumulative_plys = [0 for _ in range(recent + 1)]
-        for i in range(recent):
-            cumulative_plys[i + 1] = cumulative_plys[i] + \
-                len(recent_targets[i])
-        indicies = random.sample(
-            range(cumulative_plys[recent]), mini_batch_size)
-        indicies.sort()
-        target_plys = [None for _ in range(mini_batch_size)]
-        lo = 0
-        for i in range(mini_batch_size):
-            index = bisect.bisect_right(
-                cumulative_plys, indicies[i], lo=lo) - 1
-            ply = recent_targets[index][indicies[i] - cumulative_plys[index]]
-            target_plys[i] = (index, ply)
-            lo = index
+            # add index
+            recent_records = self.records[-recent:]
+            recent_targets = self.learning_targets[-recent:]
+            cumulative_plys = [0 for _ in range(recent + 1)]
+            for i in range(recent):
+                cumulative_plys[i + 1] = cumulative_plys[i] + \
+                    len(recent_targets[i])
+            indicies = random.sample(
+                range(cumulative_plys[recent]), mini_batch_size)
+            indicies.sort()
+            target_plys = [None for _ in range(mini_batch_size)]
+            lo = 0
+            for i in range(mini_batch_size):
+                index = bisect.bisect_right(
+                    cumulative_plys, indicies[i], lo=lo) - 1
+                ply = recent_targets[index][indicies[i] - cumulative_plys[index]]
+                target_plys[i] = (recent_records[index], ply)
+                lo = index
 
         nninputs = nn.zero_inputs(mini_batch_size)
         policies = np.zeros((mini_batch_size, 69 * 5 * 5), dtype='float32')
@@ -95,7 +99,7 @@ class Reservoir(object):
             position = minishogilib.Position()
             position.set_start_position()
 
-            record = recent_records[target_plys[target_index][0]]
+            record = target_plys[target_index][0]
 
             ply = 0
             while True:
@@ -130,8 +134,10 @@ class Reservoir(object):
         return nninputs, policies, values
 
     def len(self):
-        return len(self.records)
+        with self.lock:
+            return len(self.records)
 
     def len_learning_targets(self):
-        flatten = [j for i in self.learning_targets for j in i]
+        with self.lock:
+            flatten = [j for i in self.learning_targets for j in i]
         return len(flatten)
