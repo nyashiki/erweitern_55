@@ -32,6 +32,17 @@ class MCTS():
         self.mcts.clear()
 
     def run(self, position, nn, timelimit=0, verbose=False):
+        """Run Monte-Carlo Tree search at the given position.
+
+        # Arguments:
+            position: the position at which search the next move.
+            nn: Network instance.
+            timelimit: the timelimit for searching (milliseconds).
+            verbose: whether output logs to the standard output.
+
+        # Returns:
+            root: the root node that corresponds the given position.
+        """
         self.searching = True
         start_time = time.time()
 
@@ -98,13 +109,32 @@ class MCTS():
         return root
 
     def stop(self):
+        """Stop searching.
+        """
         with self.lock:
             self.searching = False
 
     def best_move(self, node):
+        """Get the next move at the given node.
+
+        # Arguments:
+            node: the target node.
+
+        # Returns:
+            The next move.
+        """
         return self.mcts.best_move(node)
 
     def dump(self, node, remove_zeros=True):
+        """Get (move, the number of visit) pairs.
+
+        # Arguments:
+            node: the target node.
+            remove_zeros: ignore child nodes whose number of visit is 0.
+
+        # Returns:
+            List of (move, the number of visit) pair.
+        """
         return self.mcts.dump(node, self.config.target_pruning, remove_zeros)
 
     def print(self, node):
@@ -114,4 +144,13 @@ class MCTS():
         self.mcts.debug(node)
 
     def visualize(self, node, node_num=20):
+        """Get the game-tree written in dot language.
+
+        # Arguments:
+            node: the target node.
+            node_num: the number of nodes.
+
+        # Returns:
+            String of dot language represenattion of the game tree.
+        """
         return self.mcts.visualize(node, node_num)
