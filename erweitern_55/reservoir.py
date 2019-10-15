@@ -1,7 +1,9 @@
 import bisect
 import minishogilib
+from multiprocessing import Pool
 import numpy as np
 import os
+import psutil
 import random
 import simplejson
 import threading
@@ -9,6 +11,35 @@ import threading
 import gamerecord
 import network
 
+def _get_data(record_ply):
+    record = record_ply[0]
+    ply = record_ply[1]
+
+    sfen_kif = ' '.join(record.sfen_kif[:ply])
+
+    position = minishogilib.Position()
+    position.set_sfen_without_startpos_simple(sfen_kif)
+
+    # Input.
+    # ToDo: use Network.get_input().
+    nninput = np.reshape(position.to_alphazero_input(), [266, 5, 5])
+
+    # Policy.
+    policy = np.zeros((69 * 5 * 5), dtype='float32')
+    sum_N, q, playouts = record.mcts_result[ply]
+    for playout in playouts:
+        move = position.sfen_to_move(playout[0])
+        policy[move.to_policy_index()] = playout[1] / sum_N
+
+    # Value.
+    if record.winner == 2:
+        value = 0
+    elif record.winner == position.get_side_to_move():
+        value = 1
+    else:
+        value = -1
+
+    return nninput, policy, value
 
 class Reservoir(object):
     def __init__(self, json_dump='records.json'):
@@ -91,33 +122,13 @@ class Reservoir(object):
                 target_plys[i] = (recent_records[index], ply)
                 lo = index
 
-        nninputs = nn.zero_inputs(mini_batch_size)
-        policies = np.zeros((mini_batch_size, 69 * 5 * 5), dtype='float32')
-        values = np.zeros((mini_batch_size, 1), dtype='float32')
+        cpu_count = psutil.cpu_count(logical=False)
+        with Pool(cpu_count) as p:
+            result = p.map(_get_data, [target_plys[i] for i in range(mini_batch_size)])
 
-        for target_index in range(mini_batch_size):
-            record = target_plys[target_index][0]
-            sfen_kif = ' '.join(record.sfen_kif[:target_plys[target_index][1]])
-
-            position = minishogilib.Position()
-            position.set_sfen_without_startpos_simple(sfen_kif)
-
-            # Input.
-            nninputs[target_index] = nn.get_inputs([position])[0]
-
-            # Policy.
-            sum_N, q, playouts = record.mcts_result[target_plys[target_index][1]]
-            for playout in playouts:
-                move = position.sfen_to_move(playout[0])
-                policies[target_index][move.to_policy_index()] = playout[1] / sum_N
-
-            # Value.
-            if record.winner == 2:
-                values[target_index] = 0
-            elif record.winner == position.get_side_to_move():
-                values[target_index] = 1
-            else:
-                values[target_index] = -1
+        nninputs = np.array([result[i][0] for i in range(mini_batch_size)])
+        policies = np.array([result[i][1] for i in range(mini_batch_size)])
+        values = np.array([result[i][2] for i in range(mini_batch_size)])
 
         return nninputs, policies, values
 
