@@ -46,52 +46,62 @@ class MCTS():
         self.searching = True
         start_time = time.time()
 
+        # Step 1: Set the root node.
         root = self.mcts.set_root(position, self.config.reuse_tree)
 
         if self.config.immediate:
+            # If the number of visit at the root node exceeds the certain number,
+            # don't conduct search and return immediately.
             if self.mcts.get_playouts(root, True) >= self.config.simulation_num:
                 return root
 
+        # Step 2: Evaluate the root node.
         nninput = nn.get_inputs([position])
         policy, value = nn.predict(nninput)
         value = (value + 1) / 2
-
         self.mcts.evaluate(
             root, position, policy[0], value[0][0], self.config.use_dirichlet)
 
+        # Step 3: Start searching.
+        # Main loop of the Monte-Carlo tree search.
         leaf_nodes = [None for _ in range(self.config.batch_size)]
         leaf_positions = [None for _ in range(self.config.batch_size)]
 
         loop_count = 0
         for _ in range(self.config.simulation_num // self.config.batch_size):
+            # If the memory is used over 90%, suspend the search.
             if self.mcts.get_usage() > 0.9:
                 break
 
+            # If searching flag is False, suspend the search.
             with self.lock:
                 if not self.searching:
                     break
 
+            # Check the timelimit.
             current_time = time.time()
             if timelimit > 0 and (current_time - start_time) * 1000 >= timelimit:
                 break
 
+            # MCTS Step 1: select leaf nodes.
             for b in range(self.config.batch_size):
                 leaf_positions[b] = position.copy(True)
                 leaf_nodes[b] = self.mcts.select_leaf(
                     root, leaf_positions[b], self.config.forced_playouts)
 
-            # use neural network to evaluate the position
+            # MCTS Step 2: expand children of the leaf nodes and evaluate the leaf nodes.
             nninputs = nn.get_inputs(leaf_positions)
             policy, value = nn.predict(nninputs)
             value = (value + 1) / 2
-
             for b in range(self.config.batch_size):
                 value[b][0] = self.mcts.evaluate(
                     leaf_nodes[b], leaf_positions[b], policy[b], value[b][0], False)
 
+            # MCTS Step 3: backpropage values of the leaf nodes from the leaf nodes to the root node.
             for b in range(self.config.batch_size):
                 self.mcts.backpropagate(leaf_nodes[b], value[b][0])
 
+            # Output log.
             if verbose and loop_count % 50 == 0:
                 pv_moves, q = self.mcts.info(root)
                 print('info depth {} score winrate {:.3f} pv {}'.format(len(pv_moves),
@@ -100,6 +110,7 @@ class MCTS():
 
             loop_count += 1
 
+        # Output log.
         if verbose:
             pv_moves, q = self.mcts.info(root)
             print('info depth {} score winrate {:.3f} pv {}'.format(len(pv_moves),
