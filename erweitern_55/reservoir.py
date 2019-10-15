@@ -100,7 +100,7 @@ class Reservoir(object):
             sfen_kif = ' '.join(record.sfen_kif[:target_plys[target_index][1]])
 
             position = minishogilib.Position()
-            position.set_sfen_without_startpos(sfen_kif)
+            position.set_sfen_without_startpos_simple(sfen_kif)
 
             # Input.
             nninputs[target_index] = nn.get_inputs([position])[0]
