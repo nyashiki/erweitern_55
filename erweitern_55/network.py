@@ -57,6 +57,14 @@ class Network:
         self.predict(random_input)
 
     def _alphazero_network(self):
+        """ Construct AlphaZero-like network.
+
+        # Returns:
+            input_image: the input layer of this network.
+            policy: the policy head layer.
+            value : the value head layer.
+        """
+
         self.network_type = 'AlphaZero'
         self.input_shape = [266, 5, 5]
 
@@ -95,6 +103,14 @@ class Network:
         return input_image, policy, value
 
     def _kp_network(self):
+        """ Construct King-Piece relationship network.
+
+        # Returns:
+            input_image: the input layer of this network.
+            policy: the policy head layer.
+            value : the value head layer.
+        """
+
         self.network_type = 'KP'
         self.input_shape = [11888]
 
@@ -126,6 +142,15 @@ class Network:
         return input_image, policy, value
 
     def _residual_block(self, input_image, conv_kernel_shape=[3, 3]):
+        """ Construct a residual block.
+
+        # Arguments:
+            input_image: the input layer for this residual block.
+            conv_kernel_shape: The shape of convolutional newtorks used in this residual block.
+
+        # Returns:
+            x: the output layer of this residual block.
+        """
         conv_filters = int(input_image.shape[1])
 
         x = keras.layers.Conv2D(
@@ -142,11 +167,19 @@ class Network:
 
     def step(self, train_images, policy_labels, value_labels, learning_rate=0.01):
         """Train the neural network one step.
+
+        # Arguments:
+            train_images: inputs used for traininig the neural network.
+            policy_labels: teachers of the policy head.
+            value_labels: teachers of the value head.
+
+        # Returns:
+            Dictionary composed of losses and metrics.
         """
 
         with self.session.as_default():
             with self.graph.as_default():
-                # set the learning rate
+                # Set the learning rate.
                 K.set_value(self.model.optimizer.lr, learning_rate)
 
                 loss = self.model.train_on_batch(
@@ -157,6 +190,15 @@ class Network:
         return dict(zip(self.model.metrics_names, loss))
 
     def predict(self, images):
+        """Get policy head and value head values.
+
+        # Arguments:
+            images: the neural network inputs.
+
+        # Returns:
+            policy: the value of policy head.
+            value: the value of value head.
+        """
         with self.session.as_default():
             with self.graph.as_default():
                 policy, value = self.model.predict(
@@ -165,26 +207,51 @@ class Network:
         return policy, value
 
     def load(self, filepath):
+        """Set the neural network weights and the optimizer from a file.
+
+        # Arguments:
+            filepath: the path of the saved weights file.
+        """
         with self.session.as_default():
             with self.graph.as_default():
                 self.model = keras.models.load_model(filepath, compile=True)
 
     def get_weights(self):
+        """Get weights of the neural networks.
+
+        # Returns:
+            Weights of the neural networks.
+        """
         with self.session.as_default():
             with self.graph.as_default():
                 return self.model.get_weights()
 
     def set_weights(self, weights):
+        """ Set weights of the neural networks.
+        """
         with self.session.as_default():
             with self.graph.as_default():
                 self.model.set_weights(weights)
 
     def save(self, filepath):
+        """Save weights and the optimizer to a file.
+
+        # Arguments:
+            filepath: a file to which save the neural network weights and the optimizer.
+        """
         with self.session.as_default():
             with self.graph.as_default():
                 self.model.save(filepath, include_optimizer=True)
 
     def get_inputs(self, positions):
+        """Get neural network inputs' representation of the positions.
+
+        # Arguments:
+            positions: list of positions.
+
+        # Returns:
+            inputs: neural network inputs' representation.
+        """
         inputs = np.zeros([len(positions)] + self.input_shape, dtype='float32')
 
         for i, position in enumerate(positions):
@@ -196,9 +263,13 @@ class Network:
         return inputs
 
     def iter(self):
+        """Get the iteration of training.
+        """
         with self.session.as_default():
             with self.graph.as_default():
                 return K.get_value(self.model.optimizer.iterations)
 
     def zero_inputs(self, batch_size):
+        """Get zero inputs.
+        """
         return np.zeros([batch_size] + self.input_shape, dtype='float32')

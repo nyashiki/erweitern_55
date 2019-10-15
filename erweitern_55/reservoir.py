@@ -44,6 +44,8 @@ class Reservoir(object):
             self.learning_targets.append(record.learning_target_plys)
 
     def push(self, record):
+        """Add a game record.
+        """
         with self.lock:
             self.records.append(record)
             self.learning_targets.append(record.learning_target_plys)
@@ -53,16 +55,16 @@ class Reservoir(object):
                 f.write('\n')
 
     def sample(self, nn, mini_batch_size, recent, discard=True):
-        """Sample positions from game records
+        """Sample positions from game records.
 
         # Arguments:
-            mini_batch_size: the size of array of positions
-            recent: How many recent games are the target of sampling
+            mini_batch_size: the size of array of positions.
+            recent: How many recent games are the target of sampling.
 
         # Returns:
-            nninputs: the representation of the neural network input layer of positions
-            policies: the representation of distributions of MCTS outputs
-            values: the winners of games
+            nninputs: the representation of the neural network input layer of positions.
+            policies: the representation of distributions of MCTS outputs.
+            values: the winners of games.
         """
 
         with self.lock:
@@ -70,7 +72,7 @@ class Reservoir(object):
                 self.records = self.records[-recent:]
                 self.learning_targets = self.learning_targets[-recent:]
 
-            # add index
+            # Add index.
             recent_records = self.records[-recent:]
             recent_targets = self.learning_targets[-recent:]
             cumulative_plys = [0 for _ in range(recent + 1)]
@@ -104,17 +106,17 @@ class Reservoir(object):
             ply = 0
             while True:
                 if ply == target_plys[target_index][1]:
-                    # input
+                    # Input.
                     nninputs[target_index] = nn.get_inputs([position])[0]
 
-                    # policy
+                    # Policy.
                     sum_N, q, playouts = record.mcts_result[target_plys[target_index][1]]
                     for playout in playouts:
                         move = position.sfen_to_move(playout[0])
                         policies[target_index][move.to_policy_index()
                                                ] = playout[1] / sum_N
 
-                    # value
+                    # Value.
                     if record.winner == 2:
                         values[target_index] = 0
                     elif record.winner == position.get_side_to_move():
