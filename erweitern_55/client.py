@@ -11,6 +11,9 @@ import selfplay
 
 
 class Client:
+    """Client that connects the server and conducts selfplay games.
+    """
+
     def __init__(self, ip, port, update=True, cpu_only=False, update_iter=1):
         self.host = ip
         self.port = port

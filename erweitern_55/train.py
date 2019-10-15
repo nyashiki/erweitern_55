@@ -19,6 +19,9 @@ from reservoir import Reservoir
 
 
 class Trainer():
+    """Server that collects game records sent by clients and updates neural network parameters.
+    """
+
     def __init__(self, port, store_only=False, record_file=None, weight_file=None):
         self.port = port
 
