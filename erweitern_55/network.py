@@ -64,7 +64,7 @@ class Network:
         x = keras.layers.BatchNormalization(axis=1)(x)
 
         # Residual blocks
-        for i in range(5):
+        for i in range(11):
             x = self._residual_block(x)
 
         # Policy head
