@@ -38,8 +38,14 @@ class Network:
         self.input_shape = None
 
         # Construct the network.
-        self._alphazero_network()
-        # self._kp_network()
+        ins, policy, value = self._alphazero_network()
+        # ins, policy, value = self._kp_network()
+
+        # Define the model.
+        self.model = keras.Model(inputs=ins, outputs=[policy, value])
+        self.model.compile(optimizer=tf.keras.optimizers.SGD(lr=1e-1, momentum=0.9),
+                           loss={'policy': keras.losses.CategoricalCrossentropy(from_logits=True),
+                                 'value': keras.losses.mean_squared_error})
 
         # For multithreading.
         self.model._make_predict_function()
@@ -86,13 +92,7 @@ class Network:
         value = keras.layers.Dense(
             1, activation=tf.nn.tanh, name='value', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
 
-        # define the model
-        self.model = keras.Model(inputs=input_image, outputs=[policy, value])
-
-        # optimizerを定義
-        self.model.compile(optimizer=tf.keras.optimizers.SGD(lr=1e-1, momentum=0.9),
-                           loss={'policy': keras.losses.CategoricalCrossentropy(from_logits=True),
-                                 'value': keras.losses.mean_squared_error})
+        return input_image, policy, value
 
     def _kp_network(self):
         self.network_type = 'KP'
@@ -123,13 +123,7 @@ class Network:
         value = keras.layers.Dense(
             1, activation=tf.nn.tanh, name='value', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
 
-        # define the model
-        self.model = keras.Model(inputs=input_image, outputs=[policy, value])
-
-        # optimizerを定義
-        self.model.compile(optimizer=tf.keras.optimizers.SGD(lr=1e-1, momentum=0.9),
-                           loss={'policy': keras.losses.CategoricalCrossentropy(from_logits=True),
-                                 'value': keras.losses.mean_squared_error})
+        return input_image, policy, value
 
     def _residual_block(self, input_image, conv_kernel_shape=[3, 3]):
         conv_filters = int(input_image.shape[1])
@@ -200,6 +194,11 @@ class Network:
                 inputs[i] = position.to_kp_input().reshape([1] + self.input_shape)
 
         return inputs
+
+    def iter(self):
+        with self.session.as_default():
+            with self.graph.as_default():
+                return K.get_value(self.model.optimizer.iterations)
 
     def zero_inputs(self, batch_size):
         return np.zeros([batch_size] + self.input_shape, dtype='float32')

@@ -25,16 +25,14 @@ class Trainer():
         self.reservoir = Reservoir()
         self.nn = network.Network(False)
 
-        self.steps = 0
-
         self.nn_lock = threading.Lock()
 
         self.store_only = store_only
 
-        if not record_file is None:
+        if record_file is not None:
             self.reservoir.load(record_file)
 
-        if not weight_file is None:
+        if weight_file is not None:
             self.nn.load(weight_file)
         else:
             self.nn.save('./weights/iter_0.h5')
@@ -118,11 +116,11 @@ class Trainer():
 
             # Update neural network parameters
             with self.nn_lock:
-                if self.steps < 100000:
+                if self.nn.iter() < 100000:
                     learning_rate = 1e-1
-                elif self.steps < 300000:
+                elif self.nn.iter() < 300000:
                     learning_rate = 1e-2
-                elif self.steps < 500000:
+                elif self.nn.iter() < 500000:
                     learning_rate = 1e-3
                 else:
                     learning_rate = 1e-4
@@ -132,15 +130,12 @@ class Trainer():
                 init_policy, init_value = self.nn.predict(
                     init_position_nn_input)
 
-                if self.steps % 5000 == 0:
-                    self.nn.save('./weights/iter_{}.h5'.format(self.steps))
-
+                if self.nn.iter() % 5000 == 0:
+                    self.nn.save('./weights/iter_{}.h5'.format(self.nn.iter()))
 
             log_file.write('{}, {}, {}, {}, {}, {}\n'.format(datetime.datetime.now(
-                datetime.timezone.utc), self.steps, loss['loss'], loss['policy_loss'], loss['value_loss'], init_value[0][0]))
+                datetime.timezone.utc), self.nn.iter(), loss['loss'], loss['policy_loss'], loss['value_loss'], init_value[0][0]))
             log_file.flush()
-
-            self.steps += 1
 
     def run(self):
         # Make the server which receives game records by selfplay from clients
