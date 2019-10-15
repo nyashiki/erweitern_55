@@ -56,7 +56,7 @@ class MCTS():
                 return root
 
         # Step 2: Evaluate the root node.
-        nninput = nn.get_inputs([position])
+        nninput = nn.get_input(position)
         policy, value = nn.predict(nninput)
         value = (value + 1) / 2
         self.mcts.evaluate(

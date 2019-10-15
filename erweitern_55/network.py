@@ -242,6 +242,12 @@ class Network:
             with self.graph.as_default():
                 self.model.save(filepath, include_optimizer=True)
 
+    def get_input(self, position):
+        if self.network_type == 'AlphaZero':
+            return position.to_alphazero_input().reshape(self.input_shape)
+        elif self.network_type == 'KP':
+            return position.to_kp_input().reshape(self.input_shape)
+
     def get_inputs(self, positions):
         """Get neural network inputs' representation of the positions.
 
@@ -254,10 +260,7 @@ class Network:
         inputs = np.zeros([len(positions)] + self.input_shape, dtype='float32')
 
         for i, position in enumerate(positions):
-            if self.network_type == 'AlphaZero':
-                inputs[i] = position.to_alphazero_input().reshape([1] + self.input_shape)
-            elif self.network_type == 'KP':
-                inputs[i] = position.to_kp_input().reshape([1] + self.input_shape)
+            inputs[i] = self.get_input(position)
 
         return inputs
 
