@@ -114,7 +114,7 @@ class Trainer():
         while True:
             nninputs, policies, values = self.training_data.get()
 
-            # Update neural network parameters
+            # Update neural network parameters.
             with self.nn_lock:
                 if self.nn.iter() < 100000:
                     learning_rate = 1e-1
@@ -138,11 +138,11 @@ class Trainer():
             log_file.flush()
 
     def run(self):
-        # Make the server which receives game records by selfplay from clients
+        # Make the server which receives game records by selfplay from clients.
         collect_records_thread = threading.Thread(target=self.collect_records)
         collect_records_thread.start()
 
-        # Update the neural network parameters
+        # Update the neural network parameters.
         if not self.store_only:
             self.update_parameters()
 
