@@ -95,26 +95,25 @@ class Reservoir(object):
         policies = np.zeros((mini_batch_size, 69 * 5 * 5), dtype='float32')
         values = np.zeros((mini_batch_size, 1), dtype='float32')
 
+        sfen_kifs = [' '.join(target_plys[i][0].sfen_kif[:target_plys[i][1]]) for i in range(mini_batch_size)]
+        positions = minishogilib.get_positions_from_sfen_without_startpos(sfen_kifs)
+
         for target_index in range(mini_batch_size):
             record = target_plys[target_index][0]
-            sfen_kif = ' '.join(record.sfen_kif[:target_plys[target_index][1]])
-
-            position = minishogilib.Position()
-            position.set_sfen_without_startpos_simple(sfen_kif)
 
             # Input.
-            nninputs[target_index] = nn.get_inputs([position])[0]
+            nninputs[target_index] = nn.get_input(positions[target_index])
 
             # Policy.
             sum_N, q, playouts = record.mcts_result[target_plys[target_index][1]]
             for playout in playouts:
-                move = position.sfen_to_move(playout[0])
+                move = positions[target_index].sfen_to_move(playout[0])
                 policies[target_index][move.to_policy_index()] = playout[1] / sum_N
 
             # Value.
             if record.winner == 2:
                 values[target_index] = 0
-            elif record.winner == position.get_side_to_move():
+            elif record.winner == positions[target_index].get_side_to_move():
                 values[target_index] = 1
             else:
                 values[target_index] = -1
