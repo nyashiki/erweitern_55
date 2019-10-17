@@ -38,8 +38,8 @@ class Network:
         self.input_shape = None
 
         # Construct the network.
-        # ins, policy, value = self._alphazero_network()
-        ins, policy, value = self._kp_network()
+        ins, policy, value = self._alphazero_network()
+        # ins, policy, value = self._kp_network()
 
         # Define the model.
         self.model = keras.Model(inputs=ins, outputs=[policy, value])
