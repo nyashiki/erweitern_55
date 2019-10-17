@@ -7,8 +7,12 @@ h5py==2.9.0
 Keras-Applications==1.0.8
 Keras-Preprocessing==1.1.0
 Markdown==3.1.1
+minishogilib==0.5.1
 numpy==1.17.0
+pkg-resources==0.0.0
 protobuf==3.9.1
+psutil==5.6.3
+simplejson==3.16.0
 six==1.12.0
 tensorboard==1.14.0
 tensorflow-estimator==1.14.0
