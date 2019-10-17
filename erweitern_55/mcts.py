@@ -20,7 +20,6 @@ class Config:
         self.target_pruning = False
         self.immediate = False
 
-
 class MCTS():
     def __init__(self, config):
         self.config = config
@@ -56,7 +55,7 @@ class MCTS():
                 return root
 
         # Step 2: Evaluate the root node.
-        nninput = nn.get_input(position)
+        nninput = nn.get_input(position, True)
         policy, value = nn.predict(nninput)
         value = (value + 1) / 2
         self.mcts.evaluate(
