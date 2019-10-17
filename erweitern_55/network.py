@@ -244,9 +244,9 @@ class Network:
 
     def get_input(self, position):
         if self.network_type == 'AlphaZero':
-            return position.to_alphazero_input().reshape(self.input_shape)
+            return np.reshape(position.to_alphazero_input(), [1] + self.input_shape)
         elif self.network_type == 'KP':
-            return position.to_kp_input().reshape(self.input_shape)
+            return np.reshape(position.to_kp_input(), [1] + self.input_shape)
 
     def get_inputs(self, positions):
         """Get neural network inputs' representation of the positions.
