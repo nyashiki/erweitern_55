@@ -104,7 +104,7 @@ class Network:
         return input_image, policy, value
 
     def _kp_network(self):
-        """ Construct King-Piece relationship network.
+        """Construct King-Piece relationship network.
 
         # Returns:
             input_image: the input layer of this network.
