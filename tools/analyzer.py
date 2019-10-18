@@ -40,7 +40,7 @@ def main():
 
             counter += 1
 
-            if counter == 100:
+            if counter == 1000:
                 for i in range(len(target_positions)):
                     position_frequency[i].append(position_counts[i] / counter)
 
@@ -75,7 +75,7 @@ def main():
         plt.ylim([0, 100])
         plt.grid(linestyle='--')
         y = np.array(pf) * 100
-        plt.plot(range(len(pf)), y)
+        plt.scatter(range(len(pf)), y)
 
         f = io.BytesIO()
         plt.savefig(f, format='svg')
