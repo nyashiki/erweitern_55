@@ -15,17 +15,18 @@ import time
 
 import mcts
 import network
-from reservoir import Reservoir
 
 
 class Trainer():
     """Server that collects game records sent by clients and updates neural network parameters.
     """
 
-    def __init__(self, port, store_only=False, record_file=None, weight_file=None):
+    def __init__(self, port, store_only=False, record_file='records.json', weight_file=None):
+        RECENT_GAMES = 100000
+
         self.port = port
 
-        self.reservoir = Reservoir()
+        self.reservoir = minishogilib.Reservoir(record_file, RECENT_GAMES)
         self.nn = network.Network(False)
 
         self.nn_lock = threading.Lock()
@@ -44,14 +45,15 @@ class Trainer():
 
     def _sample_datasets(self):
         BATCH_SIZE = 4096
-        RECENT_GAMES = 100000
 
         while True:
-            if self.reservoir.len_learning_targets() < BATCH_SIZE:
-                continue
+            datasets = self.reservoir.sample(BATCH_SIZE)
 
-            datasets = self.reservoir.sample(self.nn, BATCH_SIZE, RECENT_GAMES)
-            self.training_data.put(datasets)
+            ins = np.reshape(datasets[0], [BATCH_SIZE] + self.nn.input_shape)
+            policies = np.reshape(datasets[1], [BATCH_SIZE, 69 * 5 * 5])
+            values = np.reshape(datasets[2], [BATCH_SIZE, 1])
+
+            self.training_data.put((ins, policies, values))
 
     def collect_records(self):
         print('Ready')
@@ -85,7 +87,7 @@ class Trainer():
                 if self.path == '/record':
                     content_length = int(self.headers.get('content-length'))
                     game_record = _pickle.loads(self.rfile.read(content_length))
-                    reservoir.push(game_record)
+                    reservoir.push(simplejson.dumps(game_record.to_dict()))
 
                     self.send_response(200)
                     self.send_header('Content-type', 'text/html')
@@ -157,7 +159,7 @@ if __name__ == '__main__':
     parser.add_option('-s', '--store', action='store_true', dest='store', default=False,
                       help='Only store game records. Training will not be conducted.',)
     parser.add_option('-r', '--record_file', dest='record_file',
-                      default=None, help='Game records already played')
+                      default='./records.json', help='Game records already played')
     parser.add_option('-w', '--weight_file', dest='weight_file',
                       default=None, help='Weights of neural network parameters')
 
