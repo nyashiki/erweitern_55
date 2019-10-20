@@ -29,6 +29,7 @@ class Trainer():
         self.reservoir = minishogilib.Reservoir(record_file, RECENT_GAMES)
         self.nn = network.Network(False)
 
+        self.reservoir_lock = threading.Lock()
         self.nn_lock = threading.Lock()
 
         self.store_only = store_only
@@ -41,13 +42,14 @@ class Trainer():
         else:
             self.nn.save('./weights/iter_0.h5')
 
-        self.training_data = queue.Queue(maxsize=10)
+        self.training_data = queue.Queue(maxsize=1)
 
     def _sample_datasets(self):
         BATCH_SIZE = 4096
 
         while True:
-            datasets = self.reservoir.sample(BATCH_SIZE)
+            with self.reservoir_lock:
+                datasets = self.reservoir.sample(BATCH_SIZE)
 
             ins = np.reshape(datasets[0], [BATCH_SIZE] + self.nn.input_shape)
             policies = np.reshape(datasets[1], [BATCH_SIZE, 69 * 5 * 5])
@@ -62,6 +64,7 @@ class Trainer():
         nn = self.nn
         nn_lock = self.nn_lock
         reservoir = self.reservoir
+        reservoir_lock = self.reservoir_lock
 
         class handler(http.server.SimpleHTTPRequestHandler):
             def do_GET(self):
@@ -87,7 +90,8 @@ class Trainer():
                 if self.path == '/record':
                     content_length = int(self.headers.get('content-length'))
                     game_record = _pickle.loads(self.rfile.read(content_length))
-                    reservoir.push(simplejson.dumps(game_record.to_dict()))
+                    with reservoir_lock:
+                        reservoir.push(simplejson.dumps(game_record.to_dict()))
 
                     self.send_response(200)
                     self.send_header('Content-type', 'text/html')
@@ -107,8 +111,9 @@ class Trainer():
             httpd.serve_forever()
 
     def update_parameters(self):
-        sample_thread = threading.Thread(target=self._sample_datasets)
-        sample_thread.start()
+        for _ in range(2):
+            sample_thread = threading.Thread(target=self._sample_datasets)
+            sample_thread.start()
 
         log_file = open('training_log.txt', 'w')
 
@@ -117,7 +122,7 @@ class Trainer():
         init_position_nn_input = self.nn.get_inputs([position])
 
         while True:
-            nninputs, policies, values = self.training_data.get()
+            ins, policies, values = self.training_data.get()
 
             # Update neural network parameters.
             with self.nn_lock:
@@ -131,7 +136,7 @@ class Trainer():
                     learning_rate = 1e-4
 
                 loss = self.nn.step(
-                    nninputs, policies, values, learning_rate)
+                    ins, policies, values, learning_rate)
                 init_policy, init_value = self.nn.predict(
                     init_position_nn_input)
 
