@@ -151,16 +151,16 @@ class Network:
 
         # Convolution layer
         x = keras.layers.Conv2D(
-            192, [3, 3], padding='same', activation='relu', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(input_image)
+            256, [3, 3], padding='same', activation='relu', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(input_image)
         x = keras.layers.BatchNormalization(axis=1)(x)
 
         # Dense blocks.
-        for _ in range(19):
+        for _ in range(11):
             x = self._dense_block(x)
 
         # Policy head.
         policy = keras.layers.Conv2D(
-            128, [3, 3], padding='same', activation='relu', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
+            256, [3, 3], padding='same', activation='relu', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
         policy = keras.layers.BatchNormalization(axis=1)(policy)
 
         policy = keras.layers.Conv2D(
@@ -207,7 +207,7 @@ class Network:
         """Construct a dense block.
         """
 
-        x = keras.layers.Conv2D(32, [1, 1], activation=None, padding='same', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(input_image)
+        x = keras.layers.Conv2D(128, [1, 1], activation=None, padding='same', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(input_image)
         x = keras.layers.BatchNormalization(axis=1)(x)
         x = keras.layers.ReLU()(x)
         x = keras.layers.Conv2D(k, [3, 3], activation=None, padding='same', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
