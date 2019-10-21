@@ -151,7 +151,7 @@ class Network:
 
         # Convolution layer
         x = keras.layers.Conv2D(
-            256, [3, 3], padding='same', activation='relu', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(input_image)
+            128, [3, 3], padding='same', activation='relu', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(input_image)
         x = keras.layers.BatchNormalization(axis=1)(x)
 
         # Dense blocks.
@@ -160,7 +160,7 @@ class Network:
 
         # Policy head.
         policy = keras.layers.Conv2D(
-            256, [3, 3], padding='same', activation='relu', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
+            128, [3, 3], padding='same', activation='relu', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
         policy = keras.layers.BatchNormalization(axis=1)(policy)
 
         policy = keras.layers.Conv2D(
