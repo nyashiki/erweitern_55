@@ -115,10 +115,10 @@ class MCTS():
         if verbose:
             pv_moves, q = self.mcts.info(root)
             print('info depth {} nodes {} hashfull {} score winrate {:.3f} pv {}'.format(len(pv_moves),
-                                                                                             self.mcts.get_nodes(),
-                                                                                             int(self.mcts.get_usage() * 1000),
-                                                                                             q,
-                                                                                             ' '.join([m.sfen() for m in pv_moves])), flush=True)
+                                                                                         self.mcts.get_nodes(),
+                                                                                         int(self.mcts.get_usage() * 1000),
+                                                                                         q,
+                                                                                         ' '.join([m.sfen() for m in pv_moves])), flush=True)
 
         return root
 
