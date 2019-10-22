@@ -35,7 +35,7 @@ class USI:
             command = line.split()
 
             if command[0] == 'usi':
-                print('id name erweitern_55(3-days)')
+                print('id name erweitern_55({}iterations)'.format(self.nn.iter()))
                 print('id author nyashiki')
                 print('usiok')
 
