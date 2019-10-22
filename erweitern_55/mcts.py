@@ -63,9 +63,6 @@ class MCTS():
 
         # Step 3: Start searching.
         # Main loop of the Monte-Carlo tree search.
-        leaf_nodes = [None for _ in range(self.config.batch_size)]
-        leaf_positions = [None for _ in range(self.config.batch_size)]
-
         loop_count = 0
         for _ in range(self.config.simulation_num // self.config.batch_size):
             # If the memory is used over 90%, suspend the search.
@@ -82,9 +79,11 @@ class MCTS():
             if timelimit > 0 and (current_time - start_time) * 1000 >= timelimit:
                 break
 
+            leaf_nodes = [None for _ in range(self.config.batch_size)]
+            leaf_positions = [position.copy(True) for _ in range(self.config.batch_size)]
+
             # MCTS Step 1: select leaf nodes.
             for b in range(self.config.batch_size):
-                leaf_positions[b] = position.copy(True)
                 leaf_nodes[b] = self.mcts.select_leaf(
                     root, leaf_positions[b], self.config.forced_playouts)
 
