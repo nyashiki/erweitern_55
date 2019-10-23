@@ -45,7 +45,7 @@ class Trainer():
         self.training_data = queue.Queue(maxsize=1)
 
         self.update_record_num = update_record_num
-        self.new_record_count = 0
+        self.new_record_count = [0]
         self.new_record_count_lock = threading.Lock()
 
     def _sample_datasets(self):
@@ -70,7 +70,7 @@ class Trainer():
         reservoir = self.reservoir
         reservoir_lock = self.reservoir_lock
         update_record_num = self.update_record_num
-        new_record_count = [self.new_record_count]
+        new_record_count = self.new_record_count
         new_record_count_lock = self.new_record_count_lock
 
         class handler(http.server.SimpleHTTPRequestHandler):
@@ -137,8 +137,8 @@ class Trainer():
             if self.update_record_num > 0:
                 while True:
                     with self.new_record_count_lock:
-                        if self.new_record_count >= self.update_record_num:
-                            self.new_record_count -= self.update_record_num
+                        if self.new_record_count[0] >= self.update_record_num:
+                            self.new_record_count[0] -= self.update_record_num
                             break
 
             ins, policies, values = self.training_data.get()
