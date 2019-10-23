@@ -85,7 +85,7 @@ class Network:
 
         # Policy head.
         policy = keras.layers.Conv2D(
-            128, [1, 1], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
+            128, [3, 3], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
         policy = keras.layers.BatchNormalization(axis=1)(policy)
         policy = keras.layers.ReLU()(policy)
         policy = keras.layers.Conv2D(
@@ -98,7 +98,7 @@ class Network:
         value = keras.layers.BatchNormalization(axis=1)(value)
         value = keras.layers.ReLU()(value)
         value = keras.layers.Flatten()(value)
-        value = keras.layers.Dense(128, activation=tf.nn.relu, kernel_regularizer=regularizers.l2(
+        value = keras.layers.Dense(32, activation=tf.nn.relu, kernel_regularizer=regularizers.l2(
             REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
         value = keras.layers.Dense(
             1, activation=tf.nn.tanh, name='value', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
@@ -158,12 +158,12 @@ class Network:
         x = keras.layers.ReLU()(x)
 
         # Dense blocks.
-        for _ in range(19):
+        for _ in range(11):
             x = self._dense_block(x)
 
         # Policy head.
         policy = keras.layers.Conv2D(
-            2, [1, 1], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
+            128, [3, 3], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
         policy = keras.layers.BatchNormalization(axis=1)(policy)
         policy = keras.layers.ReLU()(policy)
 
@@ -177,7 +177,7 @@ class Network:
         value = keras.layers.BatchNormalization(axis=1)(value)
         value = keras.layers.ReLU()(value)
         value = keras.layers.Flatten()(value)
-        value = keras.layers.Dense(128, activation=tf.nn.relu, kernel_regularizer=regularizers.l2(
+        value = keras.layers.Dense(32, activation=tf.nn.relu, kernel_regularizer=regularizers.l2(
             REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
         value = keras.layers.Dense(
             1, activation=tf.nn.tanh, name='value', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
