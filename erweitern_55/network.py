@@ -75,8 +75,9 @@ class Network:
 
         # Convolution layer.
         x = keras.layers.Conv2D(
-            128, [3, 3], padding='same', activation='relu', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(input_image)
+            128, [3, 3], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(input_image)
         x = keras.layers.BatchNormalization(axis=1)(x)
+        x = keras.layers.ReLU()(x)
 
         # Residual blocks.
         for _ in range(11):
@@ -84,17 +85,18 @@ class Network:
 
         # Policy head.
         policy = keras.layers.Conv2D(
-            128, [3, 3], padding='same', activation='relu', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
+            2, [1, 1], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
         policy = keras.layers.BatchNormalization(axis=1)(policy)
-
+        policy = keras.layers.ReLU()(policy)
         policy = keras.layers.Conv2D(
             69, [1, 1], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(policy)
         policy = keras.layers.Flatten(name='policy')(policy)
 
         # Value head.
         value = keras.layers.Conv2D(
-            1, [1, 1], padding='same', activation='relu', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
+            1, [1, 1], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
         value = keras.layers.BatchNormalization(axis=1)(value)
+        value = keras.layers.ReLU()(value)
         value = keras.layers.Flatten()(value)
         value = keras.layers.Dense(128, activation=tf.nn.relu, kernel_regularizer=regularizers.l2(
             REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
@@ -151,17 +153,19 @@ class Network:
 
         # Convolution layer
         x = keras.layers.Conv2D(
-            128, [3, 3], padding='same', activation='relu', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(input_image)
+            128, [3, 3], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(input_image)
         x = keras.layers.BatchNormalization(axis=1)(x)
+        x = keras.layers.ReLU()(x)
 
         # Dense blocks.
-        for _ in range(11):
+        for _ in range(19):
             x = self._dense_block(x)
 
         # Policy head.
         policy = keras.layers.Conv2D(
-            128, [3, 3], padding='same', activation='relu', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
+            2, [1, 1], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
         policy = keras.layers.BatchNormalization(axis=1)(policy)
+        policy = keras.layers.ReLU()(policy)
 
         policy = keras.layers.Conv2D(
             69, [1, 1], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(policy)
@@ -169,8 +173,9 @@ class Network:
 
         # Value head.
         value = keras.layers.Conv2D(
-            1, [1, 1], padding='same', activation='relu', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
+            1, [1, 1], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
         value = keras.layers.BatchNormalization(axis=1)(value)
+        value = keras.layers.ReLU()(value)
         value = keras.layers.Flatten()(value)
         value = keras.layers.Dense(128, activation=tf.nn.relu, kernel_regularizer=regularizers.l2(
             REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
