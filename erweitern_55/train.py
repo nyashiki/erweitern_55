@@ -21,7 +21,7 @@ class Trainer():
     """Server that collects game records sent by clients and updates neural network parameters.
     """
 
-    def __init__(self, port, store_only=False, record_file='records.json', weight_file=None):
+    def __init__(self, port, store_only=False, record_file='records.json', weight_file=None, update_record_num=0):
         RECENT_GAMES = 100000
 
         self.port = port
@@ -44,6 +44,10 @@ class Trainer():
 
         self.training_data = queue.Queue(maxsize=1)
 
+        self.update_record_num = update_record_num
+        self.new_record_count = 0
+        self.new_record_count_lock = threading.Lock()
+
     def _sample_datasets(self):
         BATCH_SIZE = 4096
 
@@ -65,6 +69,9 @@ class Trainer():
         nn_lock = self.nn_lock
         reservoir = self.reservoir
         reservoir_lock = self.reservoir_lock
+        update_record_num = self.update_record_num
+        new_record_count = [self.new_record_count]
+        new_record_count_lock = self.new_record_count_lock
 
         class handler(http.server.SimpleHTTPRequestHandler):
             def do_GET(self):
@@ -99,6 +106,11 @@ class Trainer():
 
                     log_file.write('[{}] received a game record\n'.format(datetime.datetime.now(datetime.timezone.utc)))
                     log_file.flush()
+
+                    if update_record_num > 0:
+                        with new_record_count_lock:
+                            new_record_count[0] += 1
+
                 else:
                     self.send_response(400)
                     self.send_header('Content-type', 'text/html')
@@ -122,6 +134,13 @@ class Trainer():
         init_position_nn_input = self.nn.get_inputs([position])
 
         while True:
+            if self.update_record_num > 0:
+                while True:
+                    with self.new_record_count_lock:
+                        if self.new_record_count >= self.update_record_num:
+                            self.new_record_count -= self.update_record_num
+                            break
+
             ins, policies, values = self.training_data.get()
 
             # Update neural network parameters.
@@ -167,9 +186,11 @@ if __name__ == '__main__':
                       default='./records.json', help='Game records already played')
     parser.add_option('-w', '--weight_file', dest='weight_file',
                       default=None, help='Weights of neural network parameters')
+    parser.add_option('-u', '--update_record_num', dest='update_record_num', type='int', default=0,
+                      help='Update neural network parameters once every this number of records. If 0, it will update neural network parameters continuously.')
 
     (options, args) = parser.parse_args()
 
     trainer = Trainer(options.port, options.store,
-                      options.record_file, options.weight_file)
+                      options.record_file, options.weight_file, options.update_record_num)
     trainer.run()
