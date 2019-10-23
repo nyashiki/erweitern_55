@@ -85,7 +85,7 @@ class Network:
 
         # Policy head.
         policy = keras.layers.Conv2D(
-            2, [1, 1], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
+            128, [1, 1], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
         policy = keras.layers.BatchNormalization(axis=1)(policy)
         policy = keras.layers.ReLU()(policy)
         policy = keras.layers.Conv2D(
