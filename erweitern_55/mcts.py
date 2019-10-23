@@ -138,6 +138,17 @@ class MCTS():
         """
         return self.mcts.best_move(node)
 
+    def softmax_sample(self, node, temperature):
+        """Get the next move at the given node along softmax sampling of visit counts.
+
+        # Arguments:
+            node: the target node.
+
+        # Returns:
+            The next move.
+        """
+        return self.mcts.softmax_sample(node, temperature)
+
     def dump(self, node, remove_zeros=True):
         """Get (move, the number of visit) pairs.
 

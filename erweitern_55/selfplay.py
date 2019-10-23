@@ -6,7 +6,7 @@ import time
 import gamerecord
 
 
-def run(nn, search, verbose=False, max_moves=512, playout_cap_oscillation={'enable': False, 'N': 800, 'n': 128, 'frac': 0.25}, stop_with_checkmate=False):
+def run(nn, search, verbose=False, num_sampling_moves=30, max_moves=512, playout_cap_oscillation={'enable': False, 'N': 800, 'n': 128, 'frac': 0.25}, stop_with_checkmate=False):
     position = minishogilib.Position()
     position.set_start_position()
 
@@ -31,7 +31,7 @@ def run(nn, search, verbose=False, max_moves=512, playout_cap_oscillation={'enab
         checkmate, checkmate_move = position.solve_checkmate_dfs(7)
 
         if checkmate:
-            best_move = checkmate_move
+            next_move = checkmate_move
             if not stop_with_checkmate:
                 search.mcts.clear()
 
@@ -54,7 +54,11 @@ def run(nn, search, verbose=False, max_moves=512, playout_cap_oscillation={'enab
                     search.config.immediate = True
 
             root = search.run(position, nn)
-            best_move = search.best_move(root)
+
+            if position.get_ply() < num_sampling_moves:
+                next_move = search.softmax_sample(root, 10.0)
+            else:
+                next_move = search.best_move(root)
 
         if verbose:
             if checkmate:
@@ -64,9 +68,9 @@ def run(nn, search, verbose=False, max_moves=512, playout_cap_oscillation={'enab
 
         elapsed = time.time() - start_time
 
-        position.do_move(best_move)
+        position.do_move(next_move)
 
-        game_record.sfen_kif.append(best_move.sfen())
+        game_record.sfen_kif.append(next_move.sfen())
         if checkmate:
             game_record.mcts_result.append(
                 (1, 1.0, [(checkmate_move.sfen(), 1)]))
@@ -84,7 +88,7 @@ def run(nn, search, verbose=False, max_moves=512, playout_cap_oscillation={'enab
         if verbose:
             print('--------------------')
             position.print()
-            print(best_move)
+            print(next_move)
             print('time:', elapsed)
             print('--------------------')
 
