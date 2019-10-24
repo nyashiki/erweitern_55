@@ -14,6 +14,7 @@ def main():
     target_positions = [
         ['4e4d'],
         ['2e3d'],
+        ['2e4c'],
         ['3e2d'],
         ['3e4d'],
         ['3e3d'],
