@@ -177,7 +177,7 @@ class Network:
         value = keras.layers.BatchNormalization(axis=1)(value)
         value = keras.layers.ReLU()(value)
         value = keras.layers.Flatten()(value)
-        value = keras.layers.Dense(64, activation=tf.nn.relu, kernel_regularizer=regularizers.l2(
+        value = keras.layers.Dense(256, activation=tf.nn.relu, kernel_regularizer=regularizers.l2(
             REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
         value = keras.layers.Dense(
             1, activation=tf.nn.tanh, name='value', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
