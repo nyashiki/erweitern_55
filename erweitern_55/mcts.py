@@ -58,8 +58,11 @@ class MCTS():
         nninput = nn.get_input(position, True)
         policy, value = nn.predict(nninput)
         value = (value + 1) / 2
-        self.mcts.evaluate(
-            root, position, policy[0], value[0][0], self.config.use_dirichlet)
+        self.mcts.evaluate(root, position, policy[0], value[0][0])
+
+        # Add dirichlet noise.
+        if self.config.use_dirichlet:
+            self.mcts.add_noise(root)
 
         # Step 3: Start searching.
         # Main loop of the Monte-Carlo tree search.
@@ -92,8 +95,7 @@ class MCTS():
             policy, value = nn.predict(nninputs)
             value = (value + 1) / 2
             for b in range(self.config.batch_size):
-                value[b][0] = self.mcts.evaluate(
-                    leaf_nodes[b], leaf_positions[b], policy[b], value[b][0], False)
+                value[b][0] = self.mcts.evaluate(leaf_nodes[b], leaf_positions[b], policy[b], value[b][0])
 
             # MCTS Step 3: backpropage values of the leaf nodes from the leaf nodes to the root node.
             for b in range(self.config.batch_size):
