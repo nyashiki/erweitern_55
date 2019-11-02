@@ -6,25 +6,13 @@ import time
 import gamerecord
 
 
-class SelfplayConfig:
-    def __init__(self):
-        self.max_moves = 512
-
-        # playout cap oscillation
-        self.playout_cap_oscillation = False
-        self.N = 800
-        self.n = 128
-        self.oscillation_frac = 0.25
-
-        self.stop_with_checkmate = True
-
-def run(nn, search, config, verbose=False):
+def run(nn, search, verbose=False, num_sampling_moves=30, max_moves=512, playout_cap_oscillation={'enable': False, 'N': 800, 'n': 128, 'frac': 0.25}, stop_with_checkmate=False):
     position = minishogilib.Position()
     position.set_start_position()
 
     game_record = gamerecord.GameRecord()
 
-    for _ in range(config.max_moves):
+    for _ in range(max_moves):
         is_repetition, is_check_repetition = position.is_repetition()
         if is_check_repetition:
             game_record.winner = position.get_side_to_move()
@@ -43,14 +31,14 @@ def run(nn, search, config, verbose=False):
         checkmate, checkmate_move = position.solve_checkmate_dfs(7)
 
         if checkmate:
-            best_move = checkmate_move
-            if not config.stop_with_checkmate:
+            next_move = checkmate_move
+            if not stop_with_checkmate:
                 search.mcts.clear()
 
         else:
-            if config.playout_cap_oscillation:
-                if np.random.rand() < config.oscillation_frac:
-                    search.config.simulation_num = config.N
+            if playout_cap_oscillation['enable']:
+                if np.random.rand() < playout_cap_oscillation['frac']:
+                    search.config.simulation_num = playout_cap_oscillation['N']
                     search.config.forced_playouts = True
                     search.config.use_dirichlet = True
                     search.config.reuse_tree = False
@@ -58,7 +46,7 @@ def run(nn, search, config, verbose=False):
                     search.config.immediate = False
 
                 else:
-                    search.config.simulation_num = config.n
+                    search.config.simulation_num = playout_cap_oscillation['n']
                     search.config.forced_playouts = False
                     search.config.use_dirichlet = False
                     search.config.reuse_tree = True
@@ -66,7 +54,11 @@ def run(nn, search, config, verbose=False):
                     search.config.immediate = True
 
             root = search.run(position, nn)
-            best_move = search.best_move(root)
+
+            if position.get_ply() < num_sampling_moves:
+                next_move = search.softmax_sample(root, 10.0)
+            else:
+                next_move = search.best_move(root)
 
         if verbose:
             if checkmate:
@@ -76,9 +68,9 @@ def run(nn, search, config, verbose=False):
 
         elapsed = time.time() - start_time
 
-        position.do_move(best_move)
+        position.do_move(next_move)
 
-        game_record.sfen_kif.append(best_move.sfen())
+        game_record.sfen_kif.append(next_move.sfen())
         if checkmate:
             game_record.mcts_result.append(
                 (1, 1.0, [(checkmate_move.sfen(), 1)]))
@@ -88,7 +80,7 @@ def run(nn, search, config, verbose=False):
         else:
             game_record.mcts_result.append(search.dump(root))
 
-            if not config.playout_cap_oscillation or search.config.simulation_num >= config.N:
+            if not playout_cap_oscillation['enable'] or search.config.simulation_num >= playout_cap_oscillation['N']:
                 game_record.learning_target_plys.append(game_record.ply)
 
         game_record.ply += 1
@@ -96,11 +88,11 @@ def run(nn, search, config, verbose=False):
         if verbose:
             print('--------------------')
             position.print()
-            print(best_move)
+            print(next_move)
             print('time:', elapsed)
             print('--------------------')
 
-        if checkmate and config.stop_with_checkmate:
+        if checkmate and stop_with_checkmate:
             game_record.winner = 1 - position.get_side_to_move()
             break
 
