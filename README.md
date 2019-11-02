@@ -1,9 +1,24 @@
+# erweitern_55
+
+An implementation of AlphaZero on Minishogi (a variant of Shogi).
+
 # Preparation
-Build minishogi_lib, which is written in Rust language
+
+## install minishogilib
+
+This program is based on [minishogilib](https://github.com/Nyashiki/minishogilib),
+so you have to install minishogilib beforehand.
+
+## install requirements
+
 ```
-cd minishogilib
-cargo build --release
-cd ../
-cp ./minishogilib/target/release/libminishogilib.so ./minishogilib.so
+pip3 install -r requirements.txt
 ```
 
+# Usage
+
+## Run as a usi engine
+
+```
+python3 usi.py
+```
