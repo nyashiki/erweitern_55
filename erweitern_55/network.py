@@ -14,25 +14,24 @@ REGULARIZER_c = 1e-4
 
 class Network:
     def __init__(self, cpu=False):
+        tf.compat.v1.disable_eager_execution()
+
         # Keras config
         if cpu:
             # CPU settings.
             cpu_count = psutil.cpu_count(logical=False)
-            config = tf.ConfigProto(device_count={'CPU': cpu_count})
-            config.intra_op_parallelism_threads = cpu_count
-            config.inter_op_parallelism_threads = 1
-            config.allow_soft_placement = True
+            tf.config.threading.set_intra_op_parallelism_threads(cpu_count)
+            tf.config.threading.set_inter_op_parallelism_threads = 1
+            tf.config.set_soft_device_placement(True)
             os.environ['KMP_BLOCKTIME'] = '1'
             os.environ['KMP_HW_SUBSET'] = '1t'
             os.environ['OMP_NUM_THREADS'] = str(cpu_count)
 
         else:
             # GPU settings.
-            config = tf.ConfigProto()
-            config.gpu_options.allow_growth = True
-
-        sess = tf.Session(config=config)
-        keras.backend.set_session(sess)
+            physical_devices = tf.config.experimental.list_physical_devices('GPU')
+            for physical_device in physical_devices:
+                tf.config.experimental.set_memory_growth(physical_device, True)
 
         self.network_type = None
         self.input_shape = None
@@ -48,10 +47,6 @@ class Network:
                            loss={'policy': keras.losses.CategoricalCrossentropy(from_logits=True),
                                  'value': keras.losses.mean_squared_error})
 
-        # For multithreading.
-        self.model._make_predict_function()
-        self.session = tf.compat.v1.keras.backend.get_session()
-        self.graph = tf.compat.v1.get_default_graph()
 
         # Do predict once because the first prediction takes more time than latter one.
         random_input = np.random.rand(*([1] + self.input_shape))
@@ -234,15 +229,13 @@ class Network:
             Dictionary composed of losses and metrics.
         """
 
-        with self.session.as_default():
-            with self.graph.as_default():
-                # Set the learning rate.
-                K.set_value(self.model.optimizer.lr, learning_rate)
+        # Set the learning rate.
+        K.set_value(self.model.optimizer.lr, learning_rate)
 
-                loss = self.model.train_on_batch(
-                    x=train_images,
-                    y={'policy': policy_labels,
-                       'value': value_labels})
+        loss = self.model.train_on_batch(
+            x=train_images,
+            y={'policy': policy_labels,
+                'value': value_labels})
 
         return dict(zip(self.model.metrics_names, loss))
 
@@ -256,10 +249,8 @@ class Network:
             policy: the value of policy head.
             value: the value of value head.
         """
-        with self.session.as_default():
-            with self.graph.as_default():
-                policy, value = self.model.predict(
-                    images, batch_size=len(images), verbose=0, steps=None)
+        policy, value = self.model.predict(
+            images, batch_size=len(images), verbose=0, steps=None)
 
         return policy, value
 
@@ -269,9 +260,7 @@ class Network:
         # Arguments:
             filepath: the path of the saved weights file.
         """
-        with self.session.as_default():
-            with self.graph.as_default():
-                self.model = keras.models.load_model(filepath, compile=True)
+        self.model = keras.models.load_model(filepath, compile=True)
 
     def get_weights(self):
         """Get weights of the neural networks.
@@ -279,16 +268,12 @@ class Network:
         # Returns:
             Weights of the neural networks.
         """
-        with self.session.as_default():
-            with self.graph.as_default():
-                return self.model.get_weights()
+        return self.model.get_weights()
 
     def set_weights(self, weights):
         """ Set weights of the neural networks.
         """
-        with self.session.as_default():
-            with self.graph.as_default():
-                self.model.set_weights(weights)
+        self.model.set_weights(weights)
 
     def save(self, filepath):
         """Save weights and the optimizer to a file.
@@ -296,9 +281,7 @@ class Network:
         # Arguments:
             filepath: a file to which save the neural network weights and the optimizer.
         """
-        with self.session.as_default():
-            with self.graph.as_default():
-                self.model.save(filepath, include_optimizer=True)
+        self.model.save(filepath, include_optimizer=True)
 
     def get_input(self, position, dim_4=False):
         shape = [1] + self.input_shape if dim_4 else self.input_shape
@@ -329,9 +312,7 @@ class Network:
     def iter(self):
         """Get the iteration of training.
         """
-        with self.session.as_default():
-            with self.graph.as_default():
-                return K.get_value(self.model.optimizer.iterations)
+        return K.get_value(self.model.optimizer.iterations)
 
     def zero_inputs(self, batch_size):
         """Get zero inputs.
