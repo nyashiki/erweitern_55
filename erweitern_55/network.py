@@ -47,6 +47,11 @@ class Network:
                            loss={'policy': keras.losses.CategoricalCrossentropy(from_logits=True),
                                  'value': keras.losses.mean_squared_error})
 
+        # For multithreading.
+        self.model._make_predict_function()
+        self.session = tf.compat.v1.keras.backend.get_session()
+        self.graph = tf.compat.v1.get_default_graph()
+
 
         # Do predict once because the first prediction takes more time than latter one.
         random_input = np.random.rand(*([1] + self.input_shape))
@@ -229,13 +234,15 @@ class Network:
             Dictionary composed of losses and metrics.
         """
 
-        # Set the learning rate.
-        K.set_value(self.model.optimizer.lr, learning_rate)
+        with self.session.as_default():
+            with self.graph.as_default():
+                # Set the learning rate.
+                K.set_value(self.model.optimizer.lr, learning_rate)
 
-        loss = self.model.train_on_batch(
-            x=train_images,
-            y={'policy': policy_labels,
-                'value': value_labels})
+                loss = self.model.train_on_batch(
+                    x=train_images,
+                    y={'policy': policy_labels,
+                        'value': value_labels})
 
         return dict(zip(self.model.metrics_names, loss))
 
@@ -249,8 +256,10 @@ class Network:
             policy: the value of policy head.
             value: the value of value head.
         """
-        policy, value = self.model.predict(
-            images, batch_size=len(images), verbose=0, steps=None)
+        with self.session.as_default():
+            with self.graph.as_default():
+                policy, value = self.model.predict(
+                    images, batch_size=len(images), verbose=0, steps=None)
 
         return policy, value
 
@@ -260,7 +269,9 @@ class Network:
         # Arguments:
             filepath: the path of the saved weights file.
         """
-        self.model = keras.models.load_model(filepath, compile=True)
+        with self.session.as_default():
+            with self.graph.as_default():
+                self.model = keras.models.load_model(filepath, compile=True)
 
     def get_weights(self):
         """Get weights of the neural networks.
@@ -268,12 +279,16 @@ class Network:
         # Returns:
             Weights of the neural networks.
         """
-        return self.model.get_weights()
+        with self.session.as_default():
+            with self.graph.as_default():
+                return self.model.get_weights()
 
     def set_weights(self, weights):
         """ Set weights of the neural networks.
         """
-        self.model.set_weights(weights)
+        with self.session.as_default():
+            with self.graph.as_default():
+                self.model.set_weights(weights)
 
     def save(self, filepath):
         """Save weights and the optimizer to a file.
@@ -281,7 +296,9 @@ class Network:
         # Arguments:
             filepath: a file to which save the neural network weights and the optimizer.
         """
-        self.model.save(filepath, include_optimizer=True)
+        with self.session.as_default():
+            with self.graph.as_default():
+                self.model.save(filepath, include_optimizer=True)
 
     def get_input(self, position, dim_4=False):
         shape = [1] + self.input_shape if dim_4 else self.input_shape
@@ -312,7 +329,9 @@ class Network:
     def iter(self):
         """Get the iteration of training.
         """
-        return K.get_value(self.model.optimizer.iterations)
+        with self.session.as_default():
+            with self.graph.as_default():
+                return K.get_value(self.model.optimizer.iterations)
 
     def zero_inputs(self, batch_size):
         """Get zero inputs.
