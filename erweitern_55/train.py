@@ -147,9 +147,9 @@ class Trainer():
             with self.nn_lock:
                 if self.nn.iter() < 100000:
                     learning_rate = 1e-1
-                elif self.nn.iter() < 300000:
+                elif self.nn.iter() < 200000:
                     learning_rate = 1e-2
-                elif self.nn.iter() < 500000:
+                elif self.nn.iter() < 300000:
                     learning_rate = 1e-3
                 else:
                     learning_rate = 1e-4
