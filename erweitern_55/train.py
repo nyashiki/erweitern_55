@@ -27,7 +27,7 @@ class Trainer():
         self.port = port
 
         self.reservoir = minishogilib.Reservoir(record_file, RECENT_GAMES)
-        self.nn = network.Network(False)
+        self.nn = network.Network('gpu')
 
         self.reservoir_lock = threading.Lock()
         self.nn_lock = threading.Lock()
