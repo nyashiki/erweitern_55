@@ -1,6 +1,7 @@
 import minishogilib
 import numpy as np
 import os
+from optparse import OptionParser
 import sys
 import tensorflow as tf
 import threading
@@ -8,10 +9,16 @@ import threading
 import mcts
 import network
 
+
 class USI:
+    def __init__(self, weight_file):
+        self.weight_file = weight_file
+
     def isready(self):
         self.nn = network.Network()
-        self.nn.load('./weights/iter_145000.h5')
+
+        if self.weight_file is not None:
+            self.nn.load(self.weight_file)
 
         self.config = mcts.Config()
         self.config.simulation_num = int(1e9)
@@ -35,7 +42,7 @@ class USI:
             command = line.split()
 
             if command[0] == 'usi':
-                print('id name erweitern_55(3-days)')
+                print('id name erweitern_55')
                 print('id author nyashiki')
                 print('usiok')
 
@@ -82,7 +89,7 @@ class USI:
                     else:
                         remain_time = timelimit['btime'] if self.position.get_side_to_move(
                         ) == 0 else timelimit['wtime']
-                        think_time = remain_time // 30
+                        think_time = remain_time // 20
                         if think_time < timelimit['byoyomi']:
                             think_time += timelimit['byoyomi'] - 900
                         think_time = max(think_time, 900)
@@ -120,8 +127,10 @@ class USI:
 
 
 if __name__ == '__main__':
-    # fix the seed
-    np.random.seed(0)
+    parser = OptionParser()
+    parser.add_option('-w', '--weight_file', dest='weight_file',
+                      default=None, help='Weights of neural network parameters')
+    (options, args) = parser.parse_args()
 
-    usi = USI()
+    usi = USI(options.weight_file)
     usi.start()

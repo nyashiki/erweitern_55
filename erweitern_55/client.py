@@ -33,7 +33,8 @@ class Client:
 
         search = mcts.MCTS(mcts_config)
 
-        self.nn = network.Network(self.cpu_only)
+        device = 'cpu' if self.cpu_only else 'gpu'
+        self.nn = network.Network(device)
 
         iter = 0
 
