@@ -13,9 +13,11 @@ import psutil
 REGULARIZER_c = 1e-4
 
 class Network:
-    def __init__(self, cpu=False):
+    def __init__(self, device='gpu'):
+        tf.compat.v1.disable_eager_execution()
+
         # Keras config
-        if cpu:
+        if device == 'cpu':
             # CPU settings.
             cpu_count = psutil.cpu_count(logical=False)
             config = tf.ConfigProto(device_count={'CPU': cpu_count})
@@ -25,13 +27,18 @@ class Network:
             os.environ['KMP_BLOCKTIME'] = '1'
             os.environ['KMP_HW_SUBSET'] = '1t'
             os.environ['OMP_NUM_THREADS'] = str(cpu_count)
+            sess = tf.Session(config=config)
 
-        else:
+        elif device == 'gpu':
             # GPU settings.
             config = tf.ConfigProto()
             config.gpu_options.allow_growth = True
+            sess = tf.Session(config=config)
 
-        sess = tf.Session(config=config)
+        elif device == 'tpu':
+            tpu_address = "grpc://" + os.environ['COLAB_TPU_ADDR']
+            sess = tf.Session(tpu_address)
+
         keras.backend.set_session(sess)
 
         self.network_type = None
@@ -44,6 +51,11 @@ class Network:
 
         # Define the model.
         self.model = keras.Model(inputs=ins, outputs=[policy, value])
+
+        if device == 'tpu':
+            strategy = tf.contrib.tpu.TPUDistributionStrategy(tf.contrib.cluster_resolver.TPUClusterResolver(tpu_address))
+            self.model = tf.contrib.tpu.keras_to_tpu_model(self.model, strategy=strategy)
+
         self.model.compile(optimizer=tf.keras.optimizers.SGD(lr=1e-1, momentum=0.9),
                            loss={'policy': keras.losses.CategoricalCrossentropy(from_logits=True),
                                  'value': keras.losses.mean_squared_error})

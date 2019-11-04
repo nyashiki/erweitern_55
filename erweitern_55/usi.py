@@ -1,6 +1,7 @@
 import minishogilib
 import numpy as np
 import os
+from optparse import OptionParser
 import sys
 import tensorflow as tf
 import threading
@@ -9,9 +10,14 @@ import mcts
 import network
 
 class USI:
+    def __init__(self, weight_file):
+        self.weight_file = weight_file
+
     def isready(self):
         self.nn = network.Network()
-        self.nn.load('./weights/iter_145000.h5')
+
+        if self.weight_file is not None:
+            self.nn.load(self.weight_file)
 
         self.config = mcts.Config()
         self.config.simulation_num = int(1e9)
@@ -120,8 +126,10 @@ class USI:
 
 
 if __name__ == '__main__':
-    # fix the seed
-    np.random.seed(0)
+    parser = OptionParser()
+    parser.add_option('-w', '--weight_file', dest='weight_file',
+                      default=None, help='Weights of neural network parameters')
+    (options, args) = parser.parse_args()
 
-    usi = USI()
+    usi = USI(options.weight_file)
     usi.start()
