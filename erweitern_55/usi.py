@@ -9,6 +9,7 @@ import threading
 import mcts
 import network
 
+
 class USI:
     def __init__(self, weight_file):
         self.weight_file = weight_file
@@ -41,7 +42,7 @@ class USI:
             command = line.split()
 
             if command[0] == 'usi':
-                print('id name erweitern_55(3-days)')
+                print('id name erweitern_55')
                 print('id author nyashiki')
                 print('usiok')
 
