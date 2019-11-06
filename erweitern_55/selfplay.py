@@ -56,7 +56,7 @@ def run(nn, search, verbose=False, num_sampling_moves=30, max_moves=512, playout
             root = search.run(position, nn)
 
             if position.get_ply() < num_sampling_moves:
-                next_move = search.softmax_sample(root, 10.0)
+                next_move = search.softmax_sample(root, 1.0)
             else:
                 next_move = search.best_move(root)
 
