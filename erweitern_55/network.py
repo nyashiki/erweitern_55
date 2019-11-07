@@ -13,7 +13,7 @@ import psutil
 REGULARIZER_c = 1e-4
 
 class Network:
-    def __init__(self, device='gpu'):
+    def __init__(self, device='gpu', network_type='DenseNet'):
         tf.compat.v1.disable_eager_execution()
 
         # Keras config
@@ -41,13 +41,18 @@ class Network:
 
         keras.backend.set_session(sess)
 
-        self.network_type = None
+        self.input_type = None
         self.input_shape = None
 
         # Construct the network.
-        # ins, policy, value = self._alphazero_network()
-        # ins, policy, value = self._kp_network()
-        ins, policy, value = self._dense_network()
+        if network_type == 'AlphaZero':
+            ins, policy, value = self._alphazero_network()
+        elif network_type == 'KP':
+            ins, policy, value = self._kp_network()
+        elif network_type == 'DenseNet':
+            ins, policy, value = self._dense_network()
+        elif network_type == 'CNN':
+            ins, policy, value = self._small_network()
 
         # Define the model.
         self.model = keras.Model(inputs=ins, outputs=[policy, value])
@@ -78,7 +83,7 @@ class Network:
             value : the value head layer.
         """
 
-        self.network_type = 'AlphaZero'
+        self.input_type = 'AlphaZero'
         self.input_shape = [266, 5, 5]
 
         # Input layer.
@@ -126,7 +131,7 @@ class Network:
             value : the value head layer.
         """
 
-        self.network_type = 'KP'
+        self.input_type = 'KP'
         self.input_shape = [23763]
 
         # Input layer.
@@ -156,7 +161,7 @@ class Network:
         return input_image, policy, value
 
     def _dense_network(self):
-        self.network_type = 'DenseNet'
+        self.input_type = 'AlphaZero'
         self.input_shape = [266, 5, 5]
 
         # Input layer
@@ -172,6 +177,50 @@ class Network:
         # Dense blocks.
         for _ in range(11):
             x = self._dense_block(x)
+
+        # Policy head.
+        policy = keras.layers.Conv2D(
+            128, [3, 3], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
+        policy = keras.layers.BatchNormalization(axis=1)(policy)
+        policy = keras.layers.ReLU()(policy)
+
+        policy = keras.layers.Conv2D(
+            69, [1, 1], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(policy)
+        policy = keras.layers.Flatten(name='policy')(policy)
+
+        # Value head.
+        value = keras.layers.Conv2D(
+            1, [1, 1], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
+        value = keras.layers.BatchNormalization(axis=1)(value)
+        value = keras.layers.ReLU()(value)
+        value = keras.layers.Flatten()(value)
+        value = keras.layers.Dense(256, activation=tf.nn.relu, kernel_regularizer=regularizers.l2(
+            REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
+        value = keras.layers.Dense(
+            1, activation=tf.nn.tanh, name='value', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
+
+        return input_image, policy, value
+
+    def _small_network(self):
+        self.input_type = 'AlphaZero'
+        self.input_shape = [266, 5, 5]
+
+        # Input layer
+        input_image = keras.layers.Input(
+            shape=self.input_shape, dtype='float32')
+
+        # Convolution layer
+        x = keras.layers.Conv2D(
+            128, [3, 3], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(input_image)
+        x = keras.layers.BatchNormalization(axis=1)(x)
+        x = keras.layers.ReLU()(x)
+
+        # Convolutions.
+        for _ in range(2):
+            x = keras.layers.Conv2D(
+                128, [3, 3], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
+            x = keras.layers.BatchNormalization(axis=1)(x)
+            x = keras.layers.ReLU()(x)
 
         # Policy head.
         policy = keras.layers.Conv2D(
@@ -234,7 +283,7 @@ class Network:
 
         return x
 
-    def step(self, train_images, policy_labels, value_labels, learning_rate=0.01):
+    def step(self, train_images, policy_labels, value_labels, learning_rate=None):
         """Train the neural network one step.
 
         # Arguments:
@@ -248,8 +297,9 @@ class Network:
 
         with self.session.as_default():
             with self.graph.as_default():
-                # Set the learning rate.
-                K.set_value(self.model.optimizer.lr, learning_rate)
+                if learning_rate is not None:
+                    # Set the learning rate.
+                    K.set_value(self.model.optimizer.lr, learning_rate)
 
                 loss = self.model.train_on_batch(
                     x=train_images,
@@ -315,13 +365,10 @@ class Network:
     def get_input(self, position, dim_4=False):
         shape = [1] + self.input_shape if dim_4 else self.input_shape
 
-        if self.network_type == 'AlphaZero':
+        if self.input_type == 'AlphaZero':
             return np.reshape(position.to_alphazero_input(), shape)
-        elif self.network_type == 'KP':
+        elif self.input_type == 'KP':
             return np.reshape(position.to_kp_input(), shape)
-        elif self.network_type == 'DenseNet':
-            return np.reshape(position.to_alphazero_input(), shape)
-
     def get_inputs(self, positions):
         """Get neural network inputs' representation of the positions.
 
