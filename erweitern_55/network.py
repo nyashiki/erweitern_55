@@ -273,6 +273,7 @@ class Network:
                 policy, value = self.model.predict(
                     images, batch_size=len(images), verbose=0, steps=None)
 
+        value = np.reshape(value, [len(images)])
         return policy, value
 
     def load(self, filepath):

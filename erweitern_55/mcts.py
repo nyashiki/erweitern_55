@@ -10,7 +10,7 @@ class Config:
     def __init__(self):
         self.memory_size = 0.2 # GB
 
-        self.batch_size = 16
+        self.batch_size = 8
         self.simulation_num = 800
 
         self.use_dirichlet = False
@@ -58,7 +58,7 @@ class MCTS():
         nninput = nn.get_input(position, True)
         policy, value = nn.predict(nninput)
         value = (value + 1) / 2
-        self.mcts.evaluate(root, position, policy[0], value[0][0])
+        self.mcts.evaluate([root], [position], policy, value)
 
         # Add dirichlet noise.
         if self.config.use_dirichlet:
@@ -94,12 +94,11 @@ class MCTS():
             nninputs = nn.get_inputs(leaf_positions)
             policy, value = nn.predict(nninputs)
             value = (value + 1) / 2
-            for b in range(self.config.batch_size):
-                value[b][0] = self.mcts.evaluate(leaf_nodes[b], leaf_positions[b], policy[b], value[b][0])
+            self.mcts.evaluate(leaf_nodes, leaf_positions, policy, value)
 
             # MCTS Step 3: backpropage values of the leaf nodes from the leaf nodes to the root node.
             for b in range(self.config.batch_size):
-                self.mcts.backpropagate(leaf_nodes[b], value[b][0])
+                self.mcts.backpropagate(leaf_nodes[b])
 
             # Output log.
             if verbose and loop_count % 50 == 0:
