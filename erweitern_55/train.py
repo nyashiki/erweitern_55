@@ -3,6 +3,7 @@ import http.server
 import minishogilib
 import numpy as np
 from optparse import OptionParser
+import os
 import _pickle
 import queue
 import simplejson
@@ -35,7 +36,8 @@ class Trainer():
         self.store_only = store_only
 
         if record_file is not None:
-            self.reservoir.load(record_file)
+            if os.path.isfile(record_file):
+                self.reservoir.load(record_file)
 
         if weight_file is not None:
             self.nn.load(weight_file)
