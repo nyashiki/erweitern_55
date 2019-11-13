@@ -62,7 +62,8 @@ class MCTS():
         # Step 3: Start searching.
         # Main loop of the Monte-Carlo tree search.
         loop_count = 0
-        for _ in range(self.config.simulation_num // self.config.batch_size):
+        simulation_num = 0
+        while simulation_num < self.config.simulation_num:
             # If the memory is used over 90%, suspend the search.
             if self.mcts.get_usage() > 0.9:
                 break
@@ -112,6 +113,7 @@ class MCTS():
                                                                                              ' '.join([m.sfen() for m in pv_moves])), flush=True)
 
             loop_count += 1
+            simulation_num += self.config.batch_size
 
         # Output log.
         if verbose:
