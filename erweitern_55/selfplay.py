@@ -6,7 +6,7 @@ import time
 import gamerecord
 
 
-def run(nn, search, verbose=False, num_sampling_moves=30, max_moves=512, playout_cap_oscillation={'enable': False, 'N': 800, 'n': 128, 'frac': 0.25}, stop_with_checkmate=False):
+def run(nn, search, verbose=False, num_sampling_moves=30, max_moves=512, playout_cap_oscillation={'enable': False, 'N': 800, 'n': 128, 'frac': 0.25}, stop_with_checkmate=False, trim_checkmate=False):
     position = minishogilib.Position()
     position.set_start_position()
 
@@ -94,6 +94,13 @@ def run(nn, search, verbose=False, num_sampling_moves=30, max_moves=512, playout
 
         if checkmate and stop_with_checkmate:
             game_record.winner = 1 - position.get_side_to_move()
+
+            if trim_checkmate:
+                game_record.ply -= 2
+                game_record.sfen_kif = game_record.sfen_kif[:-2]
+                game_record.mcts_result = game_record.mcts_result[:-2]
+                game_record.learning_target_plys = game_record.learning_target_plys[:-2]
+
             break
 
     game_record.timestamp = int(datetime.now().timestamp())
