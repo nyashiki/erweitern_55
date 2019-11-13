@@ -77,6 +77,12 @@ class MCTS():
             if timelimit > 0 and (current_time - start_time) * 1000 >= timelimit:
                 break
 
+            if self.config.immediate:
+                # If the number of visit at the root node exceeds the certain number,
+                # don't conduct search and return immediately.
+                if self.mcts.get_playouts(root, True) >= self.config.simulation_num:
+                    return root
+
             leaf_nodes = [None for _ in range(self.config.batch_size)]
             leaf_positions = [position.copy(True) for _ in range(self.config.batch_size)]
 
