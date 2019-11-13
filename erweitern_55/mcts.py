@@ -48,17 +48,12 @@ class MCTS():
         # Step 1: Set the root node.
         root = self.mcts.set_root(position, self.config.reuse_tree)
 
-        if self.config.immediate:
-            # If the number of visit at the root node exceeds the certain number,
-            # don't conduct search and return immediately.
-            if self.mcts.get_playouts(root, True) >= self.config.simulation_num:
-                return root
-
         # Step 2: Evaluate the root node.
-        nninput = nn.get_input(position, True)
-        policy, value = nn.predict(nninput)
-        value = (value + 1) / 2
-        self.mcts.evaluate(root, position, policy[0], value[0][0])
+        if not self.mcts.expanded(root):
+            nninput = nn.get_input(position, True)
+            policy, value = nn.predict(nninput)
+            value = (value + 1) / 2
+            self.mcts.evaluate(root, position, policy[0], value[0][0])
 
         # Add dirichlet noise.
         if self.config.use_dirichlet:
