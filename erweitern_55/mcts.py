@@ -96,11 +96,11 @@ class MCTS():
             policy, value = nn.predict(nninputs)
             value = (value + 1) / 2
             for b in range(self.config.batch_size):
-                value[b][0] = self.mcts.evaluate(leaf_nodes[b], leaf_positions[b], policy[b], value[b][0])
+                self.mcts.evaluate(leaf_nodes[b], leaf_positions[b], policy[b], value[b][0])
 
             # MCTS Step 3: backpropage values of the leaf nodes from the leaf nodes to the root node.
             for b in range(self.config.batch_size):
-                self.mcts.backpropagate(leaf_nodes[b], value[b][0])
+                self.mcts.backpropagate(leaf_nodes[b])
 
             # Output log.
             if verbose and loop_count % 50 == 0:
