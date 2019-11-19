@@ -47,7 +47,8 @@ class Network:
         # Construct the network.
         # ins, policy, value = self._alphazero_network()
         # ins, policy, value = self._kp_network()
-        ins, policy, value = self._dense_network()
+        # ins, policy, value = self._dense_network()
+        ins, policy, value = self._mobilenet_v3()
 
         # Define the model.
         self.model = keras.Model(inputs=ins, outputs=[policy, value])
@@ -196,6 +197,80 @@ class Network:
 
         return input_image, policy, value
 
+    def _mobilenet_v3(self):
+        self.network_type = 'MobileNet_v3'
+        self.input_shape = [101, 5, 5]
+
+        # Input layer
+        input_image = keras.layers.Input(
+            shape=self.input_shape, dtype='float32')
+
+        # Convolution layer
+        x = keras.layers.Conv2D(
+            64, [3, 3], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(input_image)
+        x = keras.layers.BatchNormalization(axis=1)(x)
+        x = self._hard_swish(x)
+
+        # Dense blocks.
+        for _ in range(7):
+            x = self._bottleneck(x)
+
+        # Policy head.
+        policy = keras.layers.Conv2D(
+            128, [1, 1], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
+        policy = keras.layers.BatchNormalization(axis=1)(policy)
+        policy = keras.layers.ReLU()(policy)
+
+        policy = keras.layers.Conv2D(
+            69, [1, 1], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(policy)
+        policy = keras.layers.Flatten(name='policy')(policy)
+
+        # Value head.
+        value = keras.layers.Conv2D(
+            128, [1, 1], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
+        value = keras.layers.BatchNormalization(axis=1)(value)
+        value = keras.layers.ReLU()(value)
+        value = keras.layers.GlobalAveragePooling2D(data_format='channels_first')(value)
+        value = keras.layers.Dense(
+            1, activation=tf.nn.tanh, name='value', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
+
+        return input_image, policy, value
+
+    def _hard_swish(self, input):
+        return input * keras.layers.ReLU(max_value=6.0)(input + 3.0 /  6.0) / 6.0
+
+    def _squeeze(self, input):
+        channels = int(input.shape[1])
+
+        x = keras.layers.GlobalAveragePooling2D(data_format='channels_first')(input)
+        x = keras.layers.Dense(channels, activation='relu', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
+        x = keras.layers.Dense(channels, activation='hard_sigmoid', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(x)
+        x = keras.layers.Reshape((channels, 1, 1))(x)
+        x = keras.layers.Multiply()([input, x])
+
+        return x
+
+    def _bottleneck(self, input):
+        channels = int(input.shape[1])
+
+        x = keras.layers.Conv2D(channels, [1, 1], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(input)
+        x = keras.layers.BatchNormalization(axis=1)(x)
+        x = keras.layers.ReLU()(x)
+
+        x = keras.layers.DepthwiseConv2D([3, 3], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
+        x = keras.layers.BatchNormalization(axis=1)(x)
+        x = keras.layers.ReLU()(x)
+
+        x = self._squeeze(x)
+
+        x = keras.layers.Conv2D(channels, [1, 1], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
+        x = keras.layers.BatchNormalization(axis=1)(x)
+
+        x = keras.layers.Add()([x, input])
+
+        return x
+
+
     def _residual_block(self, input_image, conv_kernel_shape=[3, 3]):
         """Construct a residual block.
 
@@ -315,11 +390,9 @@ class Network:
     def get_input(self, position, dim_4=False):
         shape = [1] + self.input_shape if dim_4 else self.input_shape
 
-        if self.network_type == 'AlphaZero':
-            return np.reshape(position.to_alphazero_input(), shape)
-        elif self.network_type == 'KP':
+        if self.network_type == 'KP':
             return np.reshape(position.to_kp_input(), shape)
-        elif self.network_type == 'DenseNet':
+        else:
             return np.reshape(position.to_alphazero_input(), shape)
 
     def get_inputs(self, positions):
