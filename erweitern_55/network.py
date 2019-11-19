@@ -237,7 +237,12 @@ class Network:
         return input_image, policy, value
 
     def _hard_swish(self, input):
-        return input * keras.layers.ReLU(max_value=6.0)(input + 3.0 /  6.0) / 6.0
+        x = keras.layers.Lambda(lambda x: x + 3.0)(input)
+        x = keras.layers.ReLU(max_value=6.0)(x)
+        x = keras.layers.Multiply()([input, x])
+        x = keras.layers.Lambda(lambda x: x / 6.0)(x)
+
+        return x
 
     def _squeeze(self, input):
         channels = int(input.shape[1])
