@@ -33,6 +33,8 @@ class Trainer():
         self.reservoir_lock = threading.Lock()
         self.nn_lock = threading.Lock()
 
+        self.checkpoint_weights = self.nn.get_weights()
+
         self.store_only = store_only
 
         if record_file is not None:
@@ -51,7 +53,7 @@ class Trainer():
         self.new_record_count_lock = threading.Lock()
 
     def _sample_datasets(self):
-        BATCH_SIZE = 4096
+        BATCH_SIZE = 2048
 
         while True:
             with self.reservoir_lock:
@@ -69,6 +71,7 @@ class Trainer():
 
         nn = self.nn
         nn_lock = self.nn_lock
+        checkpoint_weights = self.checkpoint_weights
         reservoir = self.reservoir
         reservoir_lock = self.reservoir_lock
         update_record_num = self.update_record_num
@@ -83,11 +86,12 @@ class Trainer():
                     self.end_headers()
 
                     with nn_lock:
-                        data = _pickle.dumps(nn.get_weights(), protocol=4)
+                        data = _pickle.dumps(checkpoint_weights, protocol=4)
 
                     self.wfile.write(data)
 
-                    log_file.write('[{}] send the parameters\n'.format(datetime.datetime.now(datetime.timezone.utc)))
+                    log_file.write('[{}] send the parameters\n'.format(
+                        datetime.datetime.now(datetime.timezone.utc)))
                     log_file.flush()
 
                 else:
@@ -98,7 +102,8 @@ class Trainer():
             def do_POST(self):
                 if self.path == '/record':
                     content_length = int(self.headers.get('content-length'))
-                    game_record = _pickle.loads(self.rfile.read(content_length))
+                    game_record = _pickle.loads(
+                        self.rfile.read(content_length))
                     with reservoir_lock:
                         reservoir.push(simplejson.dumps(game_record.to_dict()))
 
@@ -106,7 +111,8 @@ class Trainer():
                     self.send_header('Content-type', 'text/html')
                     self.end_headers()
 
-                    log_file.write('[{}] received a game record\n'.format(datetime.datetime.now(datetime.timezone.utc)))
+                    log_file.write('[{}] received a game record\n'.format(
+                        datetime.datetime.now(datetime.timezone.utc)))
                     log_file.flush()
 
                     if update_record_num > 0:
@@ -161,8 +167,9 @@ class Trainer():
                 init_policy, init_value = self.nn.predict(
                     init_position_nn_input)
 
-                if self.nn.iter() % 5000 == 0:
+                if self.nn.iter() % 1000 == 0:
                     self.nn.save('./weights/iter_{}.h5'.format(self.nn.iter()))
+                    self.checkpoint_weights = self.nn.get_weights()
 
             log_file.write('{}, {}, {}, {}, {}, {}\n'.format(datetime.datetime.now(
                 datetime.timezone.utc), self.nn.iter(), loss['loss'], loss['policy_loss'], loss['value_loss'], init_value[0][0]))
