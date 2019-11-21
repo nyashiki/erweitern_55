@@ -11,7 +11,7 @@ class Config:
         self.memory_size = 0.2 # GB
 
         self.batch_size = 16
-        self.simulation_num = 400
+        self.simulation_num = 800
 
         self.use_dirichlet = False
 
