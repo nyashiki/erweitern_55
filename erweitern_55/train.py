@@ -33,7 +33,8 @@ class Trainer():
         self.reservoir_lock = threading.Lock()
         self.nn_lock = threading.Lock()
 
-        self.checkpoint_weights = _pickle.dumps(self.nn.get_weights(), protocol=4)
+        self.checkpoint_weights = _pickle.dumps(
+            self.nn.get_weights(), protocol=4)
 
         self.store_only = store_only
 
@@ -151,13 +152,13 @@ class Trainer():
             # Update neural network parameters.
             with self.nn_lock:
                 if self.nn.iter() < 100000:
-                    learning_rate = 1e-2
+                    learning_rate = 1e-1
                 elif self.nn.iter() < 200000:
-                    learning_rate = 1e-3
+                    learning_rate = 1e-2
                 elif self.nn.iter() < 300000:
-                    learning_rate = 1e-4
+                    learning_rate = 1e-3
                 else:
-                    learning_rate = 1e-5
+                    learning_rate = 1e-4
 
                 loss = self.nn.step(
                     ins, policies, values, learning_rate)
@@ -166,7 +167,8 @@ class Trainer():
 
                 if self.nn.iter() % 1000 == 0:
                     self.nn.save('./weights/iter_{}.h5'.format(self.nn.iter()))
-                    self.checkpoint_weights = _pickle.dumps(self.nn.get_weights(), protocol=4)
+                    self.checkpoint_weights = _pickle.dumps(
+                        self.nn.get_weights(), protocol=4)
 
             log_file.write('{}, {}, {}, {}, {}, {}\n'.format(datetime.datetime.now(
                 datetime.timezone.utc), self.nn.iter(), loss['loss'], loss['policy_loss'], loss['value_loss'], init_value[0][0]))
