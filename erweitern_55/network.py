@@ -84,7 +84,7 @@ class Network:
         """
 
         self.network_type = 'AlphaZero'
-        self.input_shape = [101, 5, 5]
+        self.input_shape = [266, 5, 5]
 
         # Input layer.
         input_image = keras.layers.Input(
@@ -92,17 +92,17 @@ class Network:
 
         # Convolution layer.
         x = keras.layers.Conv2D(
-            64, [3, 3], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(input_image)
+            128, [3, 3], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(input_image)
         x = keras.layers.BatchNormalization(axis=1)(x)
         x = keras.layers.ReLU()(x)
 
         # Residual blocks.
-        for _ in range(6):
+        for _ in range(3):
             x = self._residual_block(x)
 
         # Policy head.
         policy = keras.layers.Conv2D(
-            128, [1, 1], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
+            128, [3, 3], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
         policy = keras.layers.BatchNormalization(axis=1)(policy)
         policy = keras.layers.ReLU()(policy)
         policy = keras.layers.Conv2D(
@@ -111,11 +111,14 @@ class Network:
 
         # Value head.
         value = keras.layers.Conv2D(
-            128, [1, 1], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
+            2, [1, 1], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
         value = keras.layers.BatchNormalization(axis=1)(value)
         value = keras.layers.ReLU()(value)
-        value = keras.layers.GlobalAveragePooling2D(
-            data_format='channels_first')(value)
+        # value = keras.layers.GlobalAveragePooling2D(
+        #     data_format='channels_first')(value)
+        value = keras.layers.Flatten()(value)
+        value = keras.layers.Dense(
+            128, activation='relu', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
         value = keras.layers.Dense(
             1, activation=tf.nn.tanh, name='value', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
 
