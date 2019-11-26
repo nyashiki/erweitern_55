@@ -33,9 +33,6 @@ class Trainer():
         self.reservoir_lock = threading.Lock()
         self.nn_lock = threading.Lock()
 
-        self.checkpoint_weights = _pickle.dumps(
-            self.nn.get_weights(), protocol=4)
-
         self.store_only = store_only
 
         if record_file is not None:
@@ -46,6 +43,9 @@ class Trainer():
             self.nn.load(weight_file)
         else:
             self.nn.save('./weights/iter_0.h5')
+
+        self.checkpoint_weights = _pickle.dumps(
+            self.nn.get_weights(), protocol=4)
 
         self.training_data = queue.Queue(maxsize=1)
 
