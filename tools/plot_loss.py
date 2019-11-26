@@ -23,22 +23,24 @@ def main(loss_file, output_file):
 
             line = f.readline()
 
+        interval = 10
+
         fig, ax = plt.subplots(2, 1, figsize=(16, 10))
 
         # loss
-        ax[0].plot(iteration, loss_sum, linestyle='solid',
+        ax[0].plot(iteration[::interval], loss_sum[::interval], linestyle='-',
                    label='policy loss + value loss', alpha=0.7)
-        ax[0].plot(iteration, loss_policy,
-                   linestyle='dashed', label='policy loss', alpha=0.7)
-        ax[0].plot(iteration, loss_value,
-                   linestyle='dashdot', label='value loss', alpha=0.7)
+        ax[0].plot(iteration[::interval], loss_policy[::interval],
+                   linestyle='--', label='policy loss', alpha=0.7)
+        ax[0].plot(iteration[::interval], loss_value[::interval],
+                   linestyle=':', label='value loss', alpha=0.7)
         ax[0].set_xlabel('iterations')
         ax[0].set_title('losses')
         ax[0].grid(linestyle='-')
         ax[0].legend(frameon=True)
 
         # init value
-        ax[1].plot(iteration, init_value, alpha=0.7)
+        ax[1].plot(iteration[::interval], init_value[::interval], alpha=0.7)
         ax[1].set_xlabel('iterations')
         ax[1].set_title('value output at the initial position')
         ax[1].grid(linestyle='-')
