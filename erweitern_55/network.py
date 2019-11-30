@@ -157,11 +157,11 @@ class Network:
         with self.session.as_default():
             with self.graph.as_default():
                 # Set the learning rate.
-                if self.nn.iter() < 100000:
+                if self.iter() < 100000:
                     learning_rate = 1e-1
-                elif self.nn.iter() < 200000:
+                elif self.iter() < 200000:
                     learning_rate = 1e-2
-                elif self.nn.iter() < 300000:
+                elif self.iter() < 300000:
                     learning_rate = 1e-3
                 else:
                     learning_rate = 1e-4
