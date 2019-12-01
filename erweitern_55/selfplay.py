@@ -142,6 +142,8 @@ def random_play(max_moves=512, stop_with_checkmate=False, trim_checkmate=False):
         value = 1.0 if checkmate else 0.5
         game_record.mcts_result.append((1, value, [(next_move.sfen(), 1)]))
 
+        game_record.ply += 1
+
         if checkmate and stop_with_checkmate:
             game_record.winner = 1 - position.get_side_to_move()
 
@@ -153,7 +155,6 @@ def random_play(max_moves=512, stop_with_checkmate=False, trim_checkmate=False):
 
             break
 
-        game_record.ply += 1
 
     game_record.timestamp = int(datetime.now().timestamp())
     return game_record
