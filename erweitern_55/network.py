@@ -95,18 +95,14 @@ class Network:
         x = keras.layers.ReLU()(x)
 
         # Residual blocks.
-        for _ in range(5):
+        for _ in range(3):
             x = self._residual_block(x)
 
         # Policy head.
         policy = keras.layers.Conv2D(
-            2, [1, 1], strides=1, padding='same', activation='linear', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
+            128, [1, 1], strides=1, padding='same', activation='linear', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
         policy = keras.layers.BatchNormalization(axis=1)(policy)
         policy = keras.layers.ReLU()(policy)
-        # policy = keras.layers.Flatten()(policy)
-        # policy = keras.layers.Dense(
-        #     69 * 5 * 5, name='policy', activation='linear', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(policy)
-
         policy = keras.layers.Conv2D(
             69, [1, 1], strides=1, padding='same', activation='linear', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(policy)
         policy = keras.layers.Flatten(name='policy')(policy)
@@ -169,7 +165,6 @@ class Network:
         assert ((policy_labels >= 0.0) & (policy_labels <= 1.0)).all(), 'There is a value out of [0, 1] in policy_labels.'
 
         for policy_label in policy_labels:
-            print(policy_label.shape)
             assert abs(np.sum(policy_label) - 1.0) < 1e-4, 'np.sum(policy_label) != 1 ({}).'.format(np.sum(policy_label))
 
         with self.session.as_default():
