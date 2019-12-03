@@ -60,7 +60,8 @@ class Network:
 
         self.model.compile(optimizer=tf.keras.optimizers.SGD(momentum=0.9),
                            loss={'policy': keras.losses.CategoricalCrossentropy(from_logits=True),
-                                 'value': keras.losses.mean_squared_error})
+                                 'value': keras.losses.mean_squared_error},
+                           loss_weights={'policy': 1, 'value': 1})
 
         # For multithreading.
         self.model._make_predict_function()
@@ -89,30 +90,32 @@ class Network:
 
         # Convolution layer.
         x = keras.layers.Conv2D(
-            64, [3, 3], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(input_image)
+            128, [3, 3], strides=1, padding='same', activation='linear', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(input_image)
         x = keras.layers.BatchNormalization(axis=1)(x)
         x = keras.layers.ReLU()(x)
 
         # Residual blocks.
-        for _ in range(3):
+        for _ in range(5):
             x = self._residual_block(x)
 
         # Policy head.
         policy = keras.layers.Conv2D(
-            128, [1, 1], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
+            128, [1, 1], strides=1, padding='same', activation='linear', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
         policy = keras.layers.BatchNormalization(axis=1)(policy)
         policy = keras.layers.ReLU()(policy)
         policy = keras.layers.Conv2D(
-            69, [1, 1], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(policy)
+            69, [1, 1], strides=1, padding='same', activation='linear', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(policy)
         policy = keras.layers.Flatten(name='policy')(policy)
 
         # Value head.
         value = keras.layers.Conv2D(
-            128, [1, 1], padding='same', activation=None, kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
+            1, [1, 1], strides=1, padding='same', activation='linear', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
         value = keras.layers.BatchNormalization(axis=1)(value)
         value = keras.layers.ReLU()(value)
-        value = keras.layers.GlobalAveragePooling2D(
-            data_format='channels_first')(value)
+        value = keras.layers.Flatten()(value)
+        value = keras.layers.Dense(
+            128, activation='linear', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
+        value = keras.layers.ReLU()(value)
         value = keras.layers.Dense(
             1, activation=tf.nn.tanh, name='value', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
 
@@ -131,18 +134,18 @@ class Network:
         conv_filters = int(input_image.shape[1])
 
         x = keras.layers.Conv2D(
-            conv_filters, conv_kernel_shape, activation=None, padding='same', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(input_image)
+            conv_filters, conv_kernel_shape, strides=1, activation='linear', padding='same', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(input_image)
         x = keras.layers.BatchNormalization(axis=1)(x)
         x = keras.layers.ReLU()(x)
         x = keras.layers.Conv2D(
-            conv_filters, conv_kernel_shape, activation=None, padding='same', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
+            conv_filters, conv_kernel_shape, strides=1, activation='linear', padding='same', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
         x = keras.layers.BatchNormalization(axis=1)(x)
         x = keras.layers.Add()([x, input_image])
         x = keras.layers.ReLU()(x)
 
         return x
 
-    def step(self, train_images, policy_labels, value_labels):
+    def step(self, train_images, policy_labels, value_labels, assertion=False):
         """Train the neural network one step.
 
         # Arguments:
@@ -153,6 +156,17 @@ class Network:
         # Returns:
             Dictionary composed of losses and metrics.
         """
+
+        if assertion:
+            assert not np.isinf(train_images).any(), 'Inf is detected in train_images.'
+            assert not np.isinf(policy_labels).any(), 'Inf is detected in policy_labels.'
+            assert not np.isnan(train_images).any(), 'NaN is detected in train_images.'
+            assert not np.isnan(policy_labels).any(), 'NaN is detected in policy_labels.'
+            assert ((train_images >= 0.0) & (train_images <= 1.0)).all(), 'There is a value out of [0, 1] in train_images.'
+            assert ((policy_labels >= 0.0) & (policy_labels <= 1.0)).all(), 'There is a value out of [0, 1] in policy_labels.'
+
+            for policy_label in policy_labels:
+                assert abs(np.sum(policy_label) - 1.0) < 1e-4, 'np.sum(policy_label) != 1 ({}).'.format(np.sum(policy_label))
 
         with self.session.as_default():
             with self.graph.as_default():
@@ -173,7 +187,9 @@ class Network:
                     y={'policy': policy_labels,
                        'value': value_labels})
 
-        return dict(zip(self.model.metrics_names, loss))
+                result = dict(zip(self.model.metrics_names, loss))
+
+        return result
 
     def predict(self, images):
         """Get policy head and value head values.
