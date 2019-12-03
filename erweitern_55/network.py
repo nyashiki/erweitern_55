@@ -95,7 +95,7 @@ class Network:
         x = keras.layers.ReLU()(x)
 
         # Residual blocks.
-        for _ in range(3):
+        for _ in range(5):
             x = self._residual_block(x)
 
         # Policy head.
