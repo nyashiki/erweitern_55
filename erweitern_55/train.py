@@ -44,9 +44,6 @@ class Trainer():
         else:
             self.nn.save('./weights/iter_0.h5')
 
-        self.checkpoint_weights = _pickle.dumps(
-            self.nn.get_weights(), protocol=4)
-
         self.training_data = queue.Queue(maxsize=1)
 
         self.update_record_num = update_record_num
@@ -72,7 +69,6 @@ class Trainer():
 
         nn = self.nn
         nn_lock = self.nn_lock
-        checkpoint_weights = self.checkpoint_weights
         reservoir = self.reservoir
         reservoir_lock = self.reservoir_lock
         update_record_num = self.update_record_num
@@ -86,7 +82,10 @@ class Trainer():
                     self.send_header('Content-type', 'text/html')
                     self.end_headers()
 
-                    self.wfile.write(checkpoint_weights)
+                    with nn_lock:
+                        data = _pickle.dumps(nn.get_weights(), protocol=4)
+
+                    self.wfile.write(data)
 
                     log_file.write('[{}] send the parameters\n'.format(
                         datetime.datetime.now(datetime.timezone.utc)))
@@ -158,8 +157,6 @@ class Trainer():
 
                 if self.nn.iter() % 1000 == 0:
                     self.nn.save('./weights/iter_{}.h5'.format(self.nn.iter()))
-                    self.checkpoint_weights = _pickle.dumps(
-                        self.nn.get_weights(), protocol=4)
 
             log_file.write('{}, {}, {}, {}, {}, {}\n'.format(datetime.datetime.now(
                 datetime.timezone.utc), self.nn.iter(), loss['loss'], loss['policy_loss'], loss['value_loss'], init_value[0][0]))
