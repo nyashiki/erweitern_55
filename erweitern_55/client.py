@@ -25,7 +25,7 @@ class Client:
 
     def run(self):
         mcts_config = mcts.Config()
-        mcts_config.simulation_num = 400
+        mcts_config.simulation_num = 128
         mcts_config.forced_playouts = False
         mcts_config.use_dirichlet = True
         mcts_config.reuse_tree = True
