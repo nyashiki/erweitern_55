@@ -17,7 +17,7 @@ pip3 install -r requirements.txt
 
 # Usage
 
-## Run as a usi engine
+## Run as an usi engine
 
 ```
 python3 usi.py
