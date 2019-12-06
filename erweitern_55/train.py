@@ -3,6 +3,7 @@ import http.server
 import minishogilib
 import numpy as np
 from optparse import OptionParser
+import os
 import _pickle
 import queue
 import simplejson
@@ -35,7 +36,8 @@ class Trainer():
         self.store_only = store_only
 
         if record_file is not None:
-            self.reservoir.load(record_file)
+            if os.path.isfile(record_file):
+                self.reservoir.load(record_file)
 
         if weight_file is not None:
             self.nn.load(weight_file)
@@ -85,7 +87,8 @@ class Trainer():
 
                     self.wfile.write(data)
 
-                    log_file.write('[{}] send the parameters\n'.format(datetime.datetime.now(datetime.timezone.utc)))
+                    log_file.write('[{}] send the parameters\n'.format(
+                        datetime.datetime.now(datetime.timezone.utc)))
                     log_file.flush()
 
                 else:
@@ -96,7 +99,8 @@ class Trainer():
             def do_POST(self):
                 if self.path == '/record':
                     content_length = int(self.headers.get('content-length'))
-                    game_record = _pickle.loads(self.rfile.read(content_length))
+                    game_record = _pickle.loads(
+                        self.rfile.read(content_length))
                     with reservoir_lock:
                         reservoir.push(simplejson.dumps(game_record.to_dict()))
 
@@ -104,7 +108,8 @@ class Trainer():
                     self.send_header('Content-type', 'text/html')
                     self.end_headers()
 
-                    log_file.write('[{}] received a game record\n'.format(datetime.datetime.now(datetime.timezone.utc)))
+                    log_file.write('[{}] received a game record\n'.format(
+                        datetime.datetime.now(datetime.timezone.utc)))
                     log_file.flush()
 
                     if update_record_num > 0:
@@ -145,21 +150,12 @@ class Trainer():
 
             # Update neural network parameters.
             with self.nn_lock:
-                if self.nn.iter() < 100000:
-                    learning_rate = 1e-1
-                elif self.nn.iter() < 200000:
-                    learning_rate = 1e-2
-                elif self.nn.iter() < 300000:
-                    learning_rate = 1e-3
-                else:
-                    learning_rate = 1e-4
+                loss = self.nn.step(ins, policies, values)
 
-                loss = self.nn.step(
-                    ins, policies, values, learning_rate)
                 init_policy, init_value = self.nn.predict(
                     init_position_nn_input)
 
-                if self.nn.iter() % 5000 == 0:
+                if self.nn.iter() % 1000 == 0:
                     self.nn.save('./weights/iter_{}.h5'.format(self.nn.iter()))
 
             log_file.write('{}, {}, {}, {}, {}, {}\n'.format(datetime.datetime.now(

@@ -87,12 +87,11 @@ class USI:
                     if checkmate:
                         best_move = checkmate_move
                     else:
-                        remain_time = timelimit['btime'] if self.position.get_side_to_move(
-                        ) == 0 else timelimit['wtime']
+                        remain_time = timelimit['btime'] if self.position.get_side_to_move() == 0 else timelimit['wtime']
                         think_time = remain_time // 20
                         if think_time < timelimit['byoyomi']:
-                            think_time += timelimit['byoyomi'] - 900
-                        think_time = max(think_time, 900)
+                            think_time += timelimit['byoyomi'] + 700
+                        think_time = max(think_time, 1700)
 
                         print('info string think time {}'.format(
                             think_time), flush=True)

@@ -48,17 +48,12 @@ class MCTS():
         # Step 1: Set the root node.
         root = self.mcts.set_root(position, self.config.reuse_tree)
 
-        if self.config.immediate:
-            # If the number of visit at the root node exceeds the certain number,
-            # don't conduct search and return immediately.
-            if self.mcts.get_playouts(root, True) >= self.config.simulation_num:
-                return root
-
         # Step 2: Evaluate the root node.
-        nninput = nn.get_input(position, True)
-        policy, value = nn.predict(nninput)
-        value = (value + 1) / 2
-        self.mcts.evaluate(root, position, policy[0], value[0][0])
+        if not self.mcts.expanded(root):
+            nninput = nn.get_input(position, True)
+            policy, value = nn.predict(nninput)
+            value = (value + 1) / 2
+            self.mcts.evaluate(root, position, policy[0], value[0][0])
 
         # Add dirichlet noise.
         if self.config.use_dirichlet:
@@ -67,7 +62,8 @@ class MCTS():
         # Step 3: Start searching.
         # Main loop of the Monte-Carlo tree search.
         loop_count = 0
-        for _ in range(self.config.simulation_num // self.config.batch_size):
+        simulation_num = 0
+        while simulation_num < self.config.simulation_num:
             # If the memory is used over 90%, suspend the search.
             if self.mcts.get_usage() > 0.9:
                 break
@@ -82,6 +78,12 @@ class MCTS():
             if timelimit > 0 and (current_time - start_time) * 1000 >= timelimit:
                 break
 
+            if self.config.immediate:
+                # If the number of visit at the root node exceeds the certain number,
+                # don't conduct search and return immediately.
+                if self.mcts.get_playouts(root, True) >= self.config.simulation_num:
+                    return root
+
             leaf_nodes = [None for _ in range(self.config.batch_size)]
             leaf_positions = [position.copy(True) for _ in range(self.config.batch_size)]
 
@@ -95,11 +97,11 @@ class MCTS():
             policy, value = nn.predict(nninputs)
             value = (value + 1) / 2
             for b in range(self.config.batch_size):
-                value[b][0] = self.mcts.evaluate(leaf_nodes[b], leaf_positions[b], policy[b], value[b][0])
+                self.mcts.evaluate(leaf_nodes[b], leaf_positions[b], policy[b], value[b][0])
 
             # MCTS Step 3: backpropage values of the leaf nodes from the leaf nodes to the root node.
             for b in range(self.config.batch_size):
-                self.mcts.backpropagate(leaf_nodes[b], value[b][0])
+                self.mcts.backpropagate(leaf_nodes[b])
 
             # Output log.
             if verbose and loop_count % 50 == 0:
@@ -111,6 +113,7 @@ class MCTS():
                                                                                              ' '.join([m.sfen() for m in pv_moves])), flush=True)
 
             loop_count += 1
+            simulation_num += self.config.batch_size
 
         # Output log.
         if verbose:
