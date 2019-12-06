@@ -13,6 +13,9 @@ import network
 class USI:
     def __init__(self, weight_file):
         self.weight_file = weight_file
+        self.option = {
+            'ponder': False
+        }
 
     def isready(self):
         self.nn = network.Network()
@@ -45,6 +48,18 @@ class USI:
                 print('id name erweitern_55')
                 print('id author nyashiki')
                 print('usiok')
+            elif command[0] == 'setoption':
+                key = command[2]
+                value = command[4]
+
+                if value == 'true' or value == 'True':
+                    value = True
+                elif value == 'false' or value == 'False':
+                    value = False
+                elif value.isdigit():
+                    value = int(value)
+
+                self.option[key.lower()] = value
 
             elif command[0] == 'position':
                 self.ponder_stop()
@@ -87,7 +102,8 @@ class USI:
                     if checkmate:
                         best_move = checkmate_move
                     else:
-                        remain_time = timelimit['btime'] if self.position.get_side_to_move() == 0 else timelimit['wtime']
+                        remain_time = timelimit['btime'] if self.position.get_side_to_move(
+                        ) == 0 else timelimit['wtime']
                         think_time = remain_time // 20
                         if think_time < timelimit['byoyomi']:
                             think_time += timelimit['byoyomi'] + 700
@@ -102,7 +118,9 @@ class USI:
                     print('bestmove {}'.format(best_move), flush=True)
 
                     self.position.do_move(best_move)
-                    self.ponder_start()
+
+                    if self.option['ponder']:
+                        self.ponder_start()
 
             elif command[0] == 'quit':
                 os._exit(0)
