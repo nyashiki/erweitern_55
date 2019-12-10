@@ -52,13 +52,14 @@ class Trainer():
 
     def _sample_datasets(self):
         BATCH_SIZE = 4096
+        flat_sampling = False
 
         while True:
             with self.reservoir_lock:
                 if self.reservoir.len() < self.RECENT_GAMES:
                     continue
 
-                datasets = self.reservoir.sample(BATCH_SIZE)
+                datasets = self.reservoir.sample(BATCH_SIZE, flat_sampling)
 
             ins = np.reshape(datasets[0], [BATCH_SIZE] + self.nn.input_shape)
             policies = np.reshape(datasets[1], [BATCH_SIZE, 69 * 5 * 5])
