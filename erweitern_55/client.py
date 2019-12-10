@@ -25,7 +25,7 @@ class Client:
 
     def run(self):
         mcts_config = mcts.Config()
-        mcts_config.simulation_num = 400
+        mcts_config.simulation_num = 800
         mcts_config.forced_playouts = False
         mcts_config.use_dirichlet = True
         mcts_config.reuse_tree = True
@@ -50,7 +50,8 @@ class Client:
 
             # Conduct selfplay.
             if self.random_play:
-                game_record = selfplay.random_play(stop_with_checkmate=True, trim_checkmate=False)
+                game_record = selfplay.random_play(
+                    stop_with_checkmate=True, trim_checkmate=False)
 
             else:
                 search.clear()
