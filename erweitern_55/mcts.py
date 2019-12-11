@@ -8,7 +8,7 @@ import network
 
 class Config:
     def __init__(self):
-        self.memory_size = 0.2 # GB
+        self.memory_size = 0.2  # GB
 
         self.batch_size = 16
         self.simulation_num = 800
@@ -19,6 +19,7 @@ class Config:
         self.reuse_tree = True
         self.target_pruning = False
         self.immediate = False
+
 
 class MCTS():
     def __init__(self, config):
@@ -85,7 +86,8 @@ class MCTS():
                     return root
 
             leaf_nodes = [None for _ in range(self.config.batch_size)]
-            leaf_positions = [position.copy(True) for _ in range(self.config.batch_size)]
+            leaf_positions = [position.copy(True)
+                              for _ in range(self.config.batch_size)]
 
             # MCTS Step 1: select leaf nodes.
             for b in range(self.config.batch_size):
@@ -97,7 +99,8 @@ class MCTS():
             policy, value = nn.predict(nninputs)
             value = (value + 1) / 2
             for b in range(self.config.batch_size):
-                self.mcts.evaluate(leaf_nodes[b], leaf_positions[b], policy[b], value[b][0])
+                self.mcts.evaluate(
+                    leaf_nodes[b], leaf_positions[b], policy[b], value[b][0])
 
             # MCTS Step 3: backpropage values of the leaf nodes from the leaf nodes to the root node.
             for b in range(self.config.batch_size):
@@ -108,7 +111,8 @@ class MCTS():
                 pv_moves, q = self.mcts.info(root)
                 print('info depth {} nodes {} hashfull {} score winrate {:.3f} pv {}'.format(len(pv_moves),
                                                                                              self.mcts.get_nodes(),
-                                                                                             int(self.mcts.get_usage() * 1000),
+                                                                                             int(self.mcts.get_usage(
+                                                                                             ) * 1000),
                                                                                              q,
                                                                                              ' '.join([m.sfen() for m in pv_moves])), flush=True)
 
@@ -120,7 +124,8 @@ class MCTS():
             pv_moves, q = self.mcts.info(root)
             print('info depth {} nodes {} hashfull {} score winrate {:.3f} pv {}'.format(len(pv_moves),
                                                                                          self.mcts.get_nodes(),
-                                                                                         int(self.mcts.get_usage() * 1000),
+                                                                                         int(self.mcts.get_usage(
+                                                                                         ) * 1000),
                                                                                          q,
                                                                                          ' '.join([m.sfen() for m in pv_moves])), flush=True)
 
@@ -153,6 +158,18 @@ class MCTS():
             The next move.
         """
         return self.mcts.softmax_sample(node, temperature)
+
+    def softmax_sample_among_top_moves(self, node, away=0.01, temperature=10.0):
+        """Get the next move at the given node along softmax sampling of visit counts,
+           target children are no more than X% away from the best move.
+
+        # Arguments:
+            node: the target node.
+
+        # Returns:
+            The next move.
+        """
+        return self.mcts.softmax_sample_among_top_moves(node, away, temperature)
 
     def dump(self, node, remove_zeros=True):
         """Get (move, the number of visit) pairs.

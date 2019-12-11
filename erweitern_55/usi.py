@@ -14,7 +14,8 @@ class USI:
     def __init__(self, weight_file):
         self.weight_file = weight_file
         self.option = {
-            'ponder': False
+            'ponder': False,
+            'softmax_sampling_moves': 30
         }
 
     def isready(self):
@@ -113,7 +114,12 @@ class USI:
                             think_time), flush=True)
                         root = self.search.run(
                             self.position, self.nn, think_time, True)
-                        best_move = self.search.best_move(root)
+
+                        if self.position.get_ply() < self.option['softmax_sampling_moves']:
+                            best_move = self.search.softmax_sample_among_top_moves(
+                                root)
+                        else:
+                            best_move = self.search.best_move(root)
 
                     print('bestmove {}'.format(best_move), flush=True)
 
