@@ -158,24 +158,31 @@ class Network:
         """
 
         if assertion:
-            assert not np.isinf(train_images).any(), 'Inf is detected in train_images.'
-            assert not np.isinf(policy_labels).any(), 'Inf is detected in policy_labels.'
-            assert not np.isnan(train_images).any(), 'NaN is detected in train_images.'
-            assert not np.isnan(policy_labels).any(), 'NaN is detected in policy_labels.'
-            assert ((train_images >= 0.0) & (train_images <= 1.0)).all(), 'There is a value out of [0, 1] in train_images.'
-            assert ((policy_labels >= 0.0) & (policy_labels <= 1.0)).all(), 'There is a value out of [0, 1] in policy_labels.'
+            assert not np.isinf(train_images).any(
+            ), 'Inf is detected in train_images.'
+            assert not np.isinf(policy_labels).any(
+            ), 'Inf is detected in policy_labels.'
+            assert not np.isnan(train_images).any(
+            ), 'NaN is detected in train_images.'
+            assert not np.isnan(policy_labels).any(
+            ), 'NaN is detected in policy_labels.'
+            assert ((train_images >= 0.0) & (train_images <= 1.0)).all(
+            ), 'There is a value out of [0, 1] in train_images.'
+            assert ((policy_labels >= 0.0) & (policy_labels <= 1.0)).all(
+            ), 'There is a value out of [0, 1] in policy_labels.'
 
             for policy_label in policy_labels:
-                assert abs(np.sum(policy_label) - 1.0) < 1e-4, 'np.sum(policy_label) != 1 ({}).'.format(np.sum(policy_label))
+                assert abs(np.sum(
+                    policy_label) - 1.0) < 1e-4, 'np.sum(policy_label) != 1 ({}).'.format(np.sum(policy_label))
 
         with self.session.as_default():
             with self.graph.as_default():
                 # Set the learning rate.
-                if self.iter() < 100000:
+                if self.iter() < 50000:
                     learning_rate = 1e-1
-                elif self.iter() < 200000:
+                elif self.iter() < 100000:
                     learning_rate = 1e-2
-                elif self.iter() < 300000:
+                elif self.iter() < 150000:
                     learning_rate = 1e-3
                 else:
                     learning_rate = 1e-4
