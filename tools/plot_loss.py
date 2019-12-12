@@ -29,7 +29,7 @@ def main(loss_file, output_file):
 
         # loss
         ax[0].plot(iteration[::interval], loss_sum[::interval], linestyle='-',
-                   label='policy loss + value loss', alpha=0.7)
+                   label='total loss', alpha=0.7)
         ax[0].plot(iteration[::interval], loss_policy[::interval],
                    linestyle='--', label='policy loss', alpha=0.7)
         ax[0].plot(iteration[::interval], loss_value[::interval],
