@@ -13,22 +13,27 @@ import network
 class USI:
     def __init__(self, weight_file):
         self.weight_file = weight_file
+        self.nn = None
+        self.search = None
+
         self.option = {
             'ponder': False,
             'softmax_sampling_moves': 30
         }
 
     def isready(self):
-        self.nn = network.Network()
+        if self.nn is None:
+            self.nn = network.Network()
 
-        if self.weight_file is not None:
-            self.nn.load(self.weight_file)
+            if self.weight_file is not None:
+                self.nn.load(self.weight_file)
 
         self.config = mcts.Config()
         self.config.simulation_num = int(1e9)
         self.config.reuse_tree = True
 
-        self.search = mcts.MCTS(self.config)
+        if self.search is None:
+            self.search = mcts.MCTS(self.config)
         self.search.clear()
 
         self.position = minishogilib.Position()
