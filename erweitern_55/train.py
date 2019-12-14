@@ -51,7 +51,7 @@ class Trainer():
         self.new_record_count_lock = threading.Lock()
 
     def _sample_datasets(self):
-        BATCH_SIZE = 4096
+        BATCH_SIZE = 2048
         flat_sampling = False
 
         while True:
