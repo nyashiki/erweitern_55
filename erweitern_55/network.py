@@ -179,13 +179,13 @@ class Network:
             with self.graph.as_default():
                 # Set the learning rate.
                 if self.iter() < 50000:
-                    learning_rate = 1e-1
+                    learning_rate = 2e-1
                 elif self.iter() < 100000:
-                    learning_rate = 1e-2
+                    learning_rate = 2e-2
                 elif self.iter() < 150000:
-                    learning_rate = 1e-3
+                    learning_rate = 2e-3
                 else:
-                    learning_rate = 1e-4
+                    learning_rate = 2e-4
 
                 K.set_value(self.model.optimizer.lr, learning_rate)
 

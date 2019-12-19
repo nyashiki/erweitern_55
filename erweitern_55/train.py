@@ -23,7 +23,7 @@ class Trainer():
     """
 
     def __init__(self, port, store_only=False, record_file='records.json', weight_file=None, update_record_num=0):
-        self.RECENT_GAMES = 50000
+        self.RECENT_GAMES = 100000
 
         self.port = port
 
