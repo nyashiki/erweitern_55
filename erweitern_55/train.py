@@ -54,7 +54,7 @@ class Trainer():
         BATCH_SIZE = 2048
         flat_sampling = False
         symmetry = True
-        policy_deforming = True
+        policy_deforming = False
 
         while True:
             with self.reservoir_lock:
