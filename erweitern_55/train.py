@@ -65,7 +65,7 @@ class Trainer():
                     BATCH_SIZE, flat_sampling, symmetry, policy_deforming)
 
             ins = np.reshape(datasets[0], [BATCH_SIZE] + self.nn.input_shape)
-            policies = np.reshape(datasets[1], [BATCH_SIZE, 69 * 5 * 5])
+            policies = np.reshape(datasets[1], [BATCH_SIZE, 55 * 5 * 5])
             values = np.reshape(datasets[2], [BATCH_SIZE, 1])
 
             self.training_data.put((ins, policies, values))
