@@ -54,6 +54,7 @@ class Trainer():
         BATCH_SIZE = 2048
         flat_sampling = False
         symmetry = True
+        policy_deforming = True
 
         while True:
             with self.reservoir_lock:
@@ -61,7 +62,7 @@ class Trainer():
                     continue
 
                 datasets = self.reservoir.sample(
-                    BATCH_SIZE, flat_sampling, symmetry)
+                    BATCH_SIZE, flat_sampling, symmetry, policy_deforming)
 
             ins = np.reshape(datasets[0], [BATCH_SIZE] + self.nn.input_shape)
             policies = np.reshape(datasets[1], [BATCH_SIZE, 69 * 5 * 5])
