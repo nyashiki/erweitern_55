@@ -90,17 +90,17 @@ class Network:
 
         # Convolution layer.
         x = keras.layers.Conv2D(
-            256, [3, 3], strides=1, padding='same', activation='linear', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(input_image)
+            128, [3, 3], strides=1, padding='same', activation='linear', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(input_image)
         x = keras.layers.BatchNormalization(axis=1)(x)
         x = keras.layers.ReLU()(x)
 
         # Residual blocks.
-        for _ in range(5):
+        for _ in range(7):
             x = self._residual_block(x)
 
         # Policy head.
         policy = keras.layers.Conv2D(
-            256, [3, 3], strides=1, padding='same', activation='linear', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
+            128, [3, 3], strides=1, padding='same', activation='linear', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c), data_format='channels_first')(x)
         policy = keras.layers.BatchNormalization(axis=1)(policy)
         policy = keras.layers.ReLU()(policy)
         policy = keras.layers.Conv2D(
@@ -114,7 +114,7 @@ class Network:
         value = keras.layers.ReLU()(value)
         value = keras.layers.Flatten()(value)
         value = keras.layers.Dense(
-            256, activation='linear', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
+            128, activation='linear', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
         value = keras.layers.ReLU()(value)
         value = keras.layers.Dense(
             1, activation=tf.nn.tanh, name='value', kernel_regularizer=regularizers.l2(REGULARIZER_c), bias_regularizer=regularizers.l2(REGULARIZER_c))(value)
@@ -178,11 +178,11 @@ class Network:
         with self.session.as_default():
             with self.graph.as_default():
                 # Set the learning rate.
-                if self.iter() < 50000:
+                if self.iter() < 100000:
                     learning_rate = 2e-1
-                elif self.iter() < 100000:
+                elif self.iter() < 200000:
                     learning_rate = 2e-2
-                elif self.iter() < 150000:
+                elif self.iter() < 300000:
                     learning_rate = 2e-3
                 else:
                     learning_rate = 2e-4
