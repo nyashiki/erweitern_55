@@ -25,10 +25,11 @@ class Client:
 
     def run(self):
         mcts_config = mcts.Config()
-        mcts_config.simulation_num = 256
+        mcts_config.batch_size = 32
+        mcts_config.simulation_num = 800
         mcts_config.forced_playouts = False
         mcts_config.use_dirichlet = True
-        mcts_config.reuse_tree = False
+        mcts_config.reuse_tree = True
         mcts_config.target_pruning = False
         mcts_config.immediate = False
 
@@ -56,7 +57,7 @@ class Client:
             else:
                 search.clear()
                 game_record = selfplay.run(
-                    self.nn, search, stop_with_checkmate=False, trim_checkmate=False)
+                    self.nn, search, stop_with_checkmate=True, trim_checkmate=False)
 
             # Send result.
             url = 'http://{}:{}/record'.format(self.host, self.port)
