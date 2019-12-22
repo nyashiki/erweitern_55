@@ -57,7 +57,7 @@ class Trainer():
     def _sample_datasets(self):
         BATCH_SIZE = 4096
         flat_sampling = False
-        symmetry = True
+        symmetry = False
         policy_deforming = False
 
         while True:
