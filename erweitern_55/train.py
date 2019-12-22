@@ -46,6 +46,10 @@ class Trainer():
 
         self.training_data = queue.Queue(maxsize=1)
 
+        self.checkpoint_interval = 1000
+        self.latest_checkpoint = _pickle.dumps(
+            self.nn.get_weights(), protocol=4)
+
         self.update_record_num = update_record_num
         self.new_record_count = [0]
         self.new_record_count_lock = threading.Lock()
@@ -74,8 +78,8 @@ class Trainer():
         print('Ready')
         log_file = open('connection_log.txt', 'w')
 
-        nn = self.nn
         nn_lock = self.nn_lock
+        latest_checkpoint = self.latest_checkpoint
         reservoir = self.reservoir
         reservoir_lock = self.reservoir_lock
         update_record_num = self.update_record_num
@@ -91,7 +95,7 @@ class Trainer():
                     self.end_headers()
 
                     with nn_lock:
-                        data = _pickle.dumps(nn.get_weights(), protocol=4)
+                        data = latest_checkpoint
 
                     self.wfile.write(data)
 
@@ -165,8 +169,10 @@ class Trainer():
                 init_policy, init_value = self.nn.predict(
                     init_position_nn_input)
 
-                if self.nn.iter() % 1000 == 0:
+                if self.nn.iter() % self.checkpoint_interval == 0:
                     self.nn.save('./weights/iter_{}.h5'.format(self.nn.iter()))
+                    self.latest_checkpoint = _pickle.dumps(
+                        self.nn.get_weights(), protocol=4)
 
             log_file.write('{}, {}, {}, {}, {}, {}\n'.format(datetime.datetime.now(
                 datetime.timezone.utc), self.nn.iter(), loss['loss'], loss['policy_loss'], loss['value_loss'], init_value[0][0]))
