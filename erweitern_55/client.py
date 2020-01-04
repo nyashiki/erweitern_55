@@ -58,7 +58,7 @@ class Client:
             else:
                 search.clear()
                 game_record = selfplay.run(
-                    self.nn, search, search_checkmate=self.search_checkmate, stop_with_checkmate=False, trim_checkmate=False, verbose=True)
+                    self.nn, search, search_checkmate=self.search_checkmate, stop_with_checkmate=False, trim_checkmate=False)
 
             # Send result.
             url = 'http://{}:{}/record'.format(self.host, self.port)
