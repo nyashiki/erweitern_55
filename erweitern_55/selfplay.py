@@ -7,7 +7,7 @@ import time
 import gamerecord
 
 
-def run(nn, search, verbose=False, num_sampling_moves=10, max_moves=512, playout_cap_oscillation={'enable': False, 'N': 800, 'n': 128, 'frac': 0.25}, stop_with_checkmate=False, trim_checkmate=False):
+def run(nn, search, verbose=False, num_sampling_moves=10, max_moves=512, playout_cap_oscillation={'enable': False, 'N': 800, 'n': 128, 'frac': 0.25}, search_checkmate=True, stop_with_checkmate=False, trim_checkmate=False):
     position = minishogilib.Position()
     position.set_start_position()
 
@@ -29,7 +29,10 @@ def run(nn, search, verbose=False, num_sampling_moves=10, max_moves=512, playout
 
         start_time = time.time()
 
-        checkmate, checkmate_move = position.solve_checkmate_dfs(7)
+        if search_checkmate:
+            checkmate, checkmate_move = position.solve_checkmate_dfs(7)
+        else:
+            checkmate, checkmate_move = None, None
 
         if checkmate:
             next_move = checkmate_move
@@ -107,6 +110,7 @@ def run(nn, search, verbose=False, num_sampling_moves=10, max_moves=512, playout
     game_record.timestamp = int(datetime.now().timestamp())
     return game_record
 
+
 def random_play(max_moves=512, stop_with_checkmate=False, trim_checkmate=False):
     position = minishogilib.Position()
     position.set_start_position()
@@ -154,7 +158,6 @@ def random_play(max_moves=512, stop_with_checkmate=False, trim_checkmate=False):
                 game_record.learning_target_plys = game_record.learning_target_plys[:-2]
 
             break
-
 
     game_record.timestamp = int(datetime.now().timestamp())
     return game_record
