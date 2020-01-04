@@ -31,7 +31,7 @@ class MCTS():
     def clear(self):
         self.mcts.clear()
 
-    def run(self, position, nn, timelimit=0, verbose=False):
+    def run(self, position, nn, timelimit=0, verbose=False, set_root_only=False):
         """Run Monte-Carlo Tree search at the given position.
 
         # Arguments:
@@ -48,6 +48,9 @@ class MCTS():
 
         # Step 1: Set the root node.
         root = self.mcts.set_root(position, self.config.reuse_tree)
+
+        if set_root_only:
+            return
 
         # Step 2: Evaluate the root node.
         if not self.mcts.expanded(root):
