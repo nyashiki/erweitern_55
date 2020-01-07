@@ -170,7 +170,8 @@ class Trainer():
 
                 if self.nn.iter() % self.checkpoint_interval == 0:
                     self.nn.save('./weights/iter_{}.h5'.format(self.nn.iter()))
-                    self.latest_checkpoint = [_pickle.dumps(self.nn.get_weights(), protocol=4)]
+                    self.latest_checkpoint[0] = _pickle.dumps(
+                        self.nn.get_weights(), protocol=4)
 
             log_file.write('{}, {}, {}, {}, {}, {}\n'.format(datetime.datetime.now(
                 datetime.timezone.utc), self.nn.iter(), loss['loss'], loss['policy_loss'], loss['value_loss'], init_value[0][0]))
