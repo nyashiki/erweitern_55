@@ -14,8 +14,11 @@ def run(nn, search, verbose=False, num_sampling_moves=10, max_moves=512, playout
     game_record = gamerecord.GameRecord()
 
     for _ in range(max_moves):
-        is_repetition, is_check_repetition = position.is_repetition()
-        if is_check_repetition:
+        is_repetition, my_check_repetition, op_check_repetition = position.is_repetition()
+        if my_check_repetition:
+            game_record.winner = 1 - position.get_side_to_move()
+            break
+        elif op_check_repetition:
             game_record.winner = position.get_side_to_move()
             break
         elif is_repetition:
@@ -118,8 +121,11 @@ def random_play(max_moves=512, stop_with_checkmate=False, trim_checkmate=False):
     game_record = gamerecord.GameRecord()
 
     for _ in range(max_moves):
-        is_repetition, is_check_repetition = position.is_repetition()
-        if is_check_repetition:
+        is_repetition, my_check_repetition, op_check_repetition = position.is_repetition()
+        if my_check_repetition:
+            game_record.winner = 1 - position.get_side_to_move()
+            break
+        elif op_check_repetition:
             game_record.winner = position.get_side_to_move()
             break
         elif is_repetition:
