@@ -131,6 +131,9 @@ class USI:
                     self.position.do_move(best_move)
                     self.ponder_start()
 
+            elif command[0] == 'd':
+                self.position.print()
+
             elif command[0] == 'quit':
                 os._exit(0)
 
