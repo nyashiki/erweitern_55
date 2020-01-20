@@ -2,6 +2,8 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
+import seaborn
+
 matplotlib.use('Agg')
 
 
@@ -52,7 +54,7 @@ def main(loss_file, output_file):
 
 
 if __name__ == '__main__':
-    plt.rcParams['font.size'] = 14
     plt.style.use('seaborn')
+    seaborn.set(font_scale=1.3)
 
     main(sys.argv[1], sys.argv[2])

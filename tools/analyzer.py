@@ -75,10 +75,13 @@ def main():
         elements.append(position.to_svg())
         elements.append('</td>')
 
+        plt.gca().ticklabel_format(style='sci', scilimits=(0, 0), axis='x')
         plt.ylim([0, 100])
         plt.grid(linestyle='--')
         y = np.array(pf) * 100
         plt.scatter(range(len(pf) * sample_iter)[::sample_iter], y, s=2)
+        plt.xlabel('iterations')
+        plt.ylabel('percentage')
 
         f = io.BytesIO()
         plt.savefig(f, format='svg')
