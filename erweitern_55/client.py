@@ -14,7 +14,7 @@ class Client:
     """Client that connects the server and conducts selfplay games.
     """
 
-    def __init__(self, ip, port, update=True, cpu_only=False, update_iter=1, random_play=False):
+    def __init__(self, ip, port, update=True, cpu_only=False, update_iter=1, random_play=False, search_checkmate=True):
         self.host = ip
         self.port = port
         self.nn = None
@@ -22,10 +22,12 @@ class Client:
         self.cpu_only = cpu_only
         self.update_iter = update_iter
         self.random_play = random_play
+        self.search_checkmate = search_checkmate
 
     def run(self):
         mcts_config = mcts.Config()
-        mcts_config.simulation_num = 256
+        mcts_config.batch_size = 16
+        mcts_config.simulation_num = 800
         mcts_config.forced_playouts = False
         mcts_config.use_dirichlet = True
         mcts_config.reuse_tree = True
@@ -50,12 +52,13 @@ class Client:
 
             # Conduct selfplay.
             if self.random_play:
-                game_record = selfplay.random_play(stop_with_checkmate=True, trim_checkmate=False)
+                game_record = selfplay.random_play(
+                    stop_with_checkmate=False, trim_checkmate=False)
 
             else:
                 search.clear()
                 game_record = selfplay.run(
-                    self.nn, search, stop_with_checkmate=True, trim_checkmate=False)
+                    self.nn, search, search_checkmate=self.search_checkmate, stop_with_checkmate=False, trim_checkmate=False)
 
             # Send result.
             url = 'http://{}:{}/record'.format(self.host, self.port)
@@ -81,9 +84,11 @@ if __name__ == '__main__':
                       default=1, help='The iteration to update neural network parameters.')
     parser.add_option('-r', '--random-play', action='store_true', dest='random_play',
                       default=False, help='Games are conducted by random play.')
+    parser.add_option('--no-checkmate', action='store_true', dest='no_checkmate',
+                      default=False, help='Searching for checkmate moves.')
 
     (options, args) = parser.parse_args()
 
     client = Client(options.ip, options.port,
-                    not options.no_update, options.cpu_only, options.update_iter, options.random_play)
+                    not options.no_update, options.cpu_only, options.update_iter, options.random_play, not options.no_checkmate)
     client.run()

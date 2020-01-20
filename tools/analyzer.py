@@ -24,6 +24,8 @@ def main():
     position_counts = [0 for _ in target_positions]
     position_frequency = [[] for _ in target_positions]
 
+    sample_iter = 200
+
     with open(record_path) as f:
         counter = 0
 
@@ -41,7 +43,7 @@ def main():
 
             counter += 1
 
-            if counter == 1000:
+            if counter == sample_iter:
                 for i in range(len(target_positions)):
                     position_frequency[i].append(position_counts[i] / counter)
 
@@ -76,7 +78,7 @@ def main():
         plt.ylim([0, 100])
         plt.grid(linestyle='--')
         y = np.array(pf) * 100
-        plt.scatter(range(len(pf)), y)
+        plt.scatter(range(len(pf) * sample_iter)[::sample_iter], y, s=2)
 
         f = io.BytesIO()
         plt.savefig(f, format='svg')

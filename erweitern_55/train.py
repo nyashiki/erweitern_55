@@ -23,11 +23,11 @@ class Trainer():
     """
 
     def __init__(self, port, store_only=False, record_file='records.json', weight_file=None, update_record_num=0):
-        RECENT_GAMES = 100000
+        self.RECENT_GAMES = 100000
 
         self.port = port
 
-        self.reservoir = minishogilib.Reservoir(record_file, RECENT_GAMES)
+        self.reservoir = minishogilib.Reservoir(record_file, self.RECENT_GAMES)
         self.nn = network.Network('gpu')
 
         self.reservoir_lock = threading.Lock()
@@ -46,16 +46,26 @@ class Trainer():
 
         self.training_data = queue.Queue(maxsize=1)
 
+        self.checkpoint_interval = 1000
+        self.latest_checkpoint = [_pickle.dumps(self.nn.get_weights(), protocol=4)]
+
         self.update_record_num = update_record_num
         self.new_record_count = [0]
         self.new_record_count_lock = threading.Lock()
 
     def _sample_datasets(self):
         BATCH_SIZE = 4096
+        flat_sampling = False
+        symmetry = False
+        policy_deforming = False
 
         while True:
             with self.reservoir_lock:
-                datasets = self.reservoir.sample(BATCH_SIZE)
+                if self.reservoir.len() < self.RECENT_GAMES:
+                    continue
+
+                datasets = self.reservoir.sample(
+                    BATCH_SIZE, flat_sampling, symmetry, policy_deforming)
 
             ins = np.reshape(datasets[0], [BATCH_SIZE] + self.nn.input_shape)
             policies = np.reshape(datasets[1], [BATCH_SIZE, 69 * 5 * 5])
@@ -67,13 +77,14 @@ class Trainer():
         print('Ready')
         log_file = open('connection_log.txt', 'w')
 
-        nn = self.nn
         nn_lock = self.nn_lock
+        latest_checkpoint = self.latest_checkpoint
         reservoir = self.reservoir
         reservoir_lock = self.reservoir_lock
         update_record_num = self.update_record_num
         new_record_count = self.new_record_count
         new_record_count_lock = self.new_record_count_lock
+        RECENT_GAMES = self.RECENT_GAMES
 
         class handler(http.server.SimpleHTTPRequestHandler):
             def do_GET(self):
@@ -83,7 +94,7 @@ class Trainer():
                     self.end_headers()
 
                     with nn_lock:
-                        data = _pickle.dumps(nn.get_weights(), protocol=4)
+                        data = latest_checkpoint[0]
 
                     self.wfile.write(data)
 
@@ -114,7 +125,9 @@ class Trainer():
 
                     if update_record_num > 0:
                         with new_record_count_lock:
-                            new_record_count[0] += 1
+                            with reservoir_lock:
+                                if reservoir.len() >= RECENT_GAMES:
+                                    new_record_count[0] += 1
 
                 else:
                     self.send_response(400)
@@ -155,8 +168,10 @@ class Trainer():
                 init_policy, init_value = self.nn.predict(
                     init_position_nn_input)
 
-                if self.nn.iter() % 1000 == 0:
+                if self.nn.iter() % self.checkpoint_interval == 0:
                     self.nn.save('./weights/iter_{}.h5'.format(self.nn.iter()))
+                    self.latest_checkpoint[0] = _pickle.dumps(
+                        self.nn.get_weights(), protocol=4)
 
             log_file.write('{}, {}, {}, {}, {}, {}\n'.format(datetime.datetime.now(
                 datetime.timezone.utc), self.nn.iter(), loss['loss'], loss['policy_loss'], loss['value_loss'], init_value[0][0]))

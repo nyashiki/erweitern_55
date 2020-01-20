@@ -13,18 +13,27 @@ import network
 class USI:
     def __init__(self, weight_file):
         self.weight_file = weight_file
+        self.nn = None
+        self.search = None
+
+        self.option = {
+            'ponder': False,
+            'softmax_sampling_moves': 30
+        }
 
     def isready(self):
-        self.nn = network.Network()
+        if self.nn is None:
+            self.nn = network.Network()
 
-        if self.weight_file is not None:
-            self.nn.load(self.weight_file)
+            if self.weight_file is not None:
+                self.nn.load(self.weight_file)
 
         self.config = mcts.Config()
         self.config.simulation_num = int(1e9)
         self.config.reuse_tree = True
 
-        self.search = mcts.MCTS(self.config)
+        if self.search is None:
+            self.search = mcts.MCTS(self.config)
         self.search.clear()
 
         self.position = minishogilib.Position()
@@ -45,6 +54,18 @@ class USI:
                 print('id name erweitern_55')
                 print('id author nyashiki')
                 print('usiok')
+            elif command[0] == 'setoption':
+                key = command[2]
+                value = command[4]
+
+                if value == 'true' or value == 'True':
+                    value = True
+                elif value == 'false' or value == 'False':
+                    value = False
+                elif value.isdigit():
+                    value = int(value)
+
+                self.option[key.lower()] = value
 
             elif command[0] == 'position':
                 self.ponder_stop()
@@ -87,22 +108,30 @@ class USI:
                     if checkmate:
                         best_move = checkmate_move
                     else:
-                        remain_time = timelimit['btime'] if self.position.get_side_to_move() == 0 else timelimit['wtime']
-                        think_time = remain_time // 20
+                        remain_time = timelimit['btime'] if self.position.get_side_to_move(
+                        ) == 0 else timelimit['wtime']
+                        think_time = remain_time // 10
                         if think_time < timelimit['byoyomi']:
-                            think_time += timelimit['byoyomi'] + 700
-                        think_time = max(think_time, 1700)
+                          think_time = remain_time + timelimit['byoyomi']
 
                         print('info string think time {}'.format(
                             think_time), flush=True)
                         root = self.search.run(
                             self.position, self.nn, think_time, True)
-                        best_move = self.search.best_move(root)
+
+                        if self.position.get_ply() < self.option['softmax_sampling_moves']:
+                            best_move = self.search.softmax_sample_among_top_moves(
+                                root)
+                        else:
+                            best_move = self.search.best_move(root)
 
                     print('bestmove {}'.format(best_move), flush=True)
 
                     self.position.do_move(best_move)
                     self.ponder_start()
+
+            elif command[0] == 'd':
+                self.position.print()
 
             elif command[0] == 'quit':
                 os._exit(0)
@@ -115,7 +144,7 @@ class USI:
             position: This position turn should be the other player's.
         """
         self.ponder_thread = threading.Thread(
-            target=self.search.run, args=(self.position, self.nn, 0, True))
+            target=self.search.run, args=(self.position, self.nn, 0, True, not self.option['ponder']))
         self.ponder_thread.start()
 
     def ponder_stop(self):
