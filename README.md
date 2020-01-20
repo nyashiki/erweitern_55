@@ -1,4 +1,5 @@
 # erweitern_55
+[![](https://github.com/Nyashiki/erweitern_55/workflows/test/badge.svg)](https://github.com/Nyashiki/erweitern_55/actions?workflow=test)
 
 An implementation of AlphaZero on Minishogi (a variant of Shogi).
 
