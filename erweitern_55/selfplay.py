@@ -7,7 +7,7 @@ import time
 import gamerecord
 
 
-def run(nn, search, verbose=False, num_sampling_moves=10, max_moves=512, playout_cap_oscillation={'enable': False, 'N': 800, 'n': 128, 'frac': 0.25}, checkmate_depth=7, stop_with_checkmate=False, trim_checkmate=False):
+def run(nn, search, verbose=False, num_sampling_moves=10, max_moves=512, playout_cap_oscillation={'enable': False, 'N': 800, 'n': 128, 'frac': 0.25}, checkmate_depth=7, stop_with_checkmate=False):
     position = minishogilib.Position()
     position.set_start_position()
 
@@ -32,34 +32,31 @@ def run(nn, search, verbose=False, num_sampling_moves=10, max_moves=512, playout
 
         start_time = time.time()
 
+        if playout_cap_oscillation['enable']:
+            if np.random.rand() < playout_cap_oscillation['frac']:
+                search.config.simulation_num = playout_cap_oscillation['N']
+                search.config.forced_playouts = True
+                search.config.use_dirichlet = True
+                search.config.reuse_tree = False
+                search.config.target_pruning = True
+                search.config.immediate = False
+
+            else:
+                search.config.simulation_num = playout_cap_oscillation['n']
+                search.config.forced_playouts = False
+                search.config.use_dirichlet = False
+                search.config.reuse_tree = True
+                search.config.target_pruning = False
+                search.config.immediate = True
+
+        root = search.run(position, nn)
+
         checkmate, checkmate_move = position.solve_checkmate_dfs(
             checkmate_depth)
 
         if checkmate:
             next_move = checkmate_move
-            if not stop_with_checkmate:
-                search.mcts.clear()
-
         else:
-            if playout_cap_oscillation['enable']:
-                if np.random.rand() < playout_cap_oscillation['frac']:
-                    search.config.simulation_num = playout_cap_oscillation['N']
-                    search.config.forced_playouts = True
-                    search.config.use_dirichlet = True
-                    search.config.reuse_tree = False
-                    search.config.target_pruning = True
-                    search.config.immediate = False
-
-                else:
-                    search.config.simulation_num = playout_cap_oscillation['n']
-                    search.config.forced_playouts = False
-                    search.config.use_dirichlet = False
-                    search.config.reuse_tree = True
-                    search.config.target_pruning = False
-                    search.config.immediate = True
-
-            root = search.run(position, nn)
-
             if position.get_ply() < num_sampling_moves:
                 next_move = search.softmax_sample(root, 1.0)
             else:
@@ -76,17 +73,10 @@ def run(nn, search, verbose=False, num_sampling_moves=10, max_moves=512, playout
         position.do_move(next_move)
 
         game_record.sfen_kif.append(next_move.sfen())
-        if checkmate:
-            game_record.mcts_result.append(
-                (1, 1.0, [(checkmate_move.sfen(), 1)]))
+        game_record.mcts_result.append(search.dump(root))
 
+        if not playout_cap_oscillation['enable'] or search.config.simulation_num >= playout_cap_oscillation['N']:
             game_record.learning_target_plys.append(game_record.ply)
-
-        else:
-            game_record.mcts_result.append(search.dump(root))
-
-            if not playout_cap_oscillation['enable'] or search.config.simulation_num >= playout_cap_oscillation['N']:
-                game_record.learning_target_plys.append(game_record.ply)
 
         game_record.ply += 1
 
@@ -99,14 +89,6 @@ def run(nn, search, verbose=False, num_sampling_moves=10, max_moves=512, playout
 
         if checkmate and stop_with_checkmate:
             game_record.winner = 1 - position.get_side_to_move()
-
-            if trim_checkmate:
-                game_record.ply -= 2
-                game_record.sfen_kif = game_record.sfen_kif[:-2]
-                game_record.mcts_result = game_record.mcts_result[:-2]
-                game_record.learning_target_plys = game_record.learning_target_plys[:-2]
-
-            break
 
     game_record.timestamp = int(datetime.now().timestamp())
     return game_record
