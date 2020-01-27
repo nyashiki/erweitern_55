@@ -7,7 +7,7 @@ import time
 import gamerecord
 
 
-def run(nn, search, verbose=False, num_sampling_moves=10, max_moves=512, playout_cap_oscillation={'enable': False, 'N': 800, 'n': 128, 'frac': 0.25}, search_checkmate=True, stop_with_checkmate=False, trim_checkmate=False):
+def run(nn, search, verbose=False, num_sampling_moves=10, max_moves=512, playout_cap_oscillation={'enable': False, 'N': 800, 'n': 128, 'frac': 0.25}, checkmate_depth=7, stop_with_checkmate=False, trim_checkmate=False):
     position = minishogilib.Position()
     position.set_start_position()
 
@@ -32,10 +32,8 @@ def run(nn, search, verbose=False, num_sampling_moves=10, max_moves=512, playout
 
         start_time = time.time()
 
-        if search_checkmate:
-            checkmate, checkmate_move = position.solve_checkmate_dfs(7)
-        else:
-            checkmate, checkmate_move = None, None
+        checkmate, checkmate_move = position.solve_checkmate_dfs(
+            checkmate_depth)
 
         if checkmate:
             next_move = checkmate_move

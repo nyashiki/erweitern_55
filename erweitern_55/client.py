@@ -14,7 +14,7 @@ class Client:
     """Client that connects the server and conducts selfplay games.
     """
 
-    def __init__(self, ip, port, update=True, cpu_only=False, update_iter=1, random_play=False, search_checkmate=True):
+    def __init__(self, ip, port, update=True, cpu_only=False, update_iter=1, random_play=False, checkmate_depth=7):
         self.host = ip
         self.port = port
         self.nn = None
@@ -22,7 +22,7 @@ class Client:
         self.cpu_only = cpu_only
         self.update_iter = update_iter
         self.random_play = random_play
-        self.search_checkmate = search_checkmate
+        self.checkmate_depth = checkmate_depth
 
     def run(self):
         mcts_config = mcts.Config()
@@ -58,7 +58,7 @@ class Client:
             else:
                 search.clear()
                 game_record = selfplay.run(
-                    self.nn, search, search_checkmate=self.search_checkmate, stop_with_checkmate=False, trim_checkmate=False)
+                    self.nn, search, checkmate_depth=self.checkmate_depth, stop_with_checkmate=False, trim_checkmate=False)
 
             # Send result.
             url = 'http://{}:{}/record'.format(self.host, self.port)
@@ -84,11 +84,11 @@ if __name__ == '__main__':
                       default=1, help='The iteration to update neural network parameters.')
     parser.add_option('-r', '--random-play', action='store_true', dest='random_play',
                       default=False, help='Games are conducted by random play.')
-    parser.add_option('--no-checkmate', action='store_true', dest='no_checkmate',
-                      default=False, help='Searching for checkmate moves.')
+    parser.add_option('-d', '--checkmate-depth', dest='checkmate_depth',
+                      default=7, help='The depth of checkmate searching.')
 
     (options, args) = parser.parse_args()
 
     client = Client(options.ip, options.port,
-                    not options.no_update, options.cpu_only, options.update_iter, options.random_play, not options.no_checkmate)
+                    not options.no_update, options.cpu_only, options.update_iter, options.random_play, options.checkmate_depth)
     client.run()
