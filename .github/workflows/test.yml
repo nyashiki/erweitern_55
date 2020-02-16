@@ -11,5 +11,6 @@ jobs:
         run: |
           wget -q https://github.com/Nyashiki/minishogilib/releases/download/v0.6.12/minishogilib-0.6.12-cp36-cp36m-manylinux1_x86_64.whl
           python3 -m pip install minishogilib-0.6.12-cp36-cp36m-manylinux1_x86_64.whl
+          python3 -m pip install setuptools
           python3 -m pip install -r requirements.txt
           python3 -m unittest discover tests --verbose
