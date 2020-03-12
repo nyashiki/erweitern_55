@@ -1,0 +1,72 @@
+<html>
+    <head>
+        <meta charset="utf8">
+        <title>
+            erwitern_55 browser console
+        </title>
+
+        <style>
+            .block {
+                display: table;
+                padding-bottom: 2px;
+            }
+        </style>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
+        <script>
+            var url = window.location.protocol + "//" + window.location.host + "/";
+            var socket = io(url);
+
+            socket.on("display", function(data) {
+                document.getElementById("board").innerHTML = data["svg"];
+            });
+
+            socket.on("message", function(data) {
+                document.getElementById("message").value += ">: " + data + '\n';
+            });
+
+            // Functions.
+            var display = function() {
+                socket.emit("display")
+            };
+
+            var send_command = function() {
+                if (event.key == 'Enter') {
+                    var command = document.getElementById("command").value;
+
+                    document.getElementById("message").value += "<: " + command + '\n';
+
+                    socket.emit("command", command);
+
+                    // Clear input textbox.
+                    document.getElementById("command").value = "";
+                }
+            };
+
+
+        </script>
+    </head>
+
+    <body onload="display()">
+        <div class="block">
+            <div id="board" class="cell">
+            </div>
+        </div>
+
+        <div class="block">
+            Input: <br>
+            <input id="command" type="text" size="64" onkeydown="send_command()" />
+        </div>
+
+        <div class="block">
+            Output: <br>
+            <textarea id="message" type="text" cols="96" rows="32" style="resize:none; background-color: #f0f0f0;" readonly></textarea>
+        </div>
+
+        <div class="block">
+            Usage: <br>
+        </div>
+    </body>
+
+
+</html>
