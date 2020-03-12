@@ -1,9 +1,11 @@
 from flask import Flask, render_template
 from flask_socketio import SocketIO
+import math
 import queue
 import simplejson as json
 import subprocess
 import threading
+import time
 
 import minishogilib
 
@@ -15,6 +17,9 @@ class Engine():
         self.usi_option = usi_option
         self.timelimit = timelimit
         self.socketio = None
+
+        self.time_left = 0
+        self.byoyomi = 0
 
         self.process = subprocess.Popen(command.split(
         ), cwd=cwd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
@@ -56,12 +61,12 @@ class Engine():
         message = self.message_queue.get()
         return message
 
-    def ask_nextmove(self, position, timelimits, byoyomi):
+    def ask_nextmove(self, position):
         sfen_position = 'position sfen ' + position.sfen(True)
         command = 'go {} {} {} {} {} {}'.format(
-            self.timelimit['btime'], timelimits[0],
-            self.timelimit['wtime'], timelimits[1],
-            self.timelimit['byoyomi'], byoyomi)
+            self.timelimit['btime'], self.time_left,
+            self.timelimit['wtime'], self.time_left,
+            self.timelimit['byoyomi'], self.byoyomi)
 
         self.send_message(sfen_position)
         self.send_message(command)
@@ -109,10 +114,12 @@ def main():
     position = minishogilib.Position()
     position.set_start_position()
 
+    consumptions = []
+
     with open('settings.json') as f:
         settings = json.load(f)
 
-    engine = Engine(**settings)
+    engine = Engine(**settings['engine'])
     engine.set_socketio(socketio)
     engine.usi()
     engine.isready()
@@ -127,6 +134,12 @@ def main():
         if data[0] == 'newgame':
             position.set_start_position()
             engine.usinewgame()
+
+            engine.time_left = settings['timelimit']
+            engine.byoyomi = settings['byoyomi']
+
+            display()
+
         elif data[0] == 'move':
             if len(data) < 2:
                 socketio.emit('message', 'You have to specify the next move.')
@@ -146,13 +159,27 @@ def main():
             display()
 
         elif data[0] == 'undo':
+            if position.get_ply() == 0:
+                socketio.emit('message', 'This is the initial position and you cannot go back more.')
+                return
+
             position.undo_move()
+            last_consumption = consumptions.pop()
+            engine.time_left += last_consumption
+
             display()
 
         elif data[0] == 'go':
-            timelimits = [5000, 5000]
+            current_time = time.time()
+            next_move = engine.ask_nextmove(position)
+            elapsed = time.time() - current_time
+            elapsed = int(max(math.floor(elapsed), 1))
+            elapsed = elapsed * 1000
 
-            next_move = engine.ask_nextmove(position, timelimits, 5000)
+            engine.time_left -= elapsed
+            print('engine.time_left', engine.time_left)
+            consumptions.append(elapsed)
+
             next_move = position.sfen_to_move(next_move)
             position.do_move(next_move)
 
@@ -165,7 +192,9 @@ def main():
     @socketio.on('display')
     def display():
         data = {
-            'svg': position.to_svg()
+            'svg': position.to_svg(),
+            'timelimit': engine.time_left,
+            'byoyomi': engine.byoyomi
         }
 
         socketio.emit('display', data)

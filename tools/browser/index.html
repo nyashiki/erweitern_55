@@ -20,6 +20,7 @@
 
             socket.on("display", function(data) {
                 document.getElementById("board").innerHTML = data["svg"];
+                document.getElementById("timelimit").innerHTML = data["timelimit"] / 1000 + " seconds left."
             });
 
             socket.on("message", function(data) {
@@ -52,8 +53,12 @@
 
     <body onload="display()">
         <div class="block">
-            <div id="board" class="cell">
+            <div id="board">
             </div>
+        </div>
+
+        <div class="block">
+            <p id="timelimit">0 seconds left.</p>
         </div>
 
         <div class="block">
