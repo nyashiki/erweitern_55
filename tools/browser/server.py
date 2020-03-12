@@ -177,7 +177,6 @@ def main():
             elapsed = elapsed * 1000
 
             engine.time_left -= elapsed
-            print('engine.time_left', engine.time_left)
             consumptions.append(elapsed)
 
             next_move = position.sfen_to_move(next_move)
