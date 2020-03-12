@@ -22,7 +22,9 @@
             });
 
             socket.on("message", function(data) {
-                document.getElementById("message").value += ">: " + data + '\n';
+                var message_textarea = document.getElementById("message");
+                message_textarea.value += ">: " + data + '\n';
+                message_textarea.scrollTop = message_textarea.scrollHeight;
             });
 
             // Functions.
