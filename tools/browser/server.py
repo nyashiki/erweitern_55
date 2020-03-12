@@ -108,7 +108,7 @@ class Engine():
 
 def main():
     app = Flask(__name__, template_folder='./')
-    app.debug = True
+    app.debug = False
     socketio = SocketIO(app)
 
     position = minishogilib.Position()
@@ -199,7 +199,7 @@ def main():
 
         socketio.emit('display', data)
 
-    socketio.run(app, host='0.0.0.0', port='8000')
+    socketio.run(app, host='0.0.0.0', port=8000)
 
 
 if __name__ == '__main__':
