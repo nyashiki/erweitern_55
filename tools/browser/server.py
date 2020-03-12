@@ -105,11 +105,67 @@ class Engine():
     def quit(self):
         self.send_message('quit')
 
+def handler(data, position, engine, settings, consumptions, display):
+    data = data.split(' ')
+    if data[0] == 'newgame':
+        position.set_start_position()
+        engine.usinewgame()
+
+        engine.time_left = settings['timelimit']
+        engine.byoyomi = settings['byoyomi']
+
+        display()
+
+    elif data[0] == 'move':
+        if len(data) < 2:
+            socketio.emit('message', 'You have to specify the next move.', broadcast=True)
+            return
+
+        move = data[1]
+        moves = position.generate_moves()
+        moves_sfen = [m.sfen() for m in moves]
+
+        if not move in moves_sfen:
+            socketio.emit('message', '{} is not a legal move.'.format(move), broadcast=True)
+            return
+
+        move = position.sfen_to_move(move)
+        position.do_move(move)
+
+        display()
+
+    elif data[0] == 'undo':
+        if position.get_ply() == 0:
+            socketio.emit('message', 'This is the initial position and you cannot go back more.', broadcast=True)
+            return
+
+        position.undo_move()
+        last_consumption = consumptions.pop()
+        engine.time_left += last_consumption
+
+        display()
+
+    elif data[0] == 'go':
+        current_time = time.time()
+        next_move = engine.ask_nextmove(position)
+        elapsed = time.time() - current_time
+        elapsed = int(max(math.floor(elapsed), 1))
+        elapsed = elapsed * 1000
+
+        engine.time_left -= elapsed
+        consumptions.append(elapsed)
+
+        next_move = position.sfen_to_move(next_move)
+        position.do_move(next_move)
+
+        display()
+
+    else:
+        socketio.emit('message', 'Unknown command {}.'.format(data[0]))
 
 def main():
     app = Flask(__name__, template_folder='./')
     app.debug = False
-    app.threaded = True
     socketio = SocketIO(app)
 
     position = minishogilib.Position()
@@ -129,66 +185,6 @@ def main():
     def sessions():
         return render_template('index.html')
 
-    @socketio.on('command')
-    def command(data):
-        data = data.split(' ')
-        if data[0] == 'newgame':
-            position.set_start_position()
-            engine.usinewgame()
-
-            engine.time_left = settings['timelimit']
-            engine.byoyomi = settings['byoyomi']
-
-            display()
-
-        elif data[0] == 'move':
-            if len(data) < 2:
-                socketio.emit('message', 'You have to specify the next move.', broadcast=True)
-                return
-
-            move = data[1]
-            moves = position.generate_moves()
-            moves_sfen = [m.sfen() for m in moves]
-
-            if not move in moves_sfen:
-                socketio.emit('message', '{} is not a legal move.'.format(move), broadcast=True)
-                return
-
-            move = position.sfen_to_move(move)
-            position.do_move(move)
-
-            display()
-
-        elif data[0] == 'undo':
-            if position.get_ply() == 0:
-                socketio.emit('message', 'This is the initial position and you cannot go back more.', broadcast=True)
-                return
-
-            position.undo_move()
-            last_consumption = consumptions.pop()
-            engine.time_left += last_consumption
-
-            display()
-
-        elif data[0] == 'go':
-            current_time = time.time()
-            next_move = engine.ask_nextmove(position)
-            elapsed = time.time() - current_time
-            elapsed = int(max(math.floor(elapsed), 1))
-            elapsed = elapsed * 1000
-
-            engine.time_left -= elapsed
-            consumptions.append(elapsed)
-
-            next_move = position.sfen_to_move(next_move)
-            position.do_move(next_move)
-
-            display()
-
-        else:
-            socketio.emit('message', 'Unknown command {}.'.format(data[0]))
-
-
     @socketio.on('display')
     def display():
         data = {
@@ -198,6 +194,11 @@ def main():
         }
 
         socketio.emit('display', data, broadcast=True)
+
+    @socketio.on('command')
+    def command(data):
+        threading.Thread(target=handler, args=(data, position, engine, settings, consumptions, display)).start()
+
 
     socketio.run(app, host='0.0.0.0', port=8000)
 
