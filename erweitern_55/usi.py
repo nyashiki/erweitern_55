@@ -144,7 +144,7 @@ class USI:
             position: This position turn should be the other player's.
         """
         self.ponder_thread = threading.Thread(
-            target=self.search.run, args=(self.position, self.nn, 0, True, not self.option['ponder']))
+            target=self.search.run, args=(self.position, self.nn, 0, False, not self.option['ponder']))
         self.ponder_thread.start()
 
     def ponder_stop(self):
