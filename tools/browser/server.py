@@ -41,7 +41,7 @@ class Engine():
 
                 if self.verbose:
                     if  self.socketio is not None:
-                        self.socketio.emit('message', message)
+                        self.socketio.emit('message', message, broadcast=True)
                     print('<:', message)
 
     def send_message(self, message):
@@ -109,6 +109,7 @@ class Engine():
 def main():
     app = Flask(__name__, template_folder='./')
     app.debug = False
+    app.threaded = True
     socketio = SocketIO(app)
 
     position = minishogilib.Position()
@@ -142,7 +143,7 @@ def main():
 
         elif data[0] == 'move':
             if len(data) < 2:
-                socketio.emit('message', 'You have to specify the next move.')
+                socketio.emit('message', 'You have to specify the next move.', broadcast=True)
                 return
 
             move = data[1]
@@ -150,7 +151,7 @@ def main():
             moves_sfen = [m.sfen() for m in moves]
 
             if not move in moves_sfen:
-                socketio.emit('message', '{} is not a legal move.'.format(move))
+                socketio.emit('message', '{} is not a legal move.'.format(move), broadcast=True)
                 return
 
             move = position.sfen_to_move(move)
@@ -160,7 +161,7 @@ def main():
 
         elif data[0] == 'undo':
             if position.get_ply() == 0:
-                socketio.emit('message', 'This is the initial position and you cannot go back more.')
+                socketio.emit('message', 'This is the initial position and you cannot go back more.', broadcast=True)
                 return
 
             position.undo_move()
@@ -196,7 +197,7 @@ def main():
             'byoyomi': engine.byoyomi
         }
 
-        socketio.emit('display', data)
+        socketio.emit('display', data, broadcast=True)
 
     socketio.run(app, host='0.0.0.0', port=8000)
 
