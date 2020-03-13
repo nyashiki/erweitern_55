@@ -190,8 +190,9 @@ def main():
             engine.time_left -= elapsed
             consumptions.append(elapsed)
 
-            next_move = position.sfen_to_move(next_move)
-            position.do_move(next_move)
+            if next_move != "resign":
+                next_move = position.sfen_to_move(next_move)
+                position.do_move(next_move)
 
             display()
 
