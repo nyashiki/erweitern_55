@@ -79,7 +79,8 @@ class MCTS():
 
             # Check the timelimit.
             current_time = time.time()
-            if timelimit > 0 and (current_time - start_time) * 1000 >= timelimit:
+            elapsed = current_time - start_time
+            if timelimit > 0 and elapsed * 1000 >= timelimit:
                 break
 
             if self.config.immediate:
@@ -112,10 +113,10 @@ class MCTS():
             # Output log.
             if verbose and loop_count % 50 == 0:
                 pv_moves, q = self.mcts.info(root)
-                print('info depth {} nodes {} hashfull {} score winrate {:.3f} pv {}'.format(len(pv_moves),
+                print('info depth {} nodes {} nps {} hashfull {} score winrate {:.3f} pv {}'.format(len(pv_moves),
                                                                                              self.mcts.get_nodes(),
-                                                                                             int(self.mcts.get_usage(
-                                                                                             ) * 1000),
+                                                                                             0 if elapsed == 0 else int(self.mcts.get_nodes() / elapsed),
+                                                                                             int(self.mcts.get_usage() * 1000),
                                                                                              q,
                                                                                              ' '.join([m.sfen() for m in pv_moves])), flush=True)
 
