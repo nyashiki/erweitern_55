@@ -11,9 +11,25 @@
                 display: table;
                 padding-bottom: 2px;
             }
+            .cell {
+                display: table-cell;
+            }
+            #record {
+                border-width: 1px;
+                width: 100px;
+                height: 394px;
+                margin-left: 10px;
+            }
+
+            #download {
+                display: block;
+                margin-top: 5px;
+                margin-left: 10px;
+            }
         </style>
 
         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
+        <script src="http://danml.com/js/download.js"></script>
         <script>
             var url = window.location.protocol + "//" + window.location.host + "/";
             var socket = io(url);
@@ -21,6 +37,19 @@
             socket.on("display", function(data) {
                 document.getElementById("board").innerHTML = data["svg"];
                 document.getElementById("timelimit").innerHTML = data["timelimit"] / 1000 + " seconds left."
+
+                var record = document.getElementById("record");
+                record.innerHTML = "";
+
+                var ply = 0;
+                data["kif"].forEach(function(item, index) {
+                    var option = document.createElement("option");
+                    option.text = item;
+                    record.add(option);
+                    ply++;
+                });
+
+                record.scrollTop = record.scrollHeight * Math.max(ply - 1, 0) / ply;
             });
 
             socket.on("message", function(data) {
@@ -47,13 +76,23 @@
                 }
             };
 
-
+            var download_csa = function() {
+                socket.emit("download", function (data) {
+                    download(data["kif"], data["filename"], "text/plain");
+                });
+            };
         </script>
     </head>
 
     <body onload="display()">
         <div class="block">
-            <div id="board">
+            <div id="board" class="cell">
+            </div>
+
+            <div class="cell">
+                <select id="record" size="10">
+                </select>
+                <input type="button" id="download" value="Download CSA" onclick="download_csa()" />
             </div>
         </div>
 

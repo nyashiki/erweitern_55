@@ -1,3 +1,4 @@
+import datetime
 from flask import Flask, render_template
 from flask_socketio import SocketIO
 import math
@@ -105,6 +106,30 @@ class Engine():
     def quit(self):
         self.send_message('quit')
 
+def dump_csa(position):
+    data = []
+
+    data.append('V2.2')
+    data.append('N+SENTE')
+    data.append('N-GOTE')
+    data.append('P1-HI-KA-GI-KI-OU')
+    data.append('P2 *  *  *  * -FU')
+    data.append('P3 *  *  *  *  * ')
+    data.append('P4+FU *  *  *  * ')
+    data.append('P5+OU+KI+GI+KA+HI')
+    data.append('+')
+
+    csa_kif = position.get_csa_kif()
+
+    for (ply, kif) in enumerate(csa_kif):
+        if ply % 2 == 0:
+            data.append('+{}'.format(kif))
+        else:
+            data.append('-{}'.format(kif))
+        data.append('T0')
+
+    return '\n'.join(data)
+
 def main():
     app = Flask(__name__, template_folder='./')
     app.debug = False
@@ -131,11 +156,23 @@ def main():
     def display():
         data = {
             'svg': position.to_svg(),
+            'kif': position.get_csa_kif(),
             'timelimit': engine.time_left,
             'byoyomi': engine.byoyomi
         }
 
         socketio.emit('display', data, broadcast=True)
+
+    @socketio.on('download')
+    def download():
+        current_time = '{0:%Y-%m-%d-%H%M%S}'.format(datetime.datetime.now())
+
+        data = {
+            'kif': dump_csa(position),
+            'filename': '{}.csa'.format(current_time)
+        }
+
+        return data, 200
 
     @socketio.on('command')
     def command(data):
