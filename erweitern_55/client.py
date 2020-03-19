@@ -1,3 +1,4 @@
+from datetime import datetime
 import minishogilib
 import numpy as np
 from optparse import OptionParser
@@ -27,7 +28,7 @@ class Client:
 
     def run(self):
         memory_size = 0.01
-        simulation_num = 800
+        simulation_num = 20
 
         device = 'cpu' if self.cpu_only else 'gpu'
         self.nn = network.Network(device)
@@ -49,7 +50,6 @@ class Client:
                     weights = _pickle.loads(res.read())
                     self.nn.model.set_weights(weights)
 
-            start_time = time.time()
             # MCTS begin.
             # Step 1: Set the root nodes.
             roots = [None for _ in range(self.worker_num)]
@@ -85,17 +85,58 @@ class Client:
                     searchs[i].evaluate(leaf_nodes[i], leaf_positions[i], policy[i], value[i][0])
                     searchs[i].backpropagate(leaf_nodes[i])
 
-            # MCTS end.
-            elapsed = time.time() - start_time
-            print('elapsed:', elapsed)
-            break
+            # Do the next move.
+            for (i, position) in enumerate(positions):
+                if position.get_ply() < 30:
+                    next_move = searchs[i].softmax_sample(roots[i], temperature=1.0)
+                else:
+                    next_move = searchs[i].best_move(roots[i])
 
-            # Send result.
-            url = 'http://{}:{}/record'.format(self.host, self.port)
-            data = _pickle.dumps(game_record, protocol=4)
-            req = urllib.request.Request(url, data)
-            with urllib.request.urlopen(req) as res:
-                pass
+                position.do_move(next_move)
+
+                # Record for the training.
+                game_records[i].sfen_kif.append(next_move.sfen())
+                game_records[i].mcts_result.append(searchs[i].dump(roots[i], False, True))
+                game_records[i].learning_target_plys.append(game_records[i].ply)
+                game_records[i].ply += 1
+
+                # Judge whether game is over or not.
+                game_over = False
+                is_repetition, my_check_repetition, op_check_repetition = position.is_repetition()
+                if my_check_repetition:
+                    game_records[i].winner = 1 - position.get_side_to_move()
+                    game_over = True
+                elif op_check_repetition:
+                    game_records[i].winner = position.get_side_to_move()
+                    game_over = True
+                elif is_repetition:
+                    game_records[i].winner = 1
+                    game_over = True
+                elif position.get_ply() >= 320:
+                    game_records[i].winner = 2
+                    game_over = True
+
+                moves = position.generate_moves()
+                if len(moves) == 0:
+                    game_records[i].winner = 1 - position.get_side_to_move()
+                    game_over = True
+
+                # If end, send the result.
+                if game_over:
+                    game_records[i].timestamp = int(datetime.now().timestamp())
+                    url = 'http://{}:{}/record'.format(self.host, self.port)
+                    data = _pickle.dumps(game_records[i], protocol=4)
+                    req = urllib.request.Request(url, data)
+                    with urllib.request.urlopen(req) as res:
+                        pass
+
+                    # Set up for the next game.
+                    position.set_start_position()
+                    searchs[i].clear()
+                    game_records[i] = gamerecord.GameRecord()
+
+            # MCTS end.
+
 
 
 
