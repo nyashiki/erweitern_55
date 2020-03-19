@@ -218,6 +218,10 @@ def main():
             display()
 
         elif data[0] == 'go':
+            if engine.time_left == 0:
+                socketio.emit('message', '0 seconds left to think.', broadcast=True)
+                return
+
             current_time = time.time()
             next_move = engine.ask_nextmove(position)
             elapsed = time.time() - current_time
@@ -234,7 +238,7 @@ def main():
             display()
 
         else:
-            socketio.emit('message', 'Unknown command {}.'.format(data[0]))
+            socketio.emit('message', 'Unknown command {}.'.format(data[0]), broadcast=True)
 
 
     socketio.run(app, host='0.0.0.0', port=8000)
